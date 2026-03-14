@@ -1,0 +1,80 @@
+version: "3.9"
+
+services:
+
+  # ─── Torrent Scraper ──────────────────────────────────────────────────────
+  scraper:
+    build:
+      context: ./scraper
+      dockerfile: Dockerfile
+    image: magnetio-scraper:latest
+    container_name: magnetio_scraper
+    restart: unless-stopped
+    environment:
+      - PORT=8080
+      - REDIS_URI=redis://redis:6379
+      - CACHE_TTL_STREAMS=${CACHE_TTL_STREAMS:-3600}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - magnetio_net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ─── Stremio Addon ────────────────────────────────────────────────────────
+  addon:
+    build:
+      context: ./addon
+      dockerfile: Dockerfile
+    image: magnetio-addon:latest
+    container_name: magnetio_addon
+    restart: unless-stopped
+    ports:
+      - "${PORT:-7000}:7000"
+    environment:
+      - PORT=7000
+      - REDIS_URI=redis://redis:6379
+      - SCRAPER_URL=http://scraper:8080
+      - METRICS_USER=${METRICS_USER:-admin}
+      - METRICS_PASSWORD=${METRICS_PASSWORD:-magnetio}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    depends_on:
+      redis:
+        condition: service_healthy
+      scraper:
+        condition: service_healthy
+    networks:
+      - magnetio_net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:7000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ─── Redis Cache ──────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: magnetio_redis
+    restart: unless-stopped
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis_data:/data
+    networks:
+      - magnetio_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  redis_data:
+
+networks:
+  magnetio_net:
+    driver: bridge
