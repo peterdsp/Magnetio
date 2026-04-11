@@ -38,6 +38,14 @@ export async function cacheWrap(key, loader, ttl = 3600) {
   return value;
 }
 
+export async function cacheGet(key) {
+  return getStore().get(key);
+}
+
+export async function cacheSet(key, value, ttl = 3600) {
+  return getStore().set(key, value, ttl * 1000);
+}
+
 /**
  * Remove a specific key from the cache.
  */

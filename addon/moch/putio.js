@@ -19,6 +19,19 @@ export async function resolve(stream, apiKey) {
   return resolveWithCache(cacheKey, () => _resolve(stream, apiKey));
 }
 
+export async function prewarm(stream, apiKey) {
+  if (!isValidToken(apiKey)) return false;
+
+  try {
+    const magnet = `magnet:?xt=urn:btih:${stream.infoHash}`;
+    const { data } = await puPost(`${PU_BASE}/transfers/add`, apiKey, { url: magnet });
+    return !!data.transfer;
+  } catch (err) {
+    handlePuError(err, apiKey);
+    return false;
+  }
+}
+
 export async function getCatalog(apiKey, type, skip = 0) {
   if (!isValidToken(apiKey)) return [];
 

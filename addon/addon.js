@@ -54,7 +54,7 @@ export async function getAddonInterface(config) {
             const baseStreams = filtered.map(r => toStreamInfo(r, config));
 
             // 5. Apply debrid service enhancements (moch)
-            const enhanced = await applyMochs(baseStreams, config);
+            const enhanced = await applyMochs(baseStreams, config, { type, id });
 
             // 6. Inject any static streams
             const statics = toStaticStream(id, config);

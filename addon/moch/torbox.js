@@ -35,6 +35,21 @@ export async function resolve(stream, apiKey) {
   return resolveWithCache(cacheKey, () => _resolve(stream, apiKey));
 }
 
+export async function prewarm(stream, apiKey) {
+  if (!isValidToken(apiKey)) return false;
+
+  try {
+    const { data } = await tbPost(`${TB_BASE}/torrents/createtorrent`, apiKey, {
+      magnet: `magnet:?xt=urn:btih:${stream.infoHash}`,
+    });
+
+    return !!(data.success && data.data?.torrent_id);
+  } catch (err) {
+    handleTbError(err, apiKey);
+    return false;
+  }
+}
+
 export async function getCatalog(apiKey, type, skip = 0) {
   if (!isValidToken(apiKey)) return [];
 

@@ -58,6 +58,8 @@ export function landingTemplate(manifest, initialConfig = {}) {
     qualities: initialConfig.qualities ?? [],
     languages: initialConfig.languages ?? [],
     subtitleLanguages: initialConfig.subtitleLanguages ?? ['en'],
+    prewarmDebrid: initialConfig.prewarmDebrid ?? true,
+    prewarmLimit: initialConfig.prewarmLimit ?? 3,
     realDebridApiKey: initialConfig.realDebridApiKey ?? '',
     premiumizeApiKey: initialConfig.premiumizeApiKey ?? '',
     allDebridApiKey: initialConfig.allDebridApiKey ?? '',
@@ -445,7 +447,25 @@ export function landingTemplate(manifest, initialConfig = {}) {
 
       <section class="panel section">
         <h2>Debrid</h2>
-        <p>Paste only the providers you actually use. Cached matches will be emitted as direct streams beside the P2P fallback.</p>
+        <p>Paste only the providers you actually use. Cached matches will be emitted as direct streams beside the P2P fallback, and Magnetio can also prewarm a few top uncached candidates in the background.</p>
+        <div class="grid">
+          <label>
+            Debrid prewarm
+            <select id="prewarm">
+              <option value="1">Enabled</option>
+              <option value="0">Disabled</option>
+            </select>
+          </label>
+          <label>
+            Prewarm top uncached results
+            <select id="prewarmLimit">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="5">5</option>
+            </select>
+          </label>
+        </div>
         <div class="grid">
           ${DEBRID_FIELDS.map(([id, label]) => `
             <label>
@@ -507,6 +527,8 @@ export function landingTemplate(manifest, initialConfig = {}) {
     function applyInitialState() {
       document.getElementById('sort').value = initialConfig.sort || 'qualityseeders';
       document.getElementById('limit').value = String(initialConfig.limit || 10);
+      document.getElementById('prewarm').value = initialConfig.prewarmDebrid === false ? '0' : '1';
+      document.getElementById('prewarmLimit').value = String(initialConfig.prewarmLimit || 3);
 
       setMultiSelect('qualities', initialConfig.qualities || []);
       setMultiSelect('languages', initialConfig.languages || []);
@@ -533,12 +555,16 @@ export function landingTemplate(manifest, initialConfig = {}) {
 
       const sort = document.getElementById('sort').value;
       const limit = document.getElementById('limit').value;
+      const prewarm = document.getElementById('prewarm').value;
+      const prewarmLimit = document.getElementById('prewarmLimit').value;
       const qualities = selectedValues('qualities');
       const languages = selectedValues('languages');
       const subtitleLanguages = selectedValues('subtitleLanguages');
 
       parts.push('sort=' + sort);
       parts.push('limit=' + limit);
+      parts.push('prewarm=' + prewarm);
+      parts.push('prewarmLimit=' + prewarmLimit);
       if (qualities.length) parts.push('qualities=' + qualities.join(','));
       if (languages.length) parts.push('languages=' + languages.join(','));
       if (subtitleLanguages.length) parts.push('subtitleLanguages=' + subtitleLanguages.join(','));

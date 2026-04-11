@@ -21,6 +21,19 @@ export async function resolve(stream, apiKey) {
   return resolveWithCache(cacheKey, () => _resolve(stream, apiKey));
 }
 
+export async function prewarm(stream, apiKey) {
+  if (!isValidToken(apiKey)) return false;
+
+  try {
+    const magnet = `magnet:?xt=urn:btih:${stream.infoHash}`;
+    const { data } = await dlPost(`${DL_BASE}/seedbox/add`, apiKey, { url: magnet, async: true });
+    return !!(data.success && data.value?.id);
+  } catch (err) {
+    handleDlError(err, apiKey);
+    return false;
+  }
+}
+
 export async function getCatalog(apiKey, type, skip = 0) {
   if (!isValidToken(apiKey)) return [];
 

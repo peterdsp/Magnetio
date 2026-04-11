@@ -50,6 +50,19 @@ export async function resolve(stream, apiKey) {
   return resolveWithCache(cacheKey, () => _resolve(stream, apiKey));
 }
 
+export async function prewarm(stream, apiKey) {
+  if (!isValidToken(apiKey)) return false;
+
+  try {
+    const magnet = `magnet:?xt=urn:btih:${stream.infoHash}`;
+    const { data } = await adGet(`${AD_BASE}/magnet/upload`, apiKey, { magnet });
+    return data.status === 'success';
+  } catch (err) {
+    handleAdError(err, apiKey);
+    return false;
+  }
+}
+
 // ─── Internal ─────────────────────────────────────────────────────────────────
 
 async function _resolve(stream, apiKey) {

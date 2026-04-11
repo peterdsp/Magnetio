@@ -52,6 +52,21 @@ export async function resolve(stream, apiKey) {
   return resolveWithCache(cacheKey, () => _resolve(stream, apiKey));
 }
 
+export async function prewarm(stream, apiKey) {
+  if (!isValidToken(apiKey)) return false;
+
+  try {
+    const torrentId = await _createOrFindTorrentId(stream.infoHash, apiKey);
+    if (!torrentId) return false;
+
+    await _selectVideoFiles(torrentId, stream.fileIdx, apiKey);
+    return true;
+  } catch (err) {
+    handleRdError(err, apiKey);
+    return false;
+  }
+}
+
 /**
  * Fetch the user's RD downloads/torrents for catalog display.
  */

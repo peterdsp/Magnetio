@@ -1,5 +1,8 @@
 import { MochOptions, MIN_API_KEY_LENGTH } from './options.js';
 import { isValidToken, buildDebridStream } from './mochHelper.js';
+import { createStreamSubtitleProxies } from '../lib/subtitleProxy.js';
+import { cacheGet, cacheSet } from '../lib/cache.js';
+import NamedQueue from '../lib/namedQueue.js';
 import * as RealDebrid  from './realdebrid.js';
 import * as Premiumize  from './premiumize.js';
 import * as AllDebrid   from './alldebrid.js';
@@ -22,6 +25,9 @@ const MOCH_MODULES = {
   putio:       Putio,
 };
 
+const PREWARM_CACHE_TTL = 60 * 60 * 6;
+const PREWARM_QUEUE = new NamedQueue(4);
+
 /**
  * Enhance a list of streams using all configured debrid services.
  *
@@ -30,11 +36,12 @@ const MOCH_MODULES = {
  *   2. Re-emit cached streams as direct-download streams.
  *   3. Keep the original P2P stream as a fallback.
  *
- * @param {StreamObject[]} streams  Raw stream objects from repository
- * @param {object}         config   Addon configuration
+ * @param {StreamObject[]} streams         Raw stream objects from repository
+ * @param {object}         config          Addon configuration
+ * @param {object}         requestContext  Current stream request context
  * @returns {Promise<StreamObject[]>}
  */
-export async function applyMochs(streams, config) {
+export async function applyMochs(streams, config, requestContext) {
   const enabled = getEnabledMochs(config);
   if (!enabled.length) return streams;
 
@@ -47,6 +54,7 @@ export async function applyMochs(streams, config) {
 
       try {
         const cachedMap = await module.getCachedStreams(streams, apiKey);
+        schedulePrewarm(streams, cachedMap, apiKey, moch, module, config);
 
         for (const stream of streams) {
           if (!stream.infoHash || !cachedMap.has(stream.infoHash?.toLowerCase())) continue;
@@ -54,7 +62,12 @@ export async function applyMochs(streams, config) {
           const url = await module.resolve(stream, apiKey);
           if (!url) continue;
 
-          result.push(buildDebridStream(stream, url, moch.name));
+          const debridStream = buildDebridStream(stream, url, moch.name);
+          const proxySubtitles = await createStreamSubtitleProxies(requestContext, debridStream, config);
+          if (proxySubtitles.length) {
+            debridStream.subtitles = proxySubtitles;
+          }
+          result.push(debridStream);
         }
       } catch (err) {
         logger.error(`Moch error [${moch.name}]: ${err.message}`);
@@ -111,4 +124,52 @@ function findMochByShortId(shortId) {
   if (!entry) return null;
   const [key, moch] = entry;
   return { key, moch, module: MOCH_MODULES[key] };
+}
+
+function schedulePrewarm(streams, cachedMap, apiKey, moch, module, config) {
+  if (!config?.prewarmDebrid) return;
+  if (typeof module.prewarm !== 'function') return;
+
+  const limit = Math.max(0, Math.min(config.prewarmLimit ?? 3, 10));
+  if (!limit) return;
+
+  const candidates = pickPrewarmCandidates(streams, cachedMap, limit);
+  for (const stream of candidates) {
+    const queueId = `prewarm:${moch.id}:${stream.infoHash}:${stream.fileIdx ?? 0}`;
+    PREWARM_QUEUE.wrap({ id: queueId }, async () => {
+      const cacheKey = `prewarm:${moch.id}:${stream.infoHash}:${stream.fileIdx ?? 0}`;
+      if (await cacheGet(cacheKey)) return true;
+
+      const warmed = await module.prewarm(stream, apiKey);
+      if (warmed) {
+        await cacheSet(cacheKey, true, PREWARM_CACHE_TTL);
+        logger.info(`Prewarmed ${moch.name} torrent ${stream.infoHash}`);
+      }
+
+      return warmed;
+    }).catch(err => {
+      logger.warn(`Prewarm failed [${moch.name} ${stream.infoHash}]: ${err.message}`);
+    });
+  }
+}
+
+export function pickPrewarmCandidates(streams, cachedMap, limit) {
+  const picked = [];
+  const seen = new Set();
+
+  for (const stream of streams) {
+    const infoHash = stream.infoHash?.toLowerCase();
+    if (!infoHash) continue;
+    if (cachedMap.has(infoHash)) continue;
+
+    const key = `${infoHash}:${stream.fileIdx ?? 0}`;
+    if (seen.has(key)) continue;
+
+    picked.push(stream);
+    seen.add(key);
+
+    if (picked.length >= limit) break;
+  }
+
+  return picked;
 }

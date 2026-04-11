@@ -20,6 +20,24 @@ export async function resolve(stream, apiKey) {
   return resolveWithCache(cacheKey, () => _resolve(stream, apiKey));
 }
 
+export async function prewarm(stream, apiKey) {
+  if (!isValidToken(apiKey)) return false;
+
+  try {
+    const magnet = `magnet:?xt=urn:btih:${stream.infoHash}`;
+    const { data } = await axios.post(
+      `${OC_BASE}/cloud`,
+      { url: magnet },
+      { params: { key: apiKey }, timeout: 20_000 }
+    );
+
+    return !!data.requestId;
+  } catch (err) {
+    handleOcError(err, apiKey);
+    return false;
+  }
+}
+
 // ─── Internal ─────────────────────────────────────────────────────────────────
 
 async function _resolve(stream, apiKey) {

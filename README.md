@@ -138,6 +138,24 @@ Magnetio also now exposes:
 - `GET /configure` for the Stremio configuration page
 - `GET /:config/configure` to reopen and edit an existing configured addon URL
 
+### Subtitle sync strategy
+
+For direct/debrid HTTP streams, Magnetio can now expose **stream-specific subtitle proxy URLs**. On first subtitle fetch, the addon:
+
+1. fingerprints the selected media file with filename, size, and OpenSubtitles hash when byte-range requests are available
+2. searches OpenSubtitles using those signals
+3. downloads the best matching subtitle candidate
+4. runs optional sync tooling against the actual media URL
+5. caches the corrected `.srt` and serves it from Magnetio
+
+This is the closest practical route to "always synced" subtitles. It is much more reliable for debrid/direct links than for raw P2P torrents, because the addon can access the final HTTP media URL.
+
+### Debrid prewarm strategy
+
+After Magnetio sorts and filters the stream candidates, it can also start **background prewarming** of the top uncached torrents into the user’s debrid account. This does not block the Stremio response. It is meant to increase the chance that the stream the user clicks is already downloading or fully ready by the time playback starts.
+
+Current background prewarm support is implemented for services with explicit add/create torrent flows in this codebase: Real-Debrid, AllDebrid, DebridLink, Offcloud, TorBox, and Put.io.
+
 ### Manual configuration URL
 
 You can also build the configuration URL manually:
@@ -156,6 +174,8 @@ http://your-server:7000/providers=yts,eztv,1337x|sort=qualityseeders|limit=10|RD
 | `qualities` | `4k,1080p,720p,480p,cam` | all | Quality whitelist |
 | `languages` | `en,es,pt,fr,...` | all | Language whitelist |
 | `subtitleLanguages` | `en,es,pt,fr,...` | `en` | Subtitle language preference |
+| `prewarm` | `1`, `0`, `true`, `false` | `1` | Background-add top uncached filtered torrents to supported debrid services |
+| `prewarmLimit` | integer `0-10` | `3` | Maximum uncached results to prewarm per supported debrid service |
 | `excludeSizes` | `1GB,2GB,5GB,...` | none | Exclude streams below these sizes |
 | `RD` | API key | — | Real-Debrid API key |
 | `PM` | API key | — | Premiumize API key |
@@ -188,10 +208,15 @@ Use a preset by visiting: `http://your-server:7000/lite/manifest.json`
 | `SCRAPER_URL` | `http://localhost:8080` | URL of the Magnetio scraper service |
 | `METRICS_USER` | `admin` | Username for `/swagger` metrics UI |
 | `METRICS_PASSWORD` | `magnetio` | Password for metrics UI |
+| `ADDON_PUBLIC_URL` | auto-detected | Public base URL override for subtitle proxy links |
 | `OPENSUBTITLES_API_KEY` | — | Enables the addon subtitle resource via OpenSubtitles |
 | `OPENSUBTITLES_USERNAME` | — | OpenSubtitles account username for downloadable subtitle links |
 | `OPENSUBTITLES_PASSWORD` | — | OpenSubtitles account password for downloadable subtitle links |
 | `OPENSUBTITLES_USER_AGENT` | `Magnetio v1.0.0` | Custom User-Agent sent to OpenSubtitles |
+| `FFSUBSYNC_PATH` | auto-detected | Optional path to `ffsubsync` for audio-based subtitle alignment |
+| `ALASS_PATH` | auto-detected | Optional path to `alass` / `alass-cli` for split/framerate subtitle alignment |
+| `SUBTITLE_SYNC_MAX_OFFSET_SECONDS` | `300` | Max offset forwarded to `ffsubsync` |
+| `ALASS_SPLIT_PENALTY` | `10` | Split penalty forwarded to `alass` |
 | `LOG_LEVEL` | `info` | Logging level |
 
 ### Scraper (`scraper/.env`)
@@ -261,6 +286,7 @@ Use a preset by visiting: `http://your-server:7000/lite/manifest.json`
 | `GET` | `/` | Configuration landing page |
 | `GET` | `/configure` | Stremio configuration page |
 | `GET` | `/manifest.json` | Root addon manifest |
+| `GET` | `/proxy/subtitle/:id.srt` | Stream-specific subtitle proxy / sync endpoint |
 | `GET` | `/health` | Health check |
 | `GET` | `/:config/manifest.json` | Addon manifest |
 | `GET` | `/:config/stream/:type/:id.json` | Stream results |
@@ -310,7 +336,7 @@ magnetio/
 │
 └── addon/                     # Stremio addon (:7000)
     ├── index.js               # Express server + metrics
-    ├── serverless.js          # SDK router + configure endpoints
+    ├── serverless.js          # SDK router + configure / subtitle proxy endpoints
     ├── addon.js               # Stremio builder (stream/catalog/meta/subtitles)
     ├── lib/
     │   ├── manifest.js        # Dynamic manifest generation
@@ -320,6 +346,7 @@ magnetio/
     │   ├── filter.js          # Quality/language/size filters
     │   ├── streamInfo.js      # Record → Stremio stream object
     │   ├── subtitles.js       # OpenSubtitles integration
+    │   ├── subtitleProxy.js   # Stream-specific subtitle proxy + sync pipeline
     │   ├── cache.js           # Redis/in-memory cache
     │   ├── languages.js       # Language codes + flag emojis
     │   ├── magnetHelper.js    # Tracker list + magnet builder
@@ -390,6 +417,7 @@ Stream record shape:
 | Prometheus metrics | ✅ | ✅ |
 | Docker Compose | ❌ | ✅ |
 | Visual config page | ✅ | ✅ |
+| Debrid background prewarm | ❌ | ✅ |
 | Pre-built presets | ✅ | ✅ |
 | ES Modules | ❌ | ✅ |
 | Per-key blacklisting | ❌ | ✅ |

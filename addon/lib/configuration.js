@@ -12,6 +12,8 @@ export const PreConfigurations = {
     qualities:   ['4k', '1080p', '720p'],
     languages:   ['en'],
     subtitleLanguages: ['en'],
+    prewarmDebrid: true,
+    prewarmLimit: 2,
     excludeSizes:[],
     sort:        SortType.QUALITY_THEN_SEEDERS,
     limit:       5,
@@ -25,6 +27,8 @@ export const PreConfigurations = {
     qualities:   [],
     languages:   ['pt', 'en'],
     subtitleLanguages: ['pt', 'en'],
+    prewarmDebrid: true,
+    prewarmLimit: 3,
     excludeSizes:[],
     sort:        SortType.QUALITY_THEN_SEEDERS,
     limit:       10,
@@ -72,6 +76,12 @@ export function parseConfiguration(configString) {
         break;
       case 'subtitlelanguages':
         config.subtitleLanguages = value.toLowerCase().split(',').filter(Boolean);
+        break;
+      case 'prewarm':
+        config.prewarmDebrid = parseBoolean(value, config.prewarmDebrid);
+        break;
+      case 'prewarmlimit':
+        config.prewarmLimit = clampPrewarmLimit(parseInt(value, 10), config.prewarmLimit);
         break;
       case 'excludesizes':
         config.excludeSizes = value.toUpperCase().split(',').filter(Boolean);
@@ -135,6 +145,8 @@ export function getDefaultConfiguration() {
     qualities:          [],           // empty = all qualities
     languages:          [],           // empty = all languages
     subtitleLanguages:  ['en'],       // subtitle preference defaults to English
+    prewarmDebrid:      true,         // warm a few top uncached results in debrid
+    prewarmLimit:       3,
     excludeSizes:       [],
     maxSize:            null,
     // Debrid keys (all null by default)
@@ -147,4 +159,16 @@ export function getDefaultConfiguration() {
     torboxApiKey:       null,
     putioApiKey:        null,
   };
+}
+
+function parseBoolean(value, fallback = false) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
+  if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
+  return fallback;
+}
+
+function clampPrewarmLimit(value, fallback = 3) {
+  if (!Number.isFinite(value)) return fallback;
+  return Math.max(0, Math.min(10, value));
 }

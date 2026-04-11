@@ -6,6 +6,7 @@ import { getDefaultConfiguration, parseConfiguration } from './lib/configuration
 import { getAddonInterface } from './addon.js';
 import { landingTemplate } from './lib/landingTemplate.js';
 import { logger } from './lib/logger.js';
+import { handleSubtitleProxyRequest } from './lib/subtitleProxy.js';
 
 const router = express.Router();
 const ROUTER_CACHE_TTL_MS = 1000 * 60 * 5;
@@ -26,6 +27,8 @@ router.get('/configure', (_req, res) => {
 router.get('/manifest.json', (_req, res) => {
   res.json(dummyManifest());
 });
+
+router.get('/proxy/subtitle/:id.srt', handleSubtitleProxyRequest);
 
 router.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'Magnetio', version: '1.0.0' });
@@ -55,8 +58,10 @@ router.get('/:configuration/configure', (req, res) => {
 
 router.use('/:configuration', async (req, res, next) => {
   try {
-    const configString = req.params.configuration;
-    const addonRouter = await getConfiguredAddonRouter(configString);
+    const addonRouter = await getConfiguredAddonRouter(
+      req.params.configuration,
+      getPublicBaseUrl(req),
+    );
     addonRouter(req, res, next);
   } catch (err) {
     logger.error(`Addon routing error: ${err.message}`);
@@ -66,10 +71,10 @@ router.use('/:configuration', async (req, res, next) => {
 
 export const serverless = router;
 
-async function getConfiguredAddonRouter(configString) {
+async function getConfiguredAddonRouter(configString, publicBaseUrl) {
   purgeExpiredRouters();
 
-  const cacheKey = hashConfiguration(configString);
+  const cacheKey = hashConfiguration(`${configString}|${publicBaseUrl}`);
   const cached = addonRouterCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
     cached.expiresAt = Date.now() + ROUTER_CACHE_TTL_MS;
@@ -79,6 +84,7 @@ async function getConfiguredAddonRouter(configString) {
   }
 
   const config = parseConfiguration(configString);
+  config._publicBaseUrl = publicBaseUrl;
   const addonInterface = await getAddonInterface(config);
   const addonRouter = getSdkRouter(addonInterface);
 
@@ -106,4 +112,10 @@ function purgeExpiredRouters() {
 
 function hashConfiguration(value) {
   return crypto.createHash('sha256').update(String(value)).digest('hex');
+}
+
+function getPublicBaseUrl(req) {
+  const envUrl = process.env.ADDON_PUBLIC_URL || process.env.PUBLIC_URL;
+  if (envUrl) return String(envUrl).replace(/\/$/, '');
+  return `${req.protocol}://${req.get('host')}`;
 }
