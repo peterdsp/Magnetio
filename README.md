@@ -122,6 +122,56 @@ The addon will be available at `http://localhost:7000`.
 
 ---
 
+## Deployment
+
+GitHub Actions cannot keep Magnetio online by itself because GitHub runners are ephemeral. The included workflow deploys to **your own server** over SSH and runs Docker Compose there.
+
+### Server prerequisites
+
+- Linux server or VPS
+- Docker Engine
+- Docker Compose plugin
+- A public domain or tunnel pointing at port `7000`
+
+### Production env file
+
+On the server, place a root `.env` file in the deploy directory. You can start from:
+
+```bash
+cp .env.example .env
+```
+
+At minimum, set:
+
+- `ADDON_PUBLIC_URL=https://your-domain.example`
+- `METRICS_PASSWORD=...`
+- `OPENSUBTITLES_API_KEY=...`
+
+### GitHub Actions secrets
+
+Set these repository secrets before enabling auto-deploy:
+
+- `DEPLOY_HOST`: server hostname or IP
+- `DEPLOY_PORT`: SSH port, usually `22`
+- `DEPLOY_USER`: SSH username
+- `DEPLOY_SSH_KEY`: private key for that server
+- `DEPLOY_PATH`: absolute deploy path on the server, for example `/opt/magnetio`
+- `HEALTHCHECK_URL`: optional, for example `https://your-domain.example/health`
+
+### What the workflow does
+
+The workflow in [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml):
+
+1. installs dependencies
+2. runs addon tests
+3. syncs the repo to your server over SSH
+4. runs `docker compose up -d --build --remove-orphans`
+5. optionally checks your public `/health` endpoint
+
+Push to `main` to deploy automatically, or trigger it manually from the GitHub Actions tab.
+
+---
+
 ## Configuration
 
 Open `http://localhost:7000` in your browser to access the **visual configuration page** where you can:

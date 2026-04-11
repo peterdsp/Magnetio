@@ -1,6 +1,22 @@
-FROM node:20-alpine AS base
+FROM node:20-bookworm-slim
 
 WORKDIR /app
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Runtime dependencies:
+# - ffmpeg for subtitle sync tooling
+# - python3/pip for ffsubsync
+# - wget for the container healthcheck
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    python3 \
+    python3-pip \
+    wget \
+    ca-certificates \
+  && python3 -m pip install --no-cache-dir --break-system-packages ffsubsync \
+  && rm -rf /var/lib/apt/lists/*
 
 # Install dependencies separately for better layer caching
 COPY package*.json ./
@@ -10,7 +26,7 @@ RUN npm ci --omit=dev
 COPY . .
 
 # Non-root user for security
-RUN addgroup -S magnetio && adduser -S magnetio -G magnetio
+RUN groupadd --system magnetio && useradd --system --gid magnetio --create-home magnetio
 USER magnetio
 
 EXPOSE 7000
