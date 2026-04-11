@@ -11,6 +11,7 @@ export const PreConfigurations = {
     providers:   [TorrentProvider.YTS, TorrentProvider.EZTV, TorrentProvider.TORRENTGALAXY],
     qualities:   ['4k', '1080p', '720p'],
     languages:   ['en'],
+    subtitleLanguages: ['en'],
     excludeSizes:[],
     sort:        SortType.QUALITY_THEN_SEEDERS,
     limit:       5,
@@ -23,6 +24,7 @@ export const PreConfigurations = {
     providers:   [TorrentProvider.YTS, TorrentProvider.EZTV, TorrentProvider.TORRENTGALAXY, TorrentProvider.RUTOR],
     qualities:   [],
     languages:   ['pt', 'en'],
+    subtitleLanguages: ['pt', 'en'],
     excludeSizes:[],
     sort:        SortType.QUALITY_THEN_SEEDERS,
     limit:       10,
@@ -67,6 +69,9 @@ export function parseConfiguration(configString) {
         break;
       case 'languages':
         config.languages = value.toLowerCase().split(',').filter(Boolean);
+        break;
+      case 'subtitlelanguages':
+        config.subtitleLanguages = value.toLowerCase().split(',').filter(Boolean);
         break;
       case 'excludesizes':
         config.excludeSizes = value.toUpperCase().split(',').filter(Boolean);
@@ -122,13 +127,14 @@ export function getManifestOverride(configString) {
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
 
-function getDefaultConfiguration() {
+export function getDefaultConfiguration() {
   return {
     providers:          Object.values(TorrentProvider),
     sort:               SortType.QUALITY_THEN_SEEDERS,
     limit:              10,
     qualities:          [],           // empty = all qualities
     languages:          [],           // empty = all languages
+    subtitleLanguages:  ['en'],       // subtitle preference defaults to English
     excludeSizes:       [],
     maxSize:            null,
     // Debrid keys (all null by default)

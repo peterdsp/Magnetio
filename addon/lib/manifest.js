@@ -30,6 +30,7 @@ export function manifest(config) {
     behaviorHints: {
       configurable:      true,
       configurationRequired: false,
+      p2p:               true,
     },
   };
 }
@@ -42,11 +43,16 @@ export function dummyManifest() {
     id:          ADDON_ID,
     version:     ADDON_VERSION,
     name:        ADDON_NAME,
-    description: `${ADDON_NAME} – configure providers and debrid services at /configure`,
+    description: `${ADDON_NAME} – configure providers, subtitles and debrid services at /configure`,
     logo:        ADDON_LOGO,
-    types:       ['movie', 'series'],
-    resources:   [],
+    background:  'https://i.imgur.com/magnetio-bg.jpg',
+    types:       ['movie', 'series', 'anime'],
+    resources:   getResources(),
     catalogs:    [],
+    behaviorHints: {
+      configurable: true,
+      p2p: true,
+    },
   };
 }
 
@@ -64,7 +70,7 @@ function getDescription(config) {
     ? `\nDebrid services: ${enabledMochs.map(m => m.name).join(', ')}.`
     : '';
   return (
-    `Aggregates torrents from: ${PROVIDERS_DESCRIPTION}.` +
+    `Aggregates torrents from: ${PROVIDERS_DESCRIPTION}. Includes OpenSubtitles-powered subtitle support when configured server-side.` +
     debridPart +
     `\n\nConfigure at your Stremio settings page.`
   );
@@ -85,6 +91,11 @@ function getResources() {
   return [
     {
       name: 'stream',
+      types: ['movie', 'series', 'anime'],
+      idPrefixes: ['tt', 'kitsu'],
+    },
+    {
+      name: 'subtitles',
       types: ['movie', 'series', 'anime'],
       idPrefixes: ['tt', 'kitsu'],
     },

@@ -1,10 +1,11 @@
-import { addonBuilder } from 'stremio-addon-sdk';
+import StremioAddonSdk from 'stremio-addon-sdk';
 import { manifest } from './lib/manifest.js';
 import { getStreams } from './lib/repository.js';
 import { applyMochs, getMochCatalog, getMochItemMeta } from './moch/moch.js';
 import { applyFilters } from './lib/filter.js';
 import { sortStreams } from './lib/sort.js';
 import { toStreamInfo } from './lib/streamInfo.js';
+import { getSubtitles } from './lib/subtitles.js';
 import { toStaticStream } from './moch/static.js';
 import NamedQueue from './lib/namedQueue.js';
 import pLimit from 'p-limit';
@@ -13,6 +14,7 @@ import { logger } from './lib/logger.js';
 const ADDON_NAME = 'Magnetio';
 const MAX_CONCURRENT_REQUESTS = 200;
 const STREAM_LIMIT = 50;
+const { addonBuilder } = StremioAddonSdk;
 
 const requestQueue = new NamedQueue(MAX_CONCURRENT_REQUESTS);
 const streamLimit = pLimit(STREAM_LIMIT);
@@ -25,7 +27,7 @@ const CACHE_TTL_ERROR  = 30;            // 30 s on error
 /**
  * Build and return an Express router for a specific addon configuration.
  */
-export async function getRouter(config) {
+export async function getAddonInterface(config) {
   const addonManifest = manifest(config);
   const builder = new addonBuilder(addonManifest);
 
@@ -92,6 +94,23 @@ export async function getRouter(config) {
     } catch (err) {
       logger.error(`Meta handler error [${id}]: ${err.message}`);
       return { meta: null, cacheMaxAge: CACHE_TTL_ERROR };
+    }
+  });
+
+  // ─── SUBTITLES HANDLER ─────────────────────────────────────────────────────
+  builder.defineSubtitlesHandler(async ({ type, id, extra = {} }) => {
+    try {
+      const subtitles = await getSubtitles({ type, id, extra }, config);
+      const cacheAge = subtitles.length ? CACHE_TTL_OK : CACHE_TTL_EMPTY;
+      return {
+        subtitles,
+        cacheMaxAge: cacheAge,
+        staleRevalidate: 14400,
+        staleError: 604800,
+      };
+    } catch (err) {
+      logger.error(`Subtitle handler error [${id}]: ${err.message}`);
+      return { subtitles: [], cacheMaxAge: CACHE_TTL_ERROR };
     }
   });
 

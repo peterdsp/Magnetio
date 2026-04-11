@@ -128,8 +128,15 @@ Open `http://localhost:7000` in your browser to access the **visual configuratio
 
 1. Select torrent providers
 2. Set quality and language preferences
-3. Enter debrid API keys
-4. Click **Install in Stremio**
+3. Set subtitle language preferences
+4. Enter debrid API keys
+5. Copy the manifest URL or click **Install in Stremio**
+
+Magnetio also now exposes:
+
+- `GET /manifest.json` for a root installable addon manifest
+- `GET /configure` for the Stremio configuration page
+- `GET /:config/configure` to reopen and edit an existing configured addon URL
 
 ### Manual configuration URL
 
@@ -148,6 +155,7 @@ http://your-server:7000/providers=yts,eztv,1337x|sort=qualityseeders|limit=10|RD
 | `limit` | integer | `10` | Max streams per source |
 | `qualities` | `4k,1080p,720p,480p,cam` | all | Quality whitelist |
 | `languages` | `en,es,pt,fr,...` | all | Language whitelist |
+| `subtitleLanguages` | `en,es,pt,fr,...` | `en` | Subtitle language preference |
 | `excludeSizes` | `1GB,2GB,5GB,...` | none | Exclude streams below these sizes |
 | `RD` | API key | — | Real-Debrid API key |
 | `PM` | API key | — | Premiumize API key |
@@ -180,6 +188,10 @@ Use a preset by visiting: `http://your-server:7000/lite/manifest.json`
 | `SCRAPER_URL` | `http://localhost:8080` | URL of the Magnetio scraper service |
 | `METRICS_USER` | `admin` | Username for `/swagger` metrics UI |
 | `METRICS_PASSWORD` | `magnetio` | Password for metrics UI |
+| `OPENSUBTITLES_API_KEY` | — | Enables the addon subtitle resource via OpenSubtitles |
+| `OPENSUBTITLES_USERNAME` | — | OpenSubtitles account username for downloadable subtitle links |
+| `OPENSUBTITLES_PASSWORD` | — | OpenSubtitles account password for downloadable subtitle links |
+| `OPENSUBTITLES_USER_AGENT` | `Magnetio v1.0.0` | Custom User-Agent sent to OpenSubtitles |
 | `LOG_LEVEL` | `info` | Logging level |
 
 ### Scraper (`scraper/.env`)
@@ -247,11 +259,14 @@ Use a preset by visiting: `http://your-server:7000/lite/manifest.json`
 | Method | Path | Description |
 |---|---|---|
 | `GET` | `/` | Configuration landing page |
+| `GET` | `/configure` | Stremio configuration page |
+| `GET` | `/manifest.json` | Root addon manifest |
 | `GET` | `/health` | Health check |
 | `GET` | `/:config/manifest.json` | Addon manifest |
 | `GET` | `/:config/stream/:type/:id.json` | Stream results |
 | `GET` | `/:config/catalog/:type/:id.json` | Debrid catalog |
 | `GET` | `/:config/meta/:type/:id.json` | Item metadata |
+| `GET` | `/:config/subtitles/:type/:id.json` | Subtitle results |
 | `GET` | `/swagger` | Prometheus metrics (auth required) |
 
 ---
@@ -295,8 +310,8 @@ magnetio/
 │
 └── addon/                     # Stremio addon (:7000)
     ├── index.js               # Express server + metrics
-    ├── serverless.js          # Route handlers
-    ├── addon.js               # Stremio builder (stream/catalog/meta)
+    ├── serverless.js          # SDK router + configure endpoints
+    ├── addon.js               # Stremio builder (stream/catalog/meta/subtitles)
     ├── lib/
     │   ├── manifest.js        # Dynamic manifest generation
     │   ├── configuration.js   # Config parser + presets (lite, brazuca)
@@ -304,6 +319,7 @@ magnetio/
     │   ├── sort.js            # Quality-tiered sort
     │   ├── filter.js          # Quality/language/size filters
     │   ├── streamInfo.js      # Record → Stremio stream object
+    │   ├── subtitles.js       # OpenSubtitles integration
     │   ├── cache.js           # Redis/in-memory cache
     │   ├── languages.js       # Language codes + flag emojis
     │   ├── magnetHelper.js    # Tracker list + magnet builder

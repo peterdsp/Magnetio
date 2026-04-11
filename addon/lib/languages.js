@@ -30,6 +30,36 @@ export const LANGUAGES = {
   'multi': 'Multi-Audio',
 };
 
+const ISO_639_2 = {
+  ar: 'ara',
+  bg: 'bul',
+  cs: 'ces',
+  da: 'dan',
+  de: 'deu',
+  el: 'ell',
+  en: 'eng',
+  es: 'spa',
+  fi: 'fin',
+  fr: 'fra',
+  he: 'heb',
+  hi: 'hin',
+  hu: 'hun',
+  it: 'ita',
+  ja: 'jpn',
+  ko: 'kor',
+  nl: 'nld',
+  no: 'nor',
+  pl: 'pol',
+  pt: 'por',
+  ro: 'ron',
+  ru: 'rus',
+  sk: 'slk',
+  sv: 'swe',
+  tr: 'tur',
+  uk: 'ukr',
+  zh: 'zho',
+};
+
 // Language flags for display
 export const LANGUAGE_FLAGS = {
   'en': '🇬🇧',
@@ -73,6 +103,13 @@ export function getLanguageName(code) {
  */
 export function getLanguageFlag(code) {
   return LANGUAGE_FLAGS[code.toLowerCase()] || '';
+}
+
+export function toSubtitleLanguageCode(code) {
+  const normalized = String(code || '').trim().toLowerCase();
+  if (!normalized) return 'eng';
+  if (normalized.length === 3) return normalized;
+  return ISO_639_2[normalized] || normalized;
 }
 
 /**

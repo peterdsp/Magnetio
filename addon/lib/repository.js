@@ -17,7 +17,8 @@ const REQUEST_TIMEOUT  = 10_000; // 10 s
  * @returns {Promise<TorrentRecord[]>}
  */
 export async function getStreams(type, id, config) {
-  const cacheKey = `streams:${type}:${id}`;
+  const providerKey = config?.providers?.length ? config.providers.join(',') : 'all';
+  const cacheKey = `streams:${type}:${id}:${providerKey}`;
 
   return cacheWrap(cacheKey, async () => {
     try {

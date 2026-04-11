@@ -1,4 +1,5 @@
-import { getLanguageFlag, getLanguageName } from './languages.js';
+import { getLanguageFlag, toSubtitleLanguageCode } from './languages.js';
+import { getBestTrackers } from './magnetHelper.js';
 import { extractQuality } from './sort.js';
 
 const ADDON_PREFIX = '⚡ Magnetio';
@@ -12,27 +13,32 @@ export function toStreamInfo(record, config) {
   const sizeStr    = record.size ? formatSize(record.size) : '';
   const seedersStr = record.seeders != null ? `👥 ${record.seeders}` : '';
   const provStr    = record.provider ? `[${record.provider}]` : '';
+  const sourceStr  = [record.source, record.codec, record.hdr ? 'HDR' : null].filter(Boolean).join(' · ');
+  const filename   = record.fileName || record.title || record.name;
 
   const name  = `${ADDON_PREFIX}\n${quality.toUpperCase()} ${langs}`.trim();
-  const title = [
+  const description = [
     record.title || record.name,
+    sourceStr,
     [seedersStr, sizeStr, provStr].filter(Boolean).join(' '),
   ].filter(Boolean).join('\n');
 
   const stream = {
     name,
-    title,
+    title: description,
+    description,
     infoHash:  record.infoHash,
     fileIdx:   record.fileIdx ?? undefined,
     sources:   buildSources(record),
     behaviorHints: {
       bingeGroup:      getBingeGroup(record, quality),
-      notWebReady:     false,
+      filename:        filename || undefined,
+      videoSize:       record.size || undefined,
     },
   };
 
   if (record.subtitles?.length) {
-    stream.subtitles = enrichSubtitles(record.subtitles, record.infoHash, record.fileIdx);
+    stream.subtitles = enrichSubtitles(record.subtitles);
   }
 
   return cleanObject(stream);
@@ -41,12 +47,13 @@ export function toStreamInfo(record, config) {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function buildSources(record) {
-  const sources = [`magnet:?xt=urn:btih:${record.infoHash}`];
-  if (record.trackers?.length) {
-    const trackers = record.trackers.map(t => `tr=${encodeURIComponent(t)}`).join('&');
-    sources[0] += `&${trackers}`;
-  }
-  return sources;
+  const trackers = [...new Set([...(record.trackers ?? []), ...getBestTrackers()])]
+    .filter(Boolean)
+    .filter(tracker => tracker.startsWith('udp://') || tracker.startsWith('http://') || tracker.startsWith('https://'))
+    .slice(0, 20)
+    .map(tracker => `tracker:${tracker}`);
+
+  return trackers.length ? trackers : undefined;
 }
 
 function getBingeGroup(record, quality) {
@@ -60,15 +67,13 @@ function getBingeGroup(record, quality) {
   return `magnetio|${quality}|${codec}|${bitdepth}`;
 }
 
-function enrichSubtitles(subs, infoHash, fileIdx) {
+function enrichSubtitles(subs) {
   return subs.map(sub => {
-    if (sub.url) return sub;
-    const idx = fileIdx != null ? fileIdx : sub.fileIdx;
     return {
-      ...sub,
-      url: `http://localhost:11470/${infoHash}/${idx}/subtitle.${sub.lang}`,
+      lang: toSubtitleLanguageCode(sub.lang),
+      url: sub.url,
     };
-  });
+  }).filter(sub => sub.url);
 }
 
 export function formatSize(bytes) {

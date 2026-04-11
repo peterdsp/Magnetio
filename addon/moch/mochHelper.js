@@ -68,14 +68,22 @@ export function selectVideoFile(files) {
  * Build a standardised stream object for a resolved debrid URL.
  */
 export function buildDebridStream(baseStream, url, serviceName) {
+  const description = `${baseStream.description ?? baseStream.title ?? ''}\n🔗 Direct link via ${serviceName}`.trim();
+
   return {
     ...baseStream,
     url,
     name:  `${baseStream.name ?? '⚡ Magnetio'}\n[${serviceName}]`,
-    title: `${baseStream.title ?? ''}\n🔗 Direct link via ${serviceName}`,
+    title: description,
+    description,
     behaviorHints: {
       ...(baseStream.behaviorHints ?? {}),
-      notWebReady: false,
+      notWebReady: !isWebReadyUrl(url),
     },
   };
+}
+
+function isWebReadyUrl(url) {
+  if (!/^https:\/\//i.test(url)) return false;
+  return /\.(mp4|m4v)(?:$|[?#])/i.test(url);
 }
