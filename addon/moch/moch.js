@@ -3,6 +3,7 @@ import { isValidToken, buildDebridStream } from './mochHelper.js';
 import { createStreamSubtitleProxies } from '../lib/subtitleProxy.js';
 import { cacheGet, cacheSet } from '../lib/cache.js';
 import NamedQueue from '../lib/namedQueue.js';
+import pLimit from 'p-limit';
 import * as RealDebrid  from './realdebrid.js';
 import * as Premiumize  from './premiumize.js';
 import * as AllDebrid   from './alldebrid.js';
@@ -27,6 +28,8 @@ const MOCH_MODULES = {
 
 const PREWARM_CACHE_TTL = 60 * 60 * 6;
 const PREWARM_QUEUE = new NamedQueue(4);
+const RESOLVE_TIMEOUT_MS = 8_000;
+const resolveLimit = pLimit(4);
 
 /**
  * Enhance a list of streams using all configured debrid services.
@@ -56,10 +59,26 @@ export async function applyMochs(streams, config, requestContext) {
         const cachedMap = await module.getCachedStreams(streams, apiKey);
         schedulePrewarm(streams, cachedMap, apiKey, moch, module, config);
 
-        for (const stream of streams) {
-          if (!stream.infoHash || !cachedMap.has(stream.infoHash?.toLowerCase())) continue;
+        const debridResults = await Promise.allSettled(
+          streams
+            .filter(stream => stream.infoHash && cachedMap.has(stream.infoHash?.toLowerCase()))
+            .map(stream => resolveLimit(async () => {
+              const url = await withTimeout(
+                module.resolve(stream, apiKey),
+                RESOLVE_TIMEOUT_MS,
+                `${moch.name} resolve timed out`
+              );
+              return { stream, url };
+            }))
+        );
 
-          const url = await module.resolve(stream, apiKey);
+        for (const settled of debridResults) {
+          if (settled.status !== 'fulfilled') {
+            logger.warn(`Moch resolve skipped [${moch.name}]: ${settled.reason?.message}`);
+            continue;
+          }
+
+          const { stream, url } = settled.value;
           if (!url) continue;
 
           const debridStream = buildDebridStream(stream, url, moch.name);
@@ -76,6 +95,19 @@ export async function applyMochs(streams, config, requestContext) {
   );
 
   return result;
+}
+
+async function withTimeout(promise, timeoutMs, message) {
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 /**
@@ -136,20 +168,22 @@ function schedulePrewarm(streams, cachedMap, apiKey, moch, module, config) {
   const candidates = pickPrewarmCandidates(streams, cachedMap, limit);
   for (const stream of candidates) {
     const queueId = `prewarm:${moch.id}:${stream.infoHash}:${stream.fileIdx ?? 0}`;
-    PREWARM_QUEUE.wrap({ id: queueId }, async () => {
-      const cacheKey = `prewarm:${moch.id}:${stream.infoHash}:${stream.fileIdx ?? 0}`;
-      if (await cacheGet(cacheKey)) return true;
+    setTimeout(() => {
+      PREWARM_QUEUE.wrap({ id: queueId }, async () => {
+        const cacheKey = `prewarm:${moch.id}:${stream.infoHash}:${stream.fileIdx ?? 0}`;
+        if (await cacheGet(cacheKey)) return true;
 
-      const warmed = await module.prewarm(stream, apiKey);
-      if (warmed) {
-        await cacheSet(cacheKey, true, PREWARM_CACHE_TTL);
-        logger.info(`Prewarmed ${moch.name} torrent ${stream.infoHash}`);
-      }
+        const warmed = await module.prewarm(stream, apiKey);
+        if (warmed) {
+          await cacheSet(cacheKey, true, PREWARM_CACHE_TTL);
+          logger.info(`Prewarmed ${moch.name} torrent ${stream.infoHash}`);
+        }
 
-      return warmed;
-    }).catch(err => {
-      logger.warn(`Prewarm failed [${moch.name} ${stream.infoHash}]: ${err.message}`);
-    });
+        return warmed;
+      }).catch(err => {
+        logger.warn(`Prewarm failed [${moch.name} ${stream.infoHash}]: ${err.message}`);
+      });
+    }, 0);
   }
 }
 

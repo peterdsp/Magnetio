@@ -34,6 +34,7 @@ const ALL_PROVIDERS = [
 
 // Max 4 providers running simultaneously
 const limit = pLimit(4);
+const PROVIDER_TIMEOUT_MS = 22_000;
 
 /**
  * Scrape all (or a subset of) providers for a given content item.
@@ -52,7 +53,11 @@ export async function scrapeAll(type, meta, providerIds = null) {
     providers.map(p =>
       limit(async () => {
         const start   = Date.now();
-        const results = await p.scrape({ ...meta, type });
+        const results = await withTimeout(
+          p.scrape({ ...meta, type }),
+          PROVIDER_TIMEOUT_MS,
+          `${p.name} timed out`
+        );
         logger.debug(`[${p.name}] ${results.length} results in ${Date.now() - start}ms`);
         return results;
       })
@@ -66,6 +71,19 @@ export async function scrapeAll(type, meta, providerIds = null) {
   });
 
   return deduplicate(raw);
+}
+
+async function withTimeout(promise, timeoutMs, message) {
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 /**

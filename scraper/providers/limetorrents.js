@@ -44,7 +44,7 @@ export async function scrape(meta) {
     });
 
     const settled = await Promise.allSettled(
-      rows.slice(0, 20).map(row => fetchDetail(row, meta))
+      rows.slice(0, 12).map(row => fetchDetail(row, meta))
     );
 
     return settled.flatMap(result =>

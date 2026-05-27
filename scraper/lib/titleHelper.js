@@ -41,6 +41,8 @@ const LANGUAGE_PATTERNS = [
   { re: /\barabic\b/i,    lang: 'ar'    },
   { re: /\bturkish\b/i,   lang: 'tr'    },
   { re: /\bhindi\b/i,     lang: 'hi'    },
+  { re: /\b(greek|ellinika|ελληνικά)\b/i, lang: 'el' },
+  { re: /\b(albanian|shqip)\b/i, lang: 'sq' },
   { re: /\bdubbed\b/i,    lang: 'dubbed'},
 ];
 

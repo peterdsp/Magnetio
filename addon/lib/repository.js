@@ -3,7 +3,7 @@ import { cacheWrap } from './cache.js';
 import { logger } from './logger.js';
 
 const SCRAPER_BASE_URL = process.env.SCRAPER_URL || 'http://localhost:8080';
-const REQUEST_TIMEOUT  = 10_000; // 10 s
+const REQUEST_TIMEOUT  = 30_000;
 
 /**
  * Fetch torrent stream records from the scraper back-end.

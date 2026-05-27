@@ -36,6 +36,8 @@ const LANGUAGES = [
   ['ar', 'Arabic'],
   ['tr', 'Turkish'],
   ['hi', 'Hindi'],
+  ['el', 'Greek'],
+  ['sq', 'Albanian'],
 ];
 
 const DEBRID_FIELDS = [
@@ -428,7 +430,7 @@ export function landingTemplate(manifest, initialConfig = {}) {
             </select>
           </label>
           <label>
-            Preferred audio languages
+            Only audio languages
             <select id="languages" multiple>
               ${LANGUAGES.map(([value, label]) => `<option value="${value}">${label}</option>`).join('')}
             </select>
@@ -438,9 +440,9 @@ export function landingTemplate(manifest, initialConfig = {}) {
 
       <section class="panel section">
         <h2>Subtitles</h2>
-        <p>Magnetio now exposes a dedicated Stremio subtitles resource. These language preferences shape subtitle lookups when the server is configured with OpenSubtitles credentials.</p>
+        <p>Magnetio exposes a dedicated Stremio subtitles resource. Select every subtitle language you want returned when the server is configured with OpenSubtitles credentials.</p>
         <label>
-          Preferred subtitle languages
+          Subtitle languages
           <select id="subtitleLanguages" multiple>
             ${LANGUAGES.map(([value, label]) => `<option value="${value}">${label}</option>`).join('')}
           </select>

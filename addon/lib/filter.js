@@ -34,11 +34,9 @@ export function applyFilters(streams, config) {
 
   // 2. Language whitelist
   if (config.languages?.length) {
-    const preferred = result.filter(s =>
+    result = result.filter(s =>
       (s.languages ?? []).some(l => config.languages.includes(l))
     );
-    // Keep non-matching only if preferred set is empty (graceful fallback)
-    result = preferred.length ? preferred : result;
   }
 
   // 3. Excluded size buckets (e.g. ['1GB', '2GB'])

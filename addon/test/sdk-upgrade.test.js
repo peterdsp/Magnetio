@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 import { parseConfiguration } from '../lib/configuration.js';
 import { manifest, dummyManifest } from '../lib/manifest.js';
 import { buildSubtitleSearchParams, resolveSubtitleLanguages } from '../lib/subtitles.js';
+import { applyFilters } from '../lib/filter.js';
+import { toSubtitleLanguageCode } from '../lib/languages.js';
 import { toStreamInfo } from '../lib/streamInfo.js';
 import { computeOpenSubtitlesHashFromBuffers, createStreamSubtitleProxies } from '../lib/subtitleProxy.js';
 import { pickPrewarmCandidates } from '../moch/moch.js';
@@ -76,6 +78,21 @@ test('subtitle language preferences fall back to audio languages and then englis
   assert.deepEqual(resolveSubtitleLanguages({ subtitleLanguages: ['pt', 'en'] }), ['pt', 'en']);
   assert.deepEqual(resolveSubtitleLanguages({ languages: ['es', 'multi'] }), ['es']);
   assert.deepEqual(resolveSubtitleLanguages({}), ['en']);
+});
+
+test('audio language filter only returns selected languages', () => {
+  const streams = applyFilters([
+    { title: 'English release', languages: ['en'] },
+    { title: 'Greek release', languages: ['el'] },
+    { title: 'Unknown release', languages: [] },
+  ], { languages: ['el'], limit: 10 });
+
+  assert.deepEqual(streams.map(stream => stream.title), ['Greek release']);
+});
+
+test('subtitle language code supports greek and albanian', () => {
+  assert.equal(toSubtitleLanguageCode('el'), 'ell');
+  assert.equal(toSubtitleLanguageCode('sq'), 'sqi');
 });
 
 test('stream info exposes tracker sources and subtitle matching hints', () => {

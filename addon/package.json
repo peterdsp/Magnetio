@@ -1,6 +1,6 @@
 {
   "name": "magnetio-addon",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Magnetio - Advanced Stremio addon with multi-debrid support and torrent aggregation",
   "type": "module",
   "main": "index.js",
