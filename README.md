@@ -40,6 +40,8 @@ Unlike Torrentio:
 | The Pirate Bay | ✅ | ✅ | ❌ |
 | KickassTorrents | ✅ | ✅ | ❌ |
 | 1337x | ✅ | ✅ | ❌ |
+| LimeTorrents | ✅ | ✅ | ❌ |
+| Bitsearch | ✅ | ✅ | ❌ |
 | Nyaa | ❌ | ❌ | ✅ |
 | AnimeSaturn | ❌ | ❌ | ✅ |
 | Rutor | ✅ | ✅ | ❌ |
@@ -379,6 +381,8 @@ magnetio/
 │       ├── torrentgalaxy.js   # HTML scraper
 │       ├── leetx.js           # HTML scraper (detail pages)
 │       ├── kickasstorrents.js # HTML scraper
+│       ├── limetorrents.js    # HTML scraper
+│       ├── bitsearch.js       # HTML scraper
 │       ├── nyaa.js            # Atom RSS feed
 │       ├── animesaturn.js     # HTML scraper (Italian anime)
 │       ├── rutor.js           # HTML scraper (Russian)

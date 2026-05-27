@@ -13,6 +13,8 @@ import * as nyaa           from './nyaa.js';
 import * as animesaturn    from './animesaturn.js';
 import * as rutor          from './rutor.js';
 import * as rutracker      from './rutracker.js';
+import * as limetorrents   from './limetorrents.js';
+import * as bitsearch      from './bitsearch.js';
 import { logger } from '../lib/logger.js';
 
 const ALL_PROVIDERS = [
@@ -26,6 +28,8 @@ const ALL_PROVIDERS = [
   animesaturn,
   rutor,
   rutracker,
+  limetorrents,
+  bitsearch,
 ];
 
 // Max 4 providers running simultaneously

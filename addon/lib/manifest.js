@@ -2,13 +2,14 @@ import { getManifestOverride } from './configuration.js';
 import { MochOptions } from '../moch/options.js';
 
 const ADDON_ID      = 'com.magnetio.addon';
-const ADDON_VERSION = '1.0.0';
+const ADDON_VERSION = '1.1.0';
 const ADDON_NAME    = 'Magnetio';
 const ADDON_LOGO    = 'https://i.imgur.com/magnetio.png';
 
 const PROVIDERS_DESCRIPTION = [
   'YTS', 'EZTV', 'RARBG', 'TorrentGalaxy', 'ThePirateBay',
   'KickassTorrents', '1337x', 'Nyaa', 'AnimeSaturn', 'Rutor', 'Rutracker',
+  'LimeTorrents', 'Bitsearch',
 ].join(', ');
 
 /**

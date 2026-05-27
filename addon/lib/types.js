@@ -18,6 +18,8 @@ export const TorrentProvider = {
   ANIMESATURN: 'animesaturn',
   RUTOR: 'rutor',
   RUTRACKER: 'rutracker',
+  LIMETORRENTS: 'limetorrents',
+  BITSEARCH: 'bitsearch',
 };
 
 // Sort options exposed in configuration

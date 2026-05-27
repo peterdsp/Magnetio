@@ -10,6 +10,8 @@ const PROVIDERS = [
   ['animesaturn', 'AnimeSaturn'],
   ['rutor', 'Rutor'],
   ['rutracker', 'Rutracker'],
+  ['limetorrents', 'LimeTorrents'],
+  ['bitsearch', 'Bitsearch'],
 ];
 
 const QUALITIES = [

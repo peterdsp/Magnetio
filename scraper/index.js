@@ -17,7 +17,7 @@ app.set('trust proxy', true);
 // ─── Health ───────────────────────────────────────────────────────────────────
 
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'magnetio-scraper', version: '1.0.0' });
+  res.json({ status: 'ok', service: 'magnetio-scraper', version: '1.1.0' });
 });
 
 // ─── Provider list ────────────────────────────────────────────────────────────
