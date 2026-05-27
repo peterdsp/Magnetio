@@ -1,6 +1,6 @@
 # ⚡ Magnetio
 
-> **A better, open-source alternative to Torrentio** — advanced Stremio addon with multi-provider torrent aggregation and full multi-debrid support.
+> **An open-source advanced Stremio addon with multi-provider torrent aggregation and full multi-debrid support.
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
