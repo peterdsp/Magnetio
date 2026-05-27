@@ -83,6 +83,9 @@ export function parseConfiguration(configString) {
       case 'prewarmlimit':
         config.prewarmLimit = clampPrewarmLimit(parseInt(value, 10), config.prewarmLimit);
         break;
+      case 'p2pfallback':
+        config.p2pFallback = parseBoolean(value, config.p2pFallback);
+        break;
       case 'excludesizes':
         config.excludeSizes = value.toUpperCase().split(',').filter(Boolean);
         break;
@@ -147,6 +150,7 @@ export function getDefaultConfiguration() {
     subtitleLanguages:  ['en'],       // subtitle preference defaults to English
     prewarmDebrid:      true,         // warm a few top uncached results in debrid
     prewarmLimit:       3,
+    p2pFallback:        false,        // debrid configs return direct streams unless opted in
     excludeSizes:       [],
     maxSize:            null,
     // Debrid keys (all null by default)

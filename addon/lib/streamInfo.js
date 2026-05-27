@@ -28,7 +28,7 @@ export function toStreamInfo(record, config) {
     title: description,
     description,
     infoHash:  record.infoHash,
-    fileIdx:   record.fileIdx ?? undefined,
+    fileIdx:   record.fileIdx ?? 0,
     sources:   buildSources(record),
     behaviorHints: {
       bingeGroup:      getBingeGroup(record, quality),

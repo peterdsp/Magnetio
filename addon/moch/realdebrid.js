@@ -10,9 +10,16 @@ const AUTH_ERROR_CODES = new Set([8, 9, 20]);
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
+const MAX_PROBE_CANDIDATES = 5;
+
 /**
- * Check which of the given infoHashes are instantly available (cached) on RD.
+ * Check which of the given infoHashes are available on RD.
  * Returns a Map<infoHash, true>.
+ *
+ * RD disabled /torrents/instantAvailability in early 2025. This uses
+ * the /torrents list to find already-downloaded hashes, then probes
+ * a few top candidates by adding their magnet to discover CDN-cached
+ * torrents that are not yet in the user's list.
  */
 export async function getCachedStreams(streams, apiKey) {
   if (!isValidToken(apiKey)) return new Map();
@@ -20,25 +27,49 @@ export async function getCachedStreams(streams, apiKey) {
   const hashes = streams.map(s => s.infoHash).filter(Boolean);
   if (!hashes.length) return new Map();
 
+  const results = new Map();
+
   try {
-    const chunks = chunkArray(hashes, 100); // RD allows up to 100 hashes per request
-    const results = new Map();
+    const { data: torrents } = await rdGet(`${RD_BASE}/torrents`, apiKey, { limit: 200 });
+    if (!Array.isArray(torrents)) return results;
 
-    for (const chunk of chunks) {
-      const url  = `${RD_BASE}/torrents/instantAvailability/${chunk.join('/')}`;
-      const { data } = await rdGet(url, apiKey);
+    const hashSet = new Set(hashes.map(h => h.toLowerCase()));
 
-      for (const [hash, providers] of Object.entries(data)) {
-        if (providers && Object.keys(providers).length) {
-          results.set(hash.toLowerCase(), true);
-        }
+    for (const t of torrents) {
+      if (t.hash && hashSet.has(t.hash.toLowerCase()) && t.status === 'downloaded') {
+        results.set(t.hash.toLowerCase(), true);
       }
     }
 
+    const unmatched = hashes
+      .map(h => h.toLowerCase())
+      .filter(h => !results.has(h));
+
+    const probes = unmatched.slice(0, MAX_PROBE_CANDIDATES);
+    await Promise.allSettled(probes.map(async (hash) => {
+      try {
+        const magnet = `magnet:?xt=urn:btih:${hash}`;
+        const { data } = await rdPost(`${RD_BASE}/torrents/addMagnet`, apiKey, { magnet });
+        if (!data?.id) return;
+
+        await rdPost(`${RD_BASE}/torrents/selectFiles/${data.id}`, apiKey, { files: 'all' });
+
+        const { data: info } = await rdGet(`${RD_BASE}/torrents/info/${data.id}`, apiKey);
+        if (info.status === 'downloaded') {
+          results.set(hash, true);
+        } else {
+          await rdDelete(`${RD_BASE}/torrents/delete/${data.id}`, apiKey);
+        }
+      } catch {
+        // probe failed, skip this hash
+      }
+    }));
+
+    logger.info(`RD cache check: ${results.size}/${hashes.length} available (${probes.length} probed)`);
     return results;
   } catch (err) {
     handleRdError(err, apiKey);
-    return new Map();
+    return results;
   }
 }
 
@@ -176,6 +207,13 @@ function rdPost(url, apiKey, data = {}) {
       Authorization:  `Bearer ${apiKey}`,
       'Content-Type': 'application/x-www-form-urlencoded',
     },
+    timeout: 15_000,
+  });
+}
+
+function rdDelete(url, apiKey) {
+  return axios.delete(url, {
+    headers: { Authorization: `Bearer ${apiKey}` },
     timeout: 15_000,
   });
 }

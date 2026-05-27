@@ -9,6 +9,7 @@ import { toSubtitleLanguageCode } from '../lib/languages.js';
 import { toStreamInfo } from '../lib/streamInfo.js';
 import { computeOpenSubtitlesHashFromBuffers, createStreamSubtitleProxies } from '../lib/subtitleProxy.js';
 import { pickPrewarmCandidates } from '../moch/moch.js';
+import { applyFinalStreamLimit } from '../addon.js';
 
 test('configuration parser supports subtitle languages', () => {
   const config = parseConfiguration('providers=yts,eztv|subtitleLanguages=en,es|limit=20');
@@ -19,10 +20,30 @@ test('configuration parser supports subtitle languages', () => {
 });
 
 test('configuration parser supports debrid prewarm controls', () => {
-  const config = parseConfiguration('prewarm=0|prewarmLimit=5');
+  const config = parseConfiguration('prewarm=0|prewarmLimit=5|p2pFallback=1');
 
   assert.equal(config.prewarmDebrid, false);
   assert.equal(config.prewarmLimit, 5);
+  assert.equal(config.p2pFallback, true);
+});
+
+test('debrid configs default to direct-only stream output', () => {
+  const config = parseConfiguration('rd=abcdefghijklmnop');
+
+  assert.equal(config.p2pFallback, false);
+});
+
+test('final stream limit caps visible streams after debrid enrichment', () => {
+  const streams = [
+    { title: 'one' },
+    { title: 'two' },
+    { title: 'three' },
+  ];
+
+  assert.deepEqual(
+    applyFinalStreamLimit(streams, { limit: 2 }).map(stream => stream.title),
+    ['one', 'two'],
+  );
 });
 
 test('dummy manifest advertises configurable subtitles-enabled addon surface', () => {

@@ -37,7 +37,7 @@ const resolveLimit = pLimit(4);
  * For each enabled service:
  *   1. Check which infoHashes are instantly available (cached).
  *   2. Re-emit cached streams as direct-download streams.
- *   3. Keep the original P2P stream as a fallback.
+ *   3. Return direct streams first, with optional P2P fallback.
  *
  * @param {StreamObject[]} streams         Raw stream objects from repository
  * @param {object}         config          Addon configuration
@@ -48,7 +48,7 @@ export async function applyMochs(streams, config, requestContext) {
   const enabled = getEnabledMochs(config);
   if (!enabled.length) return streams;
 
-  const result = [...streams];
+  const directStreams = [];
 
   await Promise.allSettled(
     enabled.map(async ({ key, moch, module }) => {
@@ -86,7 +86,7 @@ export async function applyMochs(streams, config, requestContext) {
           if (proxySubtitles.length) {
             debridStream.subtitles = proxySubtitles;
           }
-          result.push(debridStream);
+          directStreams.push(debridStream);
         }
       } catch (err) {
         logger.error(`Moch error [${moch.name}]: ${err.message}`);
@@ -94,7 +94,7 @@ export async function applyMochs(streams, config, requestContext) {
     })
   );
 
-  return result;
+  return config?.p2pFallback ? [...directStreams, ...streams] : directStreams;
 }
 
 async function withTimeout(promise, timeoutMs, message) {

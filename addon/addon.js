@@ -59,11 +59,11 @@ export async function getAddonInterface(config) {
             // 6. Inject any static streams
             const statics = toStaticStream(id, config);
 
-            return [...statics, ...enhanced];
+            return applyFinalStreamLimit([...statics, ...enhanced], config);
           });
 
           const cacheAge = streams.length ? CACHE_TTL_OK : CACHE_TTL_EMPTY;
-          resolve({ streams, cacheMaxAge: cacheAge, staleRevalidate: 14400, staleError: 604800 });
+          resolve({ streams, cacheMaxAge: cacheAge, staleRevalidate: 3600, staleError: 14400 });
         } catch (err) {
           logger.error(`Stream handler error [${id}]: ${err.message}`);
           resolve({ streams: [], cacheMaxAge: CACHE_TTL_ERROR });
@@ -105,8 +105,8 @@ export async function getAddonInterface(config) {
       return {
         subtitles,
         cacheMaxAge: cacheAge,
-        staleRevalidate: 14400,
-        staleError: 604800,
+        staleRevalidate: 3600,
+        staleError: 14400,
       };
     } catch (err) {
       logger.error(`Subtitle handler error [${id}]: ${err.message}`);
@@ -115,4 +115,9 @@ export async function getAddonInterface(config) {
   });
 
   return builder.getInterface();
+}
+
+export function applyFinalStreamLimit(streams, config = {}) {
+  const limit = Math.max(0, parseInt(config.limit, 10) || 10);
+  return streams.slice(0, limit);
 }

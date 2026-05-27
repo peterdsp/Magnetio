@@ -2,7 +2,7 @@ import { getManifestOverride } from './configuration.js';
 import { MochOptions } from '../moch/options.js';
 
 const ADDON_ID      = 'com.magnetio.addon';
-const ADDON_VERSION = '1.1.1';
+const ADDON_VERSION = '1.1.2';
 const ADDON_NAME    = 'Magnetio';
 const ADDON_LOGO    = 'https://i.imgur.com/magnetio.png';
 
