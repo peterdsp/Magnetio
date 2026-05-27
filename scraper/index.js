@@ -54,11 +54,12 @@ app.get('/streams/:type/:id', async (req, res) => {
       // 1. Resolve metadata (title, year, season, episode)
       const meta = await getMetadata(type === 'anime' ? 'series' : type, id);
       if (!meta) {
-        logger.warn(`No metadata for ${type}/${id}`);
+        logger.warn(`No metadata for ${type}/${id}, skipping`);
         return [];
       }
 
-      logger.info(`Scraping "${meta.name}" (${meta.year}) [${type}] from ${providerIds?.join(',') ?? 'all providers'}`);
+      const label = meta.year ? `"${meta.name}" (${meta.year})` : `"${meta.name}"`;
+      logger.info(`Scraping ${label} [${type}] from ${providerIds?.join(',') ?? 'all providers'}`);
 
       // 2. Scrape all providers in parallel
       return scrapeAll(type, meta, providerIds);
