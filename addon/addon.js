@@ -59,7 +59,9 @@ export async function getAddonInterface(config) {
             // 6. Inject any static streams
             const statics = toStaticStream(id, config);
 
-            return applyFinalStreamLimit([...statics, ...enhanced], config);
+            const finalStreams = applyFinalStreamLimit([...statics, ...enhanced], config);
+            logStreamSummary({ type, id, config, records, filtered, baseStreams, finalStreams });
+            return finalStreams;
           });
 
           const cacheAge = streams.length ? CACHE_TTL_OK : CACHE_TTL_EMPTY;
@@ -120,4 +122,28 @@ export async function getAddonInterface(config) {
 export function applyFinalStreamLimit(streams, config = {}) {
   const limit = Math.max(0, parseInt(config.limit, 10) || 10);
   return streams.slice(0, limit);
+}
+
+function logStreamSummary({ type, id, config, records, filtered, baseStreams, finalStreams }) {
+  const direct = finalStreams.filter(stream => stream.url).length;
+  const p2p = finalStreams.filter(stream => stream.infoHash && !stream.url).length;
+  const debrid = [
+    config.realDebridApiKey ? 'rd' : null,
+    config.premiumizeApiKey ? 'pm' : null,
+    config.allDebridApiKey ? 'ad' : null,
+    config.debridLinkApiKey ? 'dl' : null,
+    config.easyDebridApiKey ? 'ed' : null,
+    config.offcloudApiKey ? 'oc' : null,
+    config.torboxApiKey ? 'tb' : null,
+    config.putioApiKey ? 'pu' : null,
+  ].filter(Boolean).join(',') || 'none';
+
+  logger.info(
+    `Stream ${type}/${id}: providers=${(config.providers || []).join(',') || 'default'} ` +
+    `qualities=${(config.qualities || []).join(',') || 'all'} ` +
+    `languages=${(config.languages || []).join(',') || 'all'} ` +
+    `limit=${config.limit ?? 10} debrid=${debrid} p2pFallback=${config.p2pFallback ? '1' : '0'} ` +
+    `records=${records.length} filtered=${filtered.length} base=${baseStreams.length} ` +
+    `final=${finalStreams.length} direct=${direct} p2p=${p2p}`
+  );
 }

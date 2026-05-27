@@ -31,7 +31,7 @@ router.get('/manifest.json', (_req, res) => {
 router.get('/proxy/subtitle/:id.srt', handleSubtitleProxyRequest);
 
 router.get('/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'Magnetio', version: '1.1.3' });
+  res.json({ status: 'ok', service: 'Magnetio', version: '1.1.4' });
 });
 
 router.get('/:configuration', (req, res) => {
