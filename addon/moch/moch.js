@@ -94,7 +94,17 @@ export async function applyMochs(streams, config, requestContext) {
     })
   );
 
-  return config?.p2pFallback ? [...directStreams, ...streams] : directStreams;
+  if (directStreams.length) {
+    return config?.p2pFallback ? [...directStreams, ...streams] : directStreams;
+  }
+
+  if (config?.p2pFallback) {
+    logger.warn(`No debrid streams resolved, falling back to P2P (${streams.length} raw streams)`);
+    return streams;
+  }
+
+  logger.warn('No debrid streams resolved and P2P fallback is disabled');
+  return [];
 }
 
 async function withTimeout(promise, timeoutMs, message) {

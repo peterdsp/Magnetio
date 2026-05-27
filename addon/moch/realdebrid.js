@@ -7,6 +7,8 @@ const SERVICE  = 'RD';
 
 // RealDebrid error codes that indicate the token is no longer valid
 const AUTH_ERROR_CODES = new Set([8, 9, 20]);
+// Errors that mean the specific torrent/file is unusable (not an account issue)
+const CONTENT_ERROR_CODES = new Set([35, 36]);
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
@@ -79,8 +81,7 @@ export async function getCachedStreams(streams, apiKey) {
 export async function resolve(stream, apiKey) {
   if (!isValidToken(apiKey)) return null;
 
-  const cacheKey = `rd:resolve:${stream.infoHash}:${stream.fileIdx ?? 0}`;
-  return resolveWithCache(cacheKey, () => _resolve(stream, apiKey));
+  return _resolve(stream, apiKey);
 }
 
 export async function prewarm(stream, apiKey) {
@@ -222,6 +223,12 @@ function handleRdError(err, apiKey) {
   const code = err.response?.data?.error_code;
   if (AUTH_ERROR_CODES.has(code)) {
     blacklistToken(apiKey);
+    logger.error(`Real-Debrid auth error (code ${code}), token blacklisted`);
+    return;
+  }
+  if (CONTENT_ERROR_CODES.has(code)) {
+    logger.info(`Real-Debrid content unavailable (code ${code}): ${err.message}`);
+    return;
   }
   logger.warn(`Real-Debrid error (code ${code ?? 'unknown'}): ${err.message}`);
 }
