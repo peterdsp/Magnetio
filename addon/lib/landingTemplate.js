@@ -58,425 +58,412 @@ export function landingTemplate(manifest, initialConfig = {}) {
     putioApiKey: initialConfig.putioApiKey ?? '',
   });
 
-  return `<!DOCTYPE html>
+  return \`<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${manifest.name} Configure</title>
+  <title>\${manifest.name} Configure</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
     :root {
-      --bg: #09111f;
-      --panel: rgba(9, 19, 36, 0.82);
-      --panel-border: rgba(140, 193, 255, 0.18);
-      --text: #eef5ff;
-      --muted: #8ea3c1;
-      --accent: #29d6b6;
-      --accent-2: #ffc857;
-      --danger: #ff7b72;
-      --shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
-      --radius: 22px;
+      color-scheme: light dark;
+      --bg: #fafafa;
+      --surface: #ffffff;
+      --border: rgba(0, 0, 0, 0.08);
+      --text: #1a1a1a;
+      --muted: #6b7280;
+      --accent: #6d5cff;
+      --accent-hover: #5a47e6;
+      --accent-subtle: rgba(109, 92, 255, 0.08);
+      --input-bg: #f5f5f5;
+      --radius: 12px;
+      --radius-sm: 8px;
     }
 
-    * { box-sizing: border-box; }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0a0a0a;
+        --surface: #141414;
+        --border: rgba(255, 255, 255, 0.08);
+        --text: #e5e5e5;
+        --muted: #737373;
+        --accent: #8b7dff;
+        --accent-hover: #a094ff;
+        --accent-subtle: rgba(139, 125, 255, 0.1);
+        --input-bg: #1a1a1a;
+      }
+    }
+
+    * { box-sizing: border-box; margin: 0; }
 
     body {
-      margin: 0;
+      font-family: "Inter", -apple-system, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
       min-height: 100vh;
-      color: var(--text);
-      background:
-        radial-gradient(circle at top left, rgba(41, 214, 182, 0.18), transparent 30%),
-        radial-gradient(circle at top right, rgba(255, 200, 87, 0.18), transparent 35%),
-        linear-gradient(180deg, #08101d 0%, #0e1728 44%, #08101d 100%);
-      font-family: "Space Grotesk", "Helvetica Neue", sans-serif;
-      padding: 32px 20px 48px;
-    }
-
-    .shell {
-      max-width: 1240px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: 1.15fr 0.85fr;
-      gap: 22px;
-      align-items: start;
-    }
-
-    .panel {
-      background: var(--panel);
-      border: 1px solid var(--panel-border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(18px);
-    }
-
-    .hero {
-      padding: 30px;
-      display: grid;
-      gap: 18px;
-    }
-
-    .eyebrow {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      color: var(--accent);
-      font-size: 13px;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-    }
-
-    .hero h1 {
-      margin: 0;
-      font-size: clamp(2.4rem, 6vw, 4.4rem);
-      line-height: 0.98;
-      letter-spacing: -0.04em;
-      max-width: 9ch;
-    }
-
-    .hero p {
-      margin: 0;
-      color: var(--muted);
-      font-size: 1rem;
-      line-height: 1.6;
-      max-width: 60ch;
-    }
-
-    .badges {
       display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+      -webkit-font-smoothing: antialiased;
     }
 
-    .badge {
-      padding: 10px 14px;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      color: var(--text);
-      font-size: 0.9rem;
-    }
-
-    .stack {
-      display: grid;
-      gap: 18px;
-    }
-
-    .section {
-      padding: 22px;
-      display: grid;
-      gap: 16px;
-    }
-
-    .section h2,
-    .section h3 {
-      margin: 0;
-      font-size: 1rem;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      color: var(--accent-2);
-    }
-
-    .section p {
-      margin: 0;
-      color: var(--muted);
-      line-height: 1.55;
-      font-size: 0.95rem;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 14px;
-    }
-
-    label {
-      display: grid;
-      gap: 8px;
-      color: var(--muted);
-      font-size: 0.88rem;
-    }
-
-    input,
-    select,
-    textarea {
+    .app {
       width: 100%;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 14px;
-      background: rgba(0, 0, 0, 0.18);
-      color: var(--text);
-      padding: 12px 14px;
-      font: inherit;
-      outline: none;
-      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+      max-width: 480px;
     }
 
-    select[multiple] {
-      min-height: 148px;
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
     }
 
-    input:focus,
-    select:focus {
-      border-color: rgba(41, 214, 182, 0.8);
-      box-shadow: 0 0 0 3px rgba(41, 214, 182, 0.16);
+    .logo {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
     }
 
-    .summary {
-      position: sticky;
-      top: 24px;
-      padding: 24px;
-      display: grid;
-      gap: 18px;
+    .logo span { color: var(--accent); }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
     }
 
-    .summary h2 {
-      margin: 0;
-      font-size: 1.45rem;
-      letter-spacing: -0.03em;
+    .group {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
     }
 
-    .summary-copy {
-      color: var(--muted);
-      line-height: 1.55;
-      font-size: 0.95rem;
-    }
+    .group:last-child { border-bottom: none; }
 
-    .preview {
-      padding: 16px;
-      border-radius: 18px;
-      background: rgba(0, 0, 0, 0.26);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
-    .preview-label {
-      color: var(--muted);
-      font-size: 0.78rem;
-      letter-spacing: 0.12em;
+    .group-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
-      margin-bottom: 10px;
+      color: var(--muted);
+      margin-bottom: 12px;
     }
 
-    .preview-code {
-      font-family: "IBM Plex Mono", monospace;
-      color: #b9d5ff;
-      word-break: break-all;
-      line-height: 1.6;
-      font-size: 0.88rem;
+    .row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .field {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .field + .field { margin-top: 0; }
+    .field-stack .field + .field { margin-top: 8px; }
+    .field-stack { display: flex; flex-direction: column; }
+
+    .field label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    select, input {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--input-bg);
+      color: var(--text);
+      padding: 8px 10px;
+      font: inherit;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    select:focus, input:focus {
+      border-color: var(--accent);
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .chip {
+      padding: 5px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+    }
+
+    .chip:hover { border-color: var(--accent); }
+    .chip.active {
+      background: var(--accent-subtle);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .debrid-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .debrid-grid input {
+      font-size: 12px;
+      padding: 7px 9px;
+    }
+
+    .debrid-grid label {
+      font-size: 11px;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 0;
+    }
+
+    .toggle-row + .toggle-row {
+      margin-top: 6px;
+    }
+
+    .toggle-label {
+      font-size: 13px;
+    }
+
+    .toggle {
+      position: relative;
+      width: 36px;
+      height: 20px;
+      appearance: none;
+      -webkit-appearance: none;
+      background: var(--border);
+      border-radius: 10px;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+
+    .toggle::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: white;
+      transition: transform 0.2s;
+    }
+
+    .toggle:checked {
+      background: var(--accent);
+    }
+
+    .toggle:checked::after {
+      transform: translateX(16px);
     }
 
     .actions {
-      display: grid;
-      gap: 10px;
+      padding: 16px 20px;
+      display: flex;
+      gap: 8px;
     }
 
     .btn {
-      width: 100%;
+      flex: 1;
       border: none;
-      border-radius: 16px;
-      padding: 14px 16px;
+      border-radius: var(--radius-sm);
+      padding: 10px 16px;
       font: inherit;
-      font-weight: 700;
+      font-size: 13px;
+      font-weight: 500;
       cursor: pointer;
-      transition: transform 0.16s ease, opacity 0.16s ease;
+      transition: opacity 0.15s;
     }
 
-    .btn:hover { transform: translateY(-1px); }
+    .btn:hover { opacity: 0.85; }
 
     .btn-primary {
-      color: #04121a;
-      background: linear-gradient(135deg, var(--accent) 0%, #7dffdd 100%);
+      background: var(--accent);
+      color: white;
     }
 
     .btn-secondary {
+      background: var(--input-bg);
       color: var(--text);
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .footnote {
-      color: var(--muted);
-      font-size: 0.84rem;
-      line-height: 1.6;
+      border: 1px solid var(--border);
     }
 
     .status {
+      text-align: center;
+      font-size: 12px;
       color: var(--accent);
-      font-size: 0.88rem;
-      min-height: 1.2rem;
+      min-height: 18px;
+      padding: 0 20px 12px;
     }
 
-    a { color: #9ed7ff; }
-
-    @media (max-width: 980px) {
-      .shell {
-        grid-template-columns: 1fr;
-      }
-
-      .summary {
-        position: static;
-      }
+    .footnote {
+      text-align: center;
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 16px;
     }
 
-    @media (max-width: 640px) {
-      body { padding: 16px 14px 28px; }
-      .hero,
-      .section,
-      .summary { padding: 20px; }
-      .grid { grid-template-columns: 1fr; }
+    .footnote a { color: var(--accent); text-decoration: none; }
+
+    @media (max-width: 520px) {
+      .debrid-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
-  <div class="shell">
-    <div class="stack">
-      <section class="panel hero">
-        <span class="eyebrow">Magnetio for Stremio</span>
-        <h1>Build the exact addon URL you actually want.</h1>
-        <p>Tune stream ranking, set subtitle preferences and plug in your debrid stack. The result is a Stremio manifest URL that is ready to install as-is.</p>
-        <div class="badges">
-          <span class="badge">Torrent aggregation</span>
-          <span class="badge">Multi-debrid direct links</span>
-          <span class="badge">SDK subtitle resource</span>
-        </div>
-      </section>
+  <div class="app">
+    <div class="header">
+      <div class="logo"><span>M</span>agnetio</div>
+    </div>
 
-      <section class="panel section">
-        <h2>Stream Rules</h2>
-        <div class="grid">
-          <label>
-            Sort order
+    <div class="card">
+      <div class="group">
+        <div class="group-title">Streams</div>
+        <div class="row">
+          <div class="field">
+            <label>Sort</label>
             <select id="sort">
-              <option value="qualityseeders">Quality then seeders</option>
-              <option value="qualitysize">Quality then size</option>
-              <option value="seeders">Seeders only</option>
-              <option value="size">Size only</option>
+              <option value="qualityseeders">Quality + seeders</option>
+              <option value="qualitysize">Quality + size</option>
+              <option value="seeders">Seeders</option>
+              <option value="size">Size</option>
             </select>
-          </label>
-          <label>
-            Max streams total
+          </div>
+          <div class="field">
+            <label>Limit</label>
             <select id="limit">
               <option value="5">5</option>
               <option value="10">10</option>
               <option value="20">20</option>
               <option value="50">50</option>
             </select>
-          </label>
+          </div>
         </div>
-        <div class="grid">
-          <label>
-            Allowed qualities
-            <select id="qualities" multiple>
-              ${QUALITIES.map(([value, label]) => `<option value="${value}">${label}</option>`).join('')}
-            </select>
-          </label>
-          <label>
-            Only audio languages
-            <select id="languages" multiple>
-              ${LANGUAGES.map(([value, label]) => `<option value="${value}">${label}</option>`).join('')}
-            </select>
-          </label>
+      </div>
+
+      <div class="group">
+        <div class="group-title">Quality</div>
+        <div class="chips" id="qualityChips">
+          \${QUALITIES.map(([v, l]) => \`<button type="button" class="chip" data-value="\${v}">\${l}</button>\`).join('')}
         </div>
-      </section>
+      </div>
 
-      <section class="panel section">
-        <h2>Subtitles</h2>
-        <p>Magnetio exposes a dedicated Stremio subtitles resource. Select every subtitle language you want returned when subtitle support is available.</p>
-        <label>
-          Subtitle languages
-          <select id="subtitleLanguages" multiple>
-            ${LANGUAGES.map(([value, label]) => `<option value="${value}">${label}</option>`).join('')}
-          </select>
-        </label>
-      </section>
+      <div class="group">
+        <div class="group-title">Audio</div>
+        <div class="chips" id="langChips">
+          \${LANGUAGES.map(([v, l]) => \`<button type="button" class="chip" data-value="\${v}">\${l}</button>\`).join('')}
+        </div>
+      </div>
 
-      <section class="panel section">
-        <h2>Debrid</h2>
-        <p>Paste only the services you actually use. Cached matches are emitted as direct debrid streams first. P2P fallback is optional.</p>
-        <div class="grid">
-          <label>
-            Debrid prewarm
-            <select id="prewarm">
-              <option value="1">Enabled</option>
-              <option value="0">Disabled</option>
-            </select>
-          </label>
-          <label>
-            Prewarm top uncached results
+      <div class="group">
+        <div class="group-title">Subtitles</div>
+        <div class="chips" id="subChips">
+          \${LANGUAGES.map(([v, l]) => \`<button type="button" class="chip" data-value="\${v}">\${l}</button>\`).join('')}
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="group-title">Debrid</div>
+        <div class="toggle-row">
+          <span class="toggle-label">Prewarm cache</span>
+          <input type="checkbox" class="toggle" id="prewarm" />
+        </div>
+        <div class="toggle-row">
+          <span class="toggle-label">P2P fallback</span>
+          <input type="checkbox" class="toggle" id="p2pFallback" />
+        </div>
+        <div class="row" style="margin-top:10px">
+          <div class="field">
+            <label>Prewarm limit</label>
             <select id="prewarmLimit">
               <option value="1">1</option>
               <option value="2">2</option>
               <option value="3">3</option>
               <option value="5">5</option>
             </select>
-          </label>
-          <label>
-            P2P fallback
-            <select id="p2pFallback">
-              <option value="0">Direct debrid only</option>
-              <option value="1">Allow torrent fallback</option>
-            </select>
-          </label>
+          </div>
         </div>
-        <div class="grid">
-          ${DEBRID_FIELDS.map(([id, label]) => `
-            <label>
-              ${label}
-              <input type="password" id="${id}" autocomplete="off" placeholder="${label} API key" />
-            </label>
-          `).join('')}
+        <div class="debrid-grid" style="margin-top:10px">
+          \${DEBRID_FIELDS.map(([id, label]) => \`
+            <div class="field">
+              <label>\${label}</label>
+              <input type="password" id="\${id}" autocomplete="off" placeholder="API key" />
+            </div>
+          \`).join('')}
         </div>
-      </section>
-    </div>
-
-    <aside class="panel summary">
-      <div>
-        <h2>Install Target</h2>
-        <p class="summary-copy">This preview is the actual manifest URL Stremio will install. Re-open this page later from a configured addon URL to tweak the same setup.</p>
-      </div>
-
-      <div class="preview">
-        <div class="preview-label">Manifest URL</div>
-        <div class="preview-code" id="manifestPreview"></div>
       </div>
 
       <div class="actions">
-        <button class="btn btn-primary" type="button" id="installBtn">Install in Stremio</button>
-        <button class="btn btn-secondary" type="button" id="copyBtn">Copy manifest URL</button>
+        <button class="btn btn-primary" type="button" id="installBtn">Install</button>
+        <button class="btn btn-secondary" type="button" id="copyBtn">Copy URL</button>
       </div>
-
       <div class="status" id="status"></div>
-      <div class="footnote">
-        Magnetio does not host content. Review the project disclaimer before public deployment.
-        <a href="https://github.com/Magnetio/magnetio#disclaimer" target="_blank" rel="noreferrer">Read disclaimer</a>
-      </div>
-    </aside>
+    </div>
+
+    <div class="footnote">
+      <a href="https://github.com/Magnetio/magnetio#disclaimer" target="_blank" rel="noreferrer">Disclaimer</a>
+    </div>
   </div>
 
   <script>
-    const initialConfig = ${initialState};
+    const initialConfig = \${initialState};
 
-    function selectedValues(id) {
-      return Array.from(document.getElementById(id).selectedOptions).map(option => option.value);
-    }
-
-    function setMultiSelect(id, values) {
-      const wanted = new Set(values || []);
-      Array.from(document.getElementById(id).options).forEach(option => {
-        option.selected = wanted.has(option.value);
+    function chipGroup(containerId) {
+      const chips = document.querySelectorAll('#' + containerId + ' .chip');
+      chips.forEach(chip => {
+        chip.addEventListener('click', () => {
+          chip.classList.toggle('active');
+          refreshPreview();
+        });
       });
+      return {
+        getValues() {
+          return Array.from(document.querySelectorAll('#' + containerId + ' .chip.active'))
+            .map(c => c.dataset.value);
+        },
+        setValues(vals) {
+          const set = new Set(vals || []);
+          chips.forEach(c => c.classList.toggle('active', set.has(c.dataset.value)));
+        }
+      };
     }
+
+    const qualityChips = chipGroup('qualityChips');
+    const langChips = chipGroup('langChips');
+    const subChips = chipGroup('subChips');
 
     function applyInitialState() {
       document.getElementById('sort').value = initialConfig.sort || 'qualityseeders';
       document.getElementById('limit').value = String(initialConfig.limit || 10);
-      document.getElementById('prewarm').value = initialConfig.prewarmDebrid === false ? '0' : '1';
+      document.getElementById('prewarm').checked = initialConfig.prewarmDebrid !== false;
       document.getElementById('prewarmLimit').value = String(initialConfig.prewarmLimit || 3);
-      document.getElementById('p2pFallback').value = initialConfig.p2pFallback ? '1' : '0';
+      document.getElementById('p2pFallback').checked = !!initialConfig.p2pFallback;
 
-      setMultiSelect('qualities', initialConfig.qualities || []);
-      setMultiSelect('languages', initialConfig.languages || []);
-      setMultiSelect('subtitleLanguages', initialConfig.subtitleLanguages || ['en']);
+      qualityChips.setValues(initialConfig.qualities);
+      langChips.setValues(initialConfig.languages);
+      subChips.setValues(initialConfig.subtitleLanguages);
 
       document.getElementById('rd').value = initialConfig.realDebridApiKey || '';
       document.getElementById('pm').value = initialConfig.premiumizeApiKey || '';
@@ -490,73 +477,54 @@ export function landingTemplate(manifest, initialConfig = {}) {
 
     function buildConfiguration() {
       const parts = [];
+      parts.push('sort=' + document.getElementById('sort').value);
+      parts.push('limit=' + document.getElementById('limit').value);
+      parts.push('prewarm=' + (document.getElementById('prewarm').checked ? '1' : '0'));
+      parts.push('prewarmLimit=' + document.getElementById('prewarmLimit').value);
+      parts.push('p2pFallback=' + (document.getElementById('p2pFallback').checked ? '1' : '0'));
 
-      const sort = document.getElementById('sort').value;
-      const limit = document.getElementById('limit').value;
-      const prewarm = document.getElementById('prewarm').value;
-      const prewarmLimit = document.getElementById('prewarmLimit').value;
-      const p2pFallback = document.getElementById('p2pFallback').value;
-      const qualities = selectedValues('qualities');
-      const languages = selectedValues('languages');
-      const subtitleLanguages = selectedValues('subtitleLanguages');
+      const qualities = qualityChips.getValues();
+      const languages = langChips.getValues();
+      const subtitleLanguages = subChips.getValues();
 
-      parts.push('sort=' + sort);
-      parts.push('limit=' + limit);
-      parts.push('prewarm=' + prewarm);
-      parts.push('prewarmLimit=' + prewarmLimit);
-      parts.push('p2pFallback=' + p2pFallback);
       if (qualities.length) parts.push('qualities=' + qualities.join(','));
       if (languages.length) parts.push('languages=' + languages.join(','));
       if (subtitleLanguages.length) parts.push('subtitleLanguages=' + subtitleLanguages.join(','));
 
-      const keyMap = {
-        rd: 'rd',
-        pm: 'pm',
-        ad: 'ad',
-        dl: 'dl',
-        ed: 'ed',
-        oc: 'oc',
-        tb: 'tb',
-        pu: 'pu',
-      };
-
-      Object.entries(keyMap).forEach(([id, key]) => {
-        const value = document.getElementById(id).value.trim();
-        if (value) parts.push(key + '=' + value);
+      const keys = { rd:'rd', pm:'pm', ad:'ad', dl:'dl', ed:'ed', oc:'oc', tb:'tb', pu:'pu' };
+      Object.entries(keys).forEach(([id, key]) => {
+        const v = document.getElementById(id).value.trim();
+        if (v) parts.push(key + '=' + v);
       });
 
       return parts.join('|');
     }
 
     function manifestUrl() {
-      const configuration = buildConfiguration();
-      return configuration
-        ? location.origin + '/' + configuration + '/manifest.json'
-        : location.origin + '/manifest.json';
+      const c = buildConfiguration();
+      return c ? location.origin + '/' + c + '/manifest.json' : location.origin + '/manifest.json';
     }
 
     function refreshPreview() {
-      document.getElementById('manifestPreview').textContent = manifestUrl();
       document.getElementById('status').textContent = '';
     }
 
-    Array.from(document.querySelectorAll('select,input')).forEach(element => {
-      element.addEventListener('change', refreshPreview);
-      element.addEventListener('input', refreshPreview);
+    document.querySelectorAll('select,input').forEach(el => {
+      el.addEventListener('change', refreshPreview);
+      el.addEventListener('input', refreshPreview);
     });
 
     document.getElementById('installBtn').addEventListener('click', () => {
-      const url = manifestUrl();
-      window.open('stremio://' + url.replace(/^https?:\\/\\//, ''));
+      window.open('stremio://' + manifestUrl().replace(/^https?:\\/\\//, ''));
     });
 
     document.getElementById('copyBtn').addEventListener('click', async () => {
-      const url = manifestUrl();
       try {
-        await navigator.clipboard.writeText(url);
-        document.getElementById('status').textContent = 'Manifest URL copied.';
+        await navigator.clipboard.writeText(manifestUrl());
+        document.getElementById('status').textContent = 'Copied';
+        setTimeout(() => document.getElementById('status').textContent = '', 2000);
       } catch {
-        document.getElementById('status').textContent = 'Clipboard access failed. Copy the preview URL manually.';
+        document.getElementById('status').textContent = 'Copy failed';
       }
     });
 
@@ -564,7 +532,7 @@ export function landingTemplate(manifest, initialConfig = {}) {
     refreshPreview();
   </script>
 </body>
-</html>`;
+</html>\`;
 }
 
 function escapeJsonForHtml(value) {

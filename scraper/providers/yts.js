@@ -6,7 +6,7 @@ import { get } from '../lib/httpClient.js';
 import { parseTitle } from '../lib/titleHelper.js';
 import { logger } from '../lib/logger.js';
 
-const BASE = 'https://yts.mx/api/v2';
+const BASE = 'https://yts.do/api/v2';
 
 export const id   = 'yts';
 export const name = 'YTS';

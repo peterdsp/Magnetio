@@ -6,7 +6,7 @@ import { get } from '../lib/httpClient.js';
 import { parseTitle, buildSearchQuery } from '../lib/titleHelper.js';
 import { logger } from '../lib/logger.js';
 
-const BASE = 'https://torrentgalaxy.to';
+const BASE = 'https://torrentgalaxy.one';
 
 export const id   = 'torrentgalaxy';
 export const name = 'TorrentGalaxy';
