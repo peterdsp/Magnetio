@@ -50,7 +50,9 @@ jobs:
   deploy:
     name: deploy
     needs: validate
-    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    if: >-
+      github.actor == 'peterdsp' &&
+      (github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main')
     runs-on: [self-hosted, raspberry-pi, production]
     environment: production
     timeout-minutes: 20
