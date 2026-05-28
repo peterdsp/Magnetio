@@ -15,6 +15,11 @@ services:
       - REDIS_URI=redis://redis:6379
       - CACHE_TTL_STREAMS=${CACHE_TTL_STREAMS:-3600}
       - LOG_LEVEL=${LOG_LEVEL:-info}
+      - PREWARM_ENABLED=${PREWARM_ENABLED:-true}
+      - PREWARM_SCHEDULE=${PREWARM_SCHEDULE:-0 4 * * *}
+      - PREWARM_MOVIE_LIMIT=${PREWARM_MOVIE_LIMIT:-50}
+      - PREWARM_SERIES_LIMIT=${PREWARM_SERIES_LIMIT:-20}
+      - PREWARM_CACHE_TTL=${PREWARM_CACHE_TTL:-14400}
     depends_on:
       redis:
         condition: service_healthy

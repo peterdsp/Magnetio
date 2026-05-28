@@ -18,6 +18,12 @@ function getStore() {
   return _store;
 }
 
+export async function cacheHas(key) {
+  const store = getStore();
+  const hit = await store.get(key);
+  return hit !== undefined;
+}
+
 export async function cacheWrap(key, loader, ttlSeconds = 3600) {
   const store = getStore();
   const hit = await store.get(key);

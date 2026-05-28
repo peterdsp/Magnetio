@@ -3,6 +3,8 @@ import express from 'express';
 import { scrapeAll, listProviders } from './providers/index.js';
 import { getMetadata } from './lib/cinemeta.js';
 import { cacheWrap } from './lib/cache.js';
+import { startCronJobs } from './lib/cron.js';
+import { runPrewarm, getPrewarmStatus } from './lib/prewarm.js';
 import { logger } from './lib/logger.js';
 
 const app  = express();
@@ -72,6 +74,19 @@ app.get('/streams/:type/:id', async (req, res) => {
   }
 });
 
+// ─── Prewarm ─────────────────────────────────────────────────────────────────
+
+app.post('/prewarm', (_req, res) => {
+  const { running } = getPrewarmStatus();
+  if (running) return res.status(409).json({ error: 'Prewarm already running' });
+  runPrewarm().catch(err => logger.error(`[Prewarm] ${err.message}`));
+  res.status(202).json({ message: 'Prewarm started' });
+});
+
+app.get('/prewarm/status', (_req, res) => {
+  res.json(getPrewarmStatus());
+});
+
 // ─── 404 ──────────────────────────────────────────────────────────────────────
 
 app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
@@ -80,6 +95,7 @@ app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
 
 app.listen(PORT, () => {
   logger.info(`Magnetio scraper running on port ${PORT}`);
+  startCronJobs();
 });
 
 export default app;
