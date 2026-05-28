@@ -1,5 +1,5 @@
 /**
- * TorrentGalaxy provider -- scrapes search results via HTML.
+ * TorrentDownloads provider -- scrapes torrentdownload.info search results via HTML.
  */
 import * as cheerio from 'cheerio';
 import { get } from '../lib/httpClient.js';
@@ -7,68 +7,68 @@ import { parseTitle, buildSearchQuery } from '../lib/titleHelper.js';
 import { tryDomains, PROVIDER_DOMAINS } from '../lib/domainRotation.js';
 import { logger } from '../lib/logger.js';
 
-const DOMAINS = PROVIDER_DOMAINS.torrentgalaxy;
+const DOMAINS = PROVIDER_DOMAINS.torrentdownloads;
 
-export const id   = 'torrentgalaxy';
-export const name = 'TorrentGalaxy';
+export const id   = 'torrentdownloads';
+export const name = 'TorrentDownloads';
 
 export async function scrape(meta) {
   if (!meta?.name) return [];
 
   try {
     const query = buildSearchQuery(meta);
-    const cat   = meta.type === 'movie' ? '3' : '41';
+    const cat   = meta.type === 'movie' ? '4' : '8';
 
     const { data } = await tryDomains(DOMAINS, async (base) => {
-      return get(`${base}/torrents.php`, {
-        limiterKey: 'torrentgalaxy',
-        params: {
-          search: query,
-          cat,
-          lang: 0,
-          nox: 1,
-          sort: 'seeders',
-          order: 'desc',
-        },
+      return get(`${base}/search/`, {
+        limiterKey: 'torrentdownloads',
+        params: { search: query, cat },
       });
-    }, 'TorrentGalaxy');
+    }, 'TorrentDownloads');
 
     const $ = cheerio.load(data);
     const results = [];
 
-    $('div.tgxtablerow').each((_, row) => {
+    $('table.table2 tr, div.grey_bar3').each((i, row) => {
+      if (i === 0) return;
       const $row = $(row);
+      const cells = $row.find('td');
+      if (cells.length < 4) return;
 
-      const titleEl = $row.find('a.txlight').first();
-      const title   = titleEl.text().trim();
+      const titleEl = cells.eq(0).find('a').first();
+      const title = titleEl.text().trim();
       if (!title) return;
 
       const magnetEl = $row.find('a[href^="magnet:"]').first();
-      const magnet   = magnetEl.attr('href') ?? '';
+      const magnet = magnetEl.attr('href') ?? '';
       const infoHash = extractInfoHash(magnet);
-      if (!infoHash) return;
 
-      const seeders  = parseInt($row.find('span.badge-success').first().text().trim(), 10) || 0;
-      const leechers = parseInt($row.find('span.badge-danger').first().text().trim(), 10) || 0;
+      const detailHref = titleEl.attr('href') ?? '';
+      const hashFromUrl = detailHref.match(/([a-fA-F0-9]{40})/)?.[1]?.toLowerCase();
 
-      const sizeText = $row.find('span.badge-secondary').first().text().trim();
+      const hash = infoHash ?? hashFromUrl;
+      if (!hash) return;
+
+      const seeders  = parseInt(cells.eq(2).text().trim(), 10) || 0;
+      const leechers = parseInt(cells.eq(3).text().trim(), 10) || 0;
+      const sizeText = cells.eq(1).text().trim();
       const size     = parseSize(sizeText);
 
       results.push({
-        infoHash,
+        infoHash: hash,
         title,
         seeders,
         leechers,
         size,
-        provider: 'TorrentGalaxy',
-        imdbId:   meta.imdbId,
+        provider: 'TorrentDownloads',
+        imdbId: meta.imdbId,
         ...parseTitle(title),
       });
     });
 
     return results;
   } catch (err) {
-    logger.warn(`[TorrentGalaxy] ${err.message}`);
+    logger.warn(`[TorrentDownloads] ${err.message}`);
     return [];
   }
 }

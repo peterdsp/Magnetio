@@ -1,11 +1,12 @@
 /**
- * The Pirate Bay provider — uses the apibay.org JSON API.
+ * The Pirate Bay provider -- uses the apibay.org JSON API.
  */
 import { get } from '../lib/httpClient.js';
 import { parseTitle, buildSearchQuery } from '../lib/titleHelper.js';
+import { tryDomains, PROVIDER_DOMAINS } from '../lib/domainRotation.js';
 import { logger } from '../lib/logger.js';
 
-const BASE = 'https://apibay.org';
+const DOMAINS = PROVIDER_DOMAINS.thepiratebay;
 
 export const id   = 'thepiratebay';
 export const name = 'ThePirateBay';
@@ -16,11 +17,13 @@ export async function scrape(meta) {
   try {
     const query = buildSearchQuery(meta);
 
-    const { data } = await get(`${BASE}/q.php`, {
-      limiterKey: 'thepiratebay',
-      responseType: 'json',
-      params: { q: query, cat: meta.type === 'movie' ? '207' : '205' },
-    });
+    const { data } = await tryDomains(DOMAINS, async (base) => {
+      return get(`${base}/q.php`, {
+        limiterKey: 'thepiratebay',
+        responseType: 'json',
+        params: { q: query, cat: meta.type === 'movie' ? '207' : '205' },
+      });
+    }, 'TPB');
 
     if (!Array.isArray(data) || data[0]?.id === '0') return [];
 

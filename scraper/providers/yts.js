@@ -1,12 +1,13 @@
 /**
- * YTS provider — uses the official YTS JSON API.
+ * YTS provider -- uses the official YTS JSON API.
  * Supports movies only (no series).
  */
 import { get } from '../lib/httpClient.js';
 import { parseTitle } from '../lib/titleHelper.js';
+import { tryDomains, PROVIDER_DOMAINS } from '../lib/domainRotation.js';
 import { logger } from '../lib/logger.js';
 
-const BASE = 'https://yts.mx/api/v2';
+const DOMAINS = PROVIDER_DOMAINS.yts;
 
 export const id   = 'yts';
 export const name = 'YTS';
@@ -15,15 +16,17 @@ export async function scrape(meta) {
   if (meta.type !== 'movie') return [];
 
   try {
-    const { data } = await get(`${BASE}/list_movies.json`, {
-      limiterKey: 'yts',
-      responseType: 'json',
-      params: {
-        query_term: meta.imdbId,
-        limit: 50,
-        sort_by: 'seeds',
-      },
-    });
+    const { data } = await tryDomains(DOMAINS, async (base) => {
+      return get(`${base}/api/v2/list_movies.json`, {
+        limiterKey: 'yts',
+        responseType: 'json',
+        params: {
+          query_term: meta.imdbId,
+          limit: 50,
+          sort_by: 'seeds',
+        },
+      });
+    }, 'YTS');
 
     const movies = data?.data?.movies ?? [];
     return movies.flatMap(movie =>

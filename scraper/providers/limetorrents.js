@@ -1,12 +1,13 @@
 /**
- * LimeTorrents provider, scrapes search results and detail pages via HTML.
+ * LimeTorrents provider -- scrapes search results and detail pages via HTML.
  */
 import * as cheerio from 'cheerio';
 import { get } from '../lib/httpClient.js';
 import { parseTitle, buildSearchQuery } from '../lib/titleHelper.js';
+import { tryDomains, PROVIDER_DOMAINS } from '../lib/domainRotation.js';
 import { logger } from '../lib/logger.js';
 
-const BASE = 'https://www.limetorrents.fun';
+const DOMAINS = PROVIDER_DOMAINS.limetorrents;
 
 export const id   = 'limetorrents';
 export const name = 'LimeTorrents';
@@ -17,9 +18,13 @@ export async function scrape(meta) {
   try {
     const query = buildSearchQuery(meta);
     const type  = meta.type === 'movie' ? 'movies' : 'tv';
-    const url   = `${BASE}/search/${type}/${encodeURIComponent(query)}/seeds/1/`;
 
-    const { data } = await get(url, { limiterKey: 'limetorrents' });
+    const { data, base } = await tryDomains(DOMAINS, async (base) => {
+      const url = `${base}/search/${type}/${encodeURIComponent(query)}/seeds/1/`;
+      const res = await get(url, { limiterKey: 'limetorrents' });
+      return { data: res.data, base };
+    }, 'LimeTorrents');
+
     const $ = cheerio.load(data);
     const rows = [];
 
@@ -36,7 +41,7 @@ export async function scrape(meta) {
       rows.push({
         infoHash,
         title,
-        detailUrl: absoluteUrl(detailHref),
+        detailUrl: detailHref.startsWith('http') ? detailHref : `${base}${detailHref}`,
         seeders: parseInteger(cells.eq(3).text()),
         leechers: parseInteger(cells.eq(4).text()),
         size: parseSize(cells.eq(2).text()),
@@ -75,10 +80,6 @@ async function fetchDetail(row, meta) {
   } catch {
     return null;
   }
-}
-
-function absoluteUrl(href) {
-  return href.startsWith('http') ? href : `${BASE}${href}`;
 }
 
 function extractHashFromTorrentUrl(url = '') {

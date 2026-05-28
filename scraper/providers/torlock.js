@@ -1,5 +1,6 @@
 /**
- * TorrentGalaxy provider -- scrapes search results via HTML.
+ * TorLock provider -- scrapes torlock2.com search results via HTML.
+ * Verified torrents only (TorLock's USP).
  */
 import * as cheerio from 'cheerio';
 import { get } from '../lib/httpClient.js';
@@ -7,52 +8,48 @@ import { parseTitle, buildSearchQuery } from '../lib/titleHelper.js';
 import { tryDomains, PROVIDER_DOMAINS } from '../lib/domainRotation.js';
 import { logger } from '../lib/logger.js';
 
-const DOMAINS = PROVIDER_DOMAINS.torrentgalaxy;
+const DOMAINS = PROVIDER_DOMAINS.torlock;
 
-export const id   = 'torrentgalaxy';
-export const name = 'TorrentGalaxy';
+export const id   = 'torlock';
+export const name = 'TorLock';
 
 export async function scrape(meta) {
   if (!meta?.name) return [];
 
   try {
     const query = buildSearchQuery(meta);
-    const cat   = meta.type === 'movie' ? '3' : '41';
+    const cat   = meta.type === 'movie' ? 'movies' : 'television';
 
     const { data } = await tryDomains(DOMAINS, async (base) => {
-      return get(`${base}/torrents.php`, {
-        limiterKey: 'torrentgalaxy',
-        params: {
-          search: query,
-          cat,
-          lang: 0,
-          nox: 1,
-          sort: 'seeders',
-          order: 'desc',
-        },
-      });
-    }, 'TorrentGalaxy');
+      const url = `${base}/${cat}/torrents/${encodeURIComponent(query)}.html`;
+      return get(url, { limiterKey: 'torlock' });
+    }, 'TorLock');
 
     const $ = cheerio.load(data);
     const results = [];
 
-    $('div.tgxtablerow').each((_, row) => {
+    $('table tbody tr, div.table-striped article').each((_, row) => {
       const $row = $(row);
+      const cells = $row.find('td');
+      if (cells.length < 5) return;
 
-      const titleEl = $row.find('a.txlight').first();
-      const title   = titleEl.text().trim();
+      const titleEl = cells.eq(0).find('a').first();
+      const title = titleEl.text().trim();
       if (!title) return;
 
+      const detailHref = titleEl.attr('href') ?? '';
+      const torrentId = detailHref.match(/\/torrent\/(\d+)\//)?.[1];
+      if (!torrentId) return;
+
+      const seeders  = parseInt(cells.eq(3).text().trim(), 10) || 0;
+      const leechers = parseInt(cells.eq(4).text().trim(), 10) || 0;
+      const sizeText = cells.eq(2).text().trim();
+      const size     = parseSize(sizeText);
+
       const magnetEl = $row.find('a[href^="magnet:"]').first();
-      const magnet   = magnetEl.attr('href') ?? '';
+      const magnet = magnetEl.attr('href') ?? '';
       const infoHash = extractInfoHash(magnet);
       if (!infoHash) return;
-
-      const seeders  = parseInt($row.find('span.badge-success').first().text().trim(), 10) || 0;
-      const leechers = parseInt($row.find('span.badge-danger').first().text().trim(), 10) || 0;
-
-      const sizeText = $row.find('span.badge-secondary').first().text().trim();
-      const size     = parseSize(sizeText);
 
       results.push({
         infoHash,
@@ -60,15 +57,15 @@ export async function scrape(meta) {
         seeders,
         leechers,
         size,
-        provider: 'TorrentGalaxy',
-        imdbId:   meta.imdbId,
+        provider: 'TorLock',
+        imdbId: meta.imdbId,
         ...parseTitle(title),
       });
     });
 
     return results;
   } catch (err) {
-    logger.warn(`[TorrentGalaxy] ${err.message}`);
+    logger.warn(`[TorLock] ${err.message}`);
     return [];
   }
 }

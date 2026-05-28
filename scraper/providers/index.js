@@ -1,20 +1,25 @@
 /**
- * Provider aggregator — runs all enabled scrapers in parallel
+ * Provider aggregator -- runs all enabled scrapers in parallel
  * and returns a unified, deduplicated list of torrent records.
  */
 import pLimit from 'p-limit';
-import * as yts            from './yts.js';
-import * as eztv           from './eztv.js';
-import * as thepiratebay   from './thepiratebay.js';
-import * as torrentgalaxy  from './torrentgalaxy.js';
-import * as leetx          from './leetx.js';
-import * as kickasstorrents from './kickasstorrents.js';
-import * as nyaa           from './nyaa.js';
-import * as animesaturn    from './animesaturn.js';
-import * as rutor          from './rutor.js';
-import * as rutracker      from './rutracker.js';
-import * as limetorrents   from './limetorrents.js';
-import * as bitsearch      from './bitsearch.js';
+import * as yts              from './yts.js';
+import * as eztv             from './eztv.js';
+import * as thepiratebay     from './thepiratebay.js';
+import * as torrentgalaxy    from './torrentgalaxy.js';
+import * as leetx            from './leetx.js';
+import * as kickasstorrents  from './kickasstorrents.js';
+import * as nyaa             from './nyaa.js';
+import * as animesaturn      from './animesaturn.js';
+import * as rutor            from './rutor.js';
+import * as rutracker        from './rutracker.js';
+import * as limetorrents     from './limetorrents.js';
+import * as bitsearch        from './bitsearch.js';
+import * as bt4g             from './bt4g.js';
+import * as btdig            from './btdig.js';
+import * as glotorrents      from './glotorrents.js';
+import * as torlock          from './torlock.js';
+import * as torrentdownloads from './torrentdownloads.js';
 import { logger } from '../lib/logger.js';
 
 const ALL_PROVIDERS = [
@@ -30,6 +35,11 @@ const ALL_PROVIDERS = [
   rutracker,
   limetorrents,
   bitsearch,
+  bt4g,
+  btdig,
+  glotorrents,
+  torlock,
+  torrentdownloads,
 ];
 
 // Max 4 providers running simultaneously

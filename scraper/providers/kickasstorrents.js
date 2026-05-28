@@ -1,12 +1,13 @@
 /**
- * KickassTorrents provider — scrapes katcr.to search results.
+ * KickassTorrents provider -- scrapes search results via HTML.
  */
 import * as cheerio from 'cheerio';
 import { get } from '../lib/httpClient.js';
 import { parseTitle, buildSearchQuery } from '../lib/titleHelper.js';
+import { tryDomains, PROVIDER_DOMAINS } from '../lib/domainRotation.js';
 import { logger } from '../lib/logger.js';
 
-const BASE = 'https://katcr.to';
+const DOMAINS = PROVIDER_DOMAINS.kickasstorrents;
 
 export const id   = 'kickasstorrents';
 export const name = 'KickassTorrents';
@@ -16,11 +17,13 @@ export async function scrape(meta) {
 
   try {
     const query = buildSearchQuery(meta);
-    const url   = `${BASE}/usearch/${encodeURIComponent(query)}/`;
 
-    const { data } = await get(url, { limiterKey: 'kickasstorrents' });
+    const { data } = await tryDomains(DOMAINS, async (base) => {
+      const url = `${base}/usearch/${encodeURIComponent(query)}/`;
+      return get(url, { limiterKey: 'kickasstorrents' });
+    }, 'KAT');
+
     const $ = cheerio.load(data);
-
     const results = [];
 
     $('tr.odd, tr.even').each((_, row) => {

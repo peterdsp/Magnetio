@@ -1,12 +1,13 @@
 /**
- * 1337x provider — scrapes search and detail pages via HTML.
+ * 1337x provider -- scrapes search and detail pages via HTML.
  */
 import * as cheerio from 'cheerio';
 import { get } from '../lib/httpClient.js';
 import { parseTitle, buildSearchQuery } from '../lib/titleHelper.js';
+import { tryDomains, PROVIDER_DOMAINS } from '../lib/domainRotation.js';
 import { logger } from '../lib/logger.js';
 
-const BASE = 'https://1337x.to';
+const DOMAINS = PROVIDER_DOMAINS['1337x'];
 
 export const id   = '1337x';
 export const name = '1337x';
@@ -17,18 +18,21 @@ export async function scrape(meta) {
   try {
     const query = buildSearchQuery(meta);
     const cat   = meta.type === 'movie' ? 'Movies' : 'TV';
-    const url   = `${BASE}/category-search/${encodeURIComponent(query)}/${cat}/1/`;
 
-    const { data } = await get(url, { limiterKey: '1337x' });
+    const { data, base } = await tryDomains(DOMAINS, async (base) => {
+      const url = `${base}/category-search/${encodeURIComponent(query)}/${cat}/1/`;
+      const res = await get(url, { limiterKey: '1337x' });
+      return { data: res.data, base };
+    }, '1337x');
+
     const $ = cheerio.load(data);
 
     const detailUrls = [];
     $('table.table-list tbody tr').each((_, row) => {
       const href = $(row).find('td.name a').last().attr('href');
-      if (href) detailUrls.push(href.startsWith('http') ? href : `${BASE}${href}`);
+      if (href) detailUrls.push(href.startsWith('http') ? href : `${base}${href}`);
     });
 
-    // Fetch detail pages in batches of 5 to get magnet links
     const results = [];
     const batches = chunkArray(detailUrls.slice(0, 20), 5);
 

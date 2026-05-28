@@ -1,12 +1,13 @@
 /**
- * EZTV provider — uses the official EZTV JSON API.
+ * EZTV provider -- uses the official EZTV JSON API.
  * Supports series only (no movies).
  */
 import { get } from '../lib/httpClient.js';
 import { parseTitle } from '../lib/titleHelper.js';
+import { tryDomains, PROVIDER_DOMAINS } from '../lib/domainRotation.js';
 import { logger } from '../lib/logger.js';
 
-const BASE = 'https://eztv.re/api';
+const DOMAINS = PROVIDER_DOMAINS.eztv;
 
 export const id   = 'eztv';
 export const name = 'EZTV';
@@ -22,18 +23,20 @@ export async function scrape(meta) {
     const results = [];
 
     while (true) {
-      const { data } = await get(`${BASE}/get-torrents`, {
-        limiterKey: 'eztv',
-        responseType: 'json',
-        params: { imdb_id: imdbNumeric, limit: 100, page },
-      });
+      const { data } = await tryDomains(DOMAINS, async (base) => {
+        return get(`${base}/api/get-torrents`, {
+          limiterKey: 'eztv',
+          responseType: 'json',
+          params: { imdb_id: imdbNumeric, limit: 100, page },
+        });
+      }, 'EZTV');
 
       const torrents = data?.torrents ?? [];
       results.push(...torrents.map(normalise));
 
       if (torrents.length < 100) break;
       page++;
-      if (page > 5) break; // cap at 500 results
+      if (page > 5) break;
     }
 
     return filterBySeason(results, meta.season, meta.episode);
