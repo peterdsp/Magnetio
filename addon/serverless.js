@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import StremioAddonSdk from 'stremio-addon-sdk';
 import { dummyManifest } from './lib/manifest.js';
 import { getDefaultConfiguration, parseConfiguration } from './lib/configuration.js';
@@ -28,7 +29,15 @@ router.get('/manifest.json', (_req, res) => {
   res.json(dummyManifest());
 });
 
-router.get('/proxy/subtitle/:id.srt', handleSubtitleProxyRequest);
+const subtitleProxyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many subtitle requests, try again later' },
+});
+
+router.get('/proxy/subtitle/:id.srt', subtitleProxyLimiter, handleSubtitleProxyRequest);
 
 router.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'Magnetio', version: '1.1.5' });

@@ -8,6 +8,28 @@ import { logger } from './logger.js';
 import { getSubtitles, resolveSubtitleLanguages } from './subtitles.js';
 import { toSubtitleLanguageCode } from './languages.js';
 
+const BLOCKED_HOSTNAMES = new Set([
+  'localhost', '127.0.0.1', '::1', '0.0.0.0',
+  'metadata.google.internal', 'metadata.internal',
+]);
+
+function isUrlSafe(url) {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
+    const host = parsed.hostname;
+    if (BLOCKED_HOSTNAMES.has(host)) return false;
+    if (host.startsWith('10.')) return false;
+    if (host.startsWith('192.168.')) return false;
+    if (host.startsWith('169.254.')) return false;
+    if (/^172\.(1[6-9]|2\d|3[01])\./.test(host)) return false;
+    if (host.endsWith('.local') || host.endsWith('.internal')) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 const PROXY_PAYLOAD_TTL = 60 * 60 * 12;
 const PROXY_RESULT_TTL = 60 * 60 * 24;
 const OPENSUBTITLES_HASH_CHUNK_SIZE = 64 * 1024;
@@ -103,6 +125,7 @@ export async function buildSyncedSubtitle(payload) {
 }
 
 export async function getMediaMetadata(mediaUrl, fallbackSize, fallbackFilename) {
+  if (!isUrlSafe(mediaUrl)) throw new Error('Blocked unsafe media URL');
   const filename = fallbackFilename || inferFilenameFromUrl(mediaUrl);
   const videoSize = fallbackSize || await getRemoteContentLength(mediaUrl);
   let videoHash = null;
@@ -141,6 +164,7 @@ export function computeOpenSubtitlesHashFromBuffers(firstChunk, lastChunk, fileS
 }
 
 async function syncSubtitleToMedia(subtitleContent, mediaUrl) {
+  if (!isUrlSafe(mediaUrl)) return subtitleContent;
   const toolchain = await getSyncToolchain();
   if (!toolchain.length) return subtitleContent;
 
