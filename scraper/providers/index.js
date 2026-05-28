@@ -68,7 +68,7 @@ export async function scrapeAll(type, meta, providerIds = null) {
           PROVIDER_TIMEOUT_MS,
           `${p.name} timed out`
         );
-        logger.debug(`[${p.name}] ${results.length} results in ${Date.now() - start}ms`);
+        logger.info(`[${p.name}] ${results.length} results in ${Date.now() - start}ms`);
         return results;
       })
     )
@@ -80,10 +80,11 @@ export async function scrapeAll(type, meta, providerIds = null) {
     return [];
   });
 
+  logger.info(`Scrape totals: ${raw.length} raw, ${providers.length} providers queried`);
   const deduped = deduplicate(raw);
   const matched = filterByContent(deduped, meta);
   if (deduped.length !== matched.length) {
-    logger.debug(`Content filter: ${deduped.length} -> ${matched.length} (dropped ${deduped.length - matched.length} unrelated)`);
+    logger.info(`Content filter: ${deduped.length} -> ${matched.length} (dropped ${deduped.length - matched.length} unrelated)`);
   }
   return matched;
 }
