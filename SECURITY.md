@@ -16,7 +16,7 @@ Do not merge or enable auto-merge for a pull request unless:
 
 ## Secrets
 
-This repository is public. Real secrets must stay only on the production host in `/srv/magnetio/.env` and related local env files.
+This repository is public. Real secrets must stay only on the production host in `/home/peterdsp/magnetio/.env` and related local env files.
 
 Never commit:
 

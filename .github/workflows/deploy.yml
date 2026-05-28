@@ -71,11 +71,11 @@ jobs:
 
       - name: Sync repository to local deploy path
         env:
-          DEPLOY_PATH: /srv/magnetio
+          DEPLOY_PATH: /home/peterdsp/magnetio
         run: |
           set -euo pipefail
 
-          if [ "$DEPLOY_PATH" != "/srv/magnetio" ]; then
+          if [ "$DEPLOY_PATH" != "/home/peterdsp/magnetio" ]; then
             echo "Unexpected DEPLOY_PATH: $DEPLOY_PATH"
             exit 1
           fi
@@ -95,7 +95,7 @@ jobs:
 
       - name: Deploy with Docker Compose
         env:
-          DEPLOY_PATH: /srv/magnetio
+          DEPLOY_PATH: /home/peterdsp/magnetio
         run: |
           set -euo pipefail
 
