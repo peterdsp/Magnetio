@@ -8,6 +8,7 @@ import { getAddonInterface } from './addon.js';
 import { landingTemplate } from './lib/landingTemplate.js';
 import { logger } from './lib/logger.js';
 import { handleSubtitleProxyRequest } from './lib/subtitleProxy.js';
+import { trackRequest, getStats } from './lib/analytics.js';
 
 const router = express.Router();
 const ROUTER_CACHE_TTL_MS = 1000 * 60 * 5;
@@ -43,6 +44,11 @@ router.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'Magnetio', version: '1.1.5' });
 });
 
+router.get('/stats', async (_req, res) => {
+  const stats = await getStats();
+  res.json(stats);
+});
+
 router.get('/:configuration', (req, res) => {
   try {
     const config = parseConfiguration(req.params.configuration);
@@ -67,6 +73,11 @@ router.get('/:configuration/configure', (req, res) => {
 
 router.use('/:configuration', async (req, res, next) => {
   try {
+    const configHash = hashConfiguration(req.params.configuration);
+    const pathAfterConfig = req.path.replace(/^\/[^/]+/, '');
+    const type = pathAfterConfig.match(/^\/(stream|catalog|subtitle|meta)\b/)?.[1] || 'page';
+    trackRequest(type, configHash).catch(() => {});
+
     const addonRouter = await getConfiguredAddonRouter(
       req.params.configuration,
       getPublicBaseUrl(req),
