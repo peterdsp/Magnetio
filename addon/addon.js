@@ -142,7 +142,7 @@ function logStreamSummary({ type, id, config, records, filtered, baseStreams, fi
     `Stream ${type}/${id}: providers=${(config.providers || []).join(',') || 'default'} ` +
     `qualities=${(config.qualities || []).join(',') || 'all'} ` +
     `languages=${(config.languages || []).join(',') || 'all'} ` +
-    `limit=${config.limit ?? 10} debrid=${debrid} p2pFallback=${config.p2pFallback ? '1' : '0'} ` +
+    `limit=${config.limit ?? 10} debrid=${debrid} ` +
     `records=${records.length} filtered=${filtered.length} base=${baseStreams.length} ` +
     `final=${finalStreams.length} direct=${direct} p2p=${p2p}`
   );

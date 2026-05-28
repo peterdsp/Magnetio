@@ -47,7 +47,6 @@ export function landingTemplate(manifest, initialConfig = {}) {
     subtitleLanguages: initialConfig.subtitleLanguages ?? ['en'],
     prewarmDebrid: initialConfig.prewarmDebrid ?? true,
     prewarmLimit: initialConfig.prewarmLimit ?? 3,
-    p2pFallback: initialConfig.p2pFallback === true,
     realDebridApiKey: initialConfig.realDebridApiKey ?? '',
     premiumizeApiKey: initialConfig.premiumizeApiKey ?? '',
     allDebridApiKey: initialConfig.allDebridApiKey ?? '',
@@ -392,7 +391,7 @@ export function landingTemplate(manifest, initialConfig = {}) {
 
       <section class="panel section">
         <h2>Debrid</h2>
-        <p>Paste only the services you actually use. Cached matches are emitted as direct debrid streams first. P2P fallback is optional.</p>
+        <p>Paste only the services you actually use. Cached matches are emitted as direct debrid streams. Without a debrid key, Magnetio returns raw torrent streams instead.</p>
         <div class="grid">
           <label>
             Debrid prewarm
@@ -408,13 +407,6 @@ export function landingTemplate(manifest, initialConfig = {}) {
               <option value="2">2</option>
               <option value="3">3</option>
               <option value="5">5</option>
-            </select>
-          </label>
-          <label>
-            P2P fallback
-            <select id="p2pFallback">
-              <option value="0">Direct debrid only</option>
-              <option value="1">Allow torrent fallback</option>
             </select>
           </label>
         </div>
@@ -472,8 +464,6 @@ export function landingTemplate(manifest, initialConfig = {}) {
       document.getElementById('limit').value = String(initialConfig.limit || 10);
       document.getElementById('prewarm').value = initialConfig.prewarmDebrid === false ? '0' : '1';
       document.getElementById('prewarmLimit').value = String(initialConfig.prewarmLimit || 3);
-      document.getElementById('p2pFallback').value = initialConfig.p2pFallback ? '1' : '0';
-
       setMultiSelect('qualities', initialConfig.qualities || []);
       setMultiSelect('languages', initialConfig.languages || []);
       setMultiSelect('subtitleLanguages', initialConfig.subtitleLanguages || ['en']);
@@ -495,7 +485,6 @@ export function landingTemplate(manifest, initialConfig = {}) {
       const limit = document.getElementById('limit').value;
       const prewarm = document.getElementById('prewarm').value;
       const prewarmLimit = document.getElementById('prewarmLimit').value;
-      const p2pFallback = document.getElementById('p2pFallback').value;
       const qualities = selectedValues('qualities');
       const languages = selectedValues('languages');
       const subtitleLanguages = selectedValues('subtitleLanguages');
@@ -504,7 +493,6 @@ export function landingTemplate(manifest, initialConfig = {}) {
       parts.push('limit=' + limit);
       parts.push('prewarm=' + prewarm);
       parts.push('prewarmLimit=' + prewarmLimit);
-      parts.push('p2pFallback=' + p2pFallback);
       if (qualities.length) parts.push('qualities=' + qualities.join(','));
       if (languages.length) parts.push('languages=' + languages.join(','));
       if (subtitleLanguages.length) parts.push('subtitleLanguages=' + subtitleLanguages.join(','));

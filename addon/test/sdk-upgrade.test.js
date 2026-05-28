@@ -27,17 +27,10 @@ test('public provider aliases map to internal providers', () => {
 });
 
 test('configuration parser supports debrid prewarm controls', () => {
-  const config = parseConfiguration('prewarm=0|prewarmLimit=5|p2pFallback=1');
+  const config = parseConfiguration('prewarm=0|prewarmLimit=5');
 
   assert.equal(config.prewarmDebrid, false);
   assert.equal(config.prewarmLimit, 5);
-  assert.equal(config.p2pFallback, true);
-});
-
-test('debrid configs default to direct-only stream output', () => {
-  const config = parseConfiguration('rd=abcdefghijklmnop');
-
-  assert.equal(config.p2pFallback, false);
 });
 
 test('final stream limit caps visible streams after debrid enrichment', () => {
