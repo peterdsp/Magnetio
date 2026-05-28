@@ -80,6 +80,11 @@ async function prewarmTitle(item, stats) {
   logger.debug(`[Prewarm] Scraping ${label}`);
 
   const streams = await scrapeAll(type, meta);
+  if (!streams.length) {
+    stats.failed++;
+    logger.debug(`[Prewarm] No streams found for ${id}, skipping cache write`);
+    return;
+  }
   await cacheWrap(cacheKey, () => streams, CACHE_TTL);
   stats.scraped++;
 }
