@@ -20,7 +20,7 @@
     "@keyv/redis": "^2.8.2",
     "p-limit": "^5.0.0",
     "p-queue": "^7.4.1",
-    "magnet-uri": "^6.0.1",
+    "magnet-uri": "^7.0.8",
     "swagger-stats": "^0.99.7",
     "prom-client": "^14.2.0",
     "ua-parser-js": "^1.0.37",
