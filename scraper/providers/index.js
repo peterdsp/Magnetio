@@ -80,7 +80,12 @@ export async function scrapeAll(type, meta, providerIds = null) {
     return [];
   });
 
-  return deduplicate(raw);
+  const deduped = deduplicate(raw);
+  const matched = filterByContent(deduped, meta);
+  if (deduped.length !== matched.length) {
+    logger.debug(`Content filter: ${deduped.length} -> ${matched.length} (dropped ${deduped.length - matched.length} unrelated)`);
+  }
+  return matched;
 }
 
 async function withTimeout(promise, timeoutMs, message) {
@@ -109,6 +114,58 @@ function deduplicate(records) {
     }
   }
   return Array.from(map.values());
+}
+
+/**
+ * Filter out torrents whose title does not match the requested content.
+ * For series: title must contain a season/episode marker matching the request.
+ * For movies: title must contain at least part of the movie name.
+ */
+function filterByContent(records, meta) {
+  if (!meta?.name) return records;
+
+  const nameWords = normalizeTitle(meta.name).split(/\s+/).filter(w => w.length > 1);
+  if (!nameWords.length) return records;
+
+  return records.filter(r => {
+    if (!r.title) return false;
+    const norm = normalizeTitle(r.title);
+
+    // Check that the torrent title contains enough words from the content name
+    const matchCount = nameWords.filter(w => norm.includes(w)).length;
+    const nameMatch = matchCount >= Math.max(1, Math.ceil(nameWords.length * 0.5));
+    if (!nameMatch) return false;
+
+    // For series, also verify season/episode marker
+    if (meta.type === 'series' && meta.season != null) {
+      const s = meta.season;
+      const e = meta.episode;
+      const hasSeasonEp = new RegExp(
+        e != null
+          ? `s0*${s}\\s*e0*${e}\\b`
+          : `s0*${s}(e\\d|\\b)`,
+        'i'
+      ).test(r.title);
+      const hasLooseEp = e != null && new RegExp(
+        `\\b${s}x0*${e}\\b`, 'i'
+      ).test(r.title);
+      const hasSeasonPack = new RegExp(
+        `\\bseason\\s*0*${s}\\b|\\bcomplete\\b.*\\bs0*${s}\\b`,
+        'i'
+      ).test(r.title);
+      if (!hasSeasonEp && !hasLooseEp && !hasSeasonPack) return false;
+    }
+
+    return true;
+  });
+}
+
+function normalizeTitle(str) {
+  return str
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 /**
