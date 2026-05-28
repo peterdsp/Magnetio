@@ -10,13 +10,21 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
 jobs:
   validate:
+    name: validate
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -40,38 +48,39 @@ jobs:
         run: npm ci
 
   deploy:
+    name: deploy
     needs: validate
     if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, raspberry-pi, production]
     environment: production
+    timeout-minutes: 20
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
-      - name: Configure SSH
-        env:
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
-          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      - name: Verify production runner
         run: |
           set -euo pipefail
-          PORT="${DEPLOY_PORT:-22}"
 
-          mkdir -p ~/.ssh
-          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -p "$PORT" "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+          test "${RUNNER_ENVIRONMENT:-}" = "self-hosted"
+          command -v rsync
+          docker compose version
 
-      - name: Sync repository to server
+      - name: Sync repository to local deploy path
         env:
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
-          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PATH: /srv/magnetio
         run: |
           set -euo pipefail
-          PORT="${DEPLOY_PORT:-22}"
+
+          if [ "$DEPLOY_PATH" != "/srv/magnetio" ]; then
+            echo "Unexpected DEPLOY_PATH: $DEPLOY_PATH"
+            exit 1
+          fi
+
+          mkdir -p "$DEPLOY_PATH"
 
           rsync -az --delete \
             --filter='P .env' \
@@ -82,20 +91,12 @@ jobs:
             --exclude 'addon/node_modules/' \
             --exclude 'scraper/node_modules/' \
             --exclude '.DS_Store' \
-            -e "ssh -p $PORT" \
-            ./ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/"
+            ./ "$DEPLOY_PATH/"
 
       - name: Deploy with Docker Compose
         env:
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
-          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PATH: /srv/magnetio
         run: |
-          set -euo pipefail
-          PORT="${DEPLOY_PORT:-22}"
-
-          ssh -p "$PORT" "$DEPLOY_USER@$DEPLOY_HOST" "DEPLOY_PATH='$DEPLOY_PATH' bash -s" <<'EOF'
           set -euo pipefail
 
           cd "$DEPLOY_PATH"
@@ -107,7 +108,6 @@ jobs:
 
           docker compose up -d --build --remove-orphans
           docker compose ps
-          EOF
 
       - name: Health check
         env:
