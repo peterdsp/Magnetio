@@ -1,23 +1,3 @@
-const PROVIDERS = [
-  ['s1', 'Source 1', 'yts'],
-  ['s2', 'Source 2', 'eztv'],
-  ['s3', 'Source 3', 'rarbg'],
-  ['s4', 'Source 4', 'torrentgalaxy'],
-  ['s5', 'Source 5', 'thepiratebay'],
-  ['s6', 'Source 6', 'kickasstorrents'],
-  ['s7', 'Source 7', '1337x'],
-  ['s8', 'Source 8', 'nyaa'],
-  ['s9', 'Source 9', 'animesaturn'],
-  ['s10', 'Source 10', 'rutor'],
-  ['s11', 'Source 11', 'rutracker'],
-  ['s12', 'Source 12', 'limetorrents'],
-  ['s13', 'Source 13', 'bitsearch'],
-];
-
-const PROVIDER_TO_PUBLIC_CODE = Object.fromEntries(
-  PROVIDERS.map(([code, _label, provider]) => [provider, code])
-);
-
 const QUALITIES = [
   ['4k', '4K'],
   ['1080p', '1080p'],
@@ -60,7 +40,6 @@ const DEBRID_FIELDS = [
  */
 export function landingTemplate(manifest, initialConfig = {}) {
   const initialState = escapeJsonForHtml({
-    providers: (initialConfig.providers ?? []).map(provider => PROVIDER_TO_PUBLIC_CODE[provider] ?? provider),
     sort: initialConfig.sort ?? 'qualityseeders',
     limit: initialConfig.limit ?? 10,
     qualities: initialConfig.qualities ?? [],
@@ -206,30 +185,6 @@ export function landingTemplate(manifest, initialConfig = {}) {
       font-size: 0.95rem;
     }
 
-    .provider-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 10px;
-    }
-
-    .provider-chip {
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(255, 255, 255, 0.04);
-      color: var(--text);
-      padding: 12px 14px;
-      border-radius: 16px;
-      cursor: pointer;
-      text-align: left;
-      transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
-      font: inherit;
-    }
-
-    .provider-chip.active {
-      background: linear-gradient(135deg, rgba(41, 214, 182, 0.24), rgba(41, 214, 182, 0.08));
-      border-color: rgba(41, 214, 182, 0.65);
-      transform: translateY(-1px);
-    }
-
     .grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -369,7 +324,6 @@ export function landingTemplate(manifest, initialConfig = {}) {
       .section,
       .summary { padding: 20px; }
       .grid { grid-template-columns: 1fr; }
-      .provider-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
   </style>
 </head>
@@ -379,19 +333,11 @@ export function landingTemplate(manifest, initialConfig = {}) {
       <section class="panel hero">
         <span class="eyebrow">Magnetio for Stremio</span>
         <h1>Build the exact addon URL you actually want.</h1>
-        <p>Pick sources, tune stream ranking, set subtitle preferences and plug in your debrid stack. The result is a Stremio manifest URL that is ready to install as-is.</p>
+        <p>Tune stream ranking, set subtitle preferences and plug in your debrid stack. The result is a Stremio manifest URL that is ready to install as-is.</p>
         <div class="badges">
           <span class="badge">Torrent aggregation</span>
           <span class="badge">Multi-debrid direct links</span>
           <span class="badge">SDK subtitle resource</span>
-        </div>
-      </section>
-
-      <section class="panel section">
-        <h2>Sources</h2>
-        <p>Balance breadth against noise. You can keep the broad net or trim this down to the sources you trust most.</p>
-        <div class="provider-grid" id="providerGrid">
-          ${PROVIDERS.map(([value, label]) => `<button class="provider-chip" type="button" data-provider="${value}">${label}</button>`).join('')}
         </div>
       </section>
 
@@ -446,7 +392,7 @@ export function landingTemplate(manifest, initialConfig = {}) {
 
       <section class="panel section">
         <h2>Debrid</h2>
-        <p>Paste only the providers you actually use. Cached matches are emitted as direct debrid streams first. P2P fallback is optional.</p>
+        <p>Paste only the services you actually use. Cached matches are emitted as direct debrid streams first. P2P fallback is optional.</p>
         <div class="grid">
           <label>
             Debrid prewarm
@@ -509,11 +455,6 @@ export function landingTemplate(manifest, initialConfig = {}) {
 
   <script>
     const initialConfig = ${initialState};
-    const providerButtons = Array.from(document.querySelectorAll('[data-provider]'));
-
-    const configState = {
-      providers: new Set(initialConfig.providers || []),
-    };
 
     function selectedValues(id) {
       return Array.from(document.getElementById(id).selectedOptions).map(option => option.value);
@@ -545,16 +486,10 @@ export function landingTemplate(manifest, initialConfig = {}) {
       document.getElementById('oc').value = initialConfig.offcloudApiKey || '';
       document.getElementById('tb').value = initialConfig.torboxApiKey || '';
       document.getElementById('pu').value = initialConfig.putioApiKey || '';
-
-      providerButtons.forEach(button => {
-        button.classList.toggle('active', configState.providers.has(button.dataset.provider));
-      });
     }
 
     function buildConfiguration() {
       const parts = [];
-      const providers = Array.from(configState.providers);
-      if (providers.length) parts.push('providers=' + providers.join(','));
 
       const sort = document.getElementById('sort').value;
       const limit = document.getElementById('limit').value;
@@ -604,19 +539,6 @@ export function landingTemplate(manifest, initialConfig = {}) {
       document.getElementById('manifestPreview').textContent = manifestUrl();
       document.getElementById('status').textContent = '';
     }
-
-    providerButtons.forEach(button => {
-      button.addEventListener('click', () => {
-        const provider = button.dataset.provider;
-        if (configState.providers.has(provider)) {
-          configState.providers.delete(provider);
-        } else {
-          configState.providers.add(provider);
-        }
-        button.classList.toggle('active', configState.providers.has(provider));
-        refreshPreview();
-      });
-    });
 
     Array.from(document.querySelectorAll('select,input')).forEach(element => {
       element.addEventListener('change', refreshPreview);

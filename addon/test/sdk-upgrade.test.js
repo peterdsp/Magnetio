@@ -61,12 +61,11 @@ test('dummy manifest advertises configurable subtitles-enabled addon surface', (
   assert.ok(rootManifest.resources.some(resource => resource.name === 'subtitles'));
 });
 
-test('configuration page hides provider brand names', () => {
+test('configuration page does not expose source selection', () => {
   const html = landingTemplate(dummyManifest(), parseConfiguration('providers=yts,eztv,1337x'));
 
-  assert.match(html, /Source 1/);
-  assert.match(html, /Source 2/);
-  assert.match(html, /"providers":\["s1","s2","s7"\]/);
+  assert.doesNotMatch(html, /<h2>Sources<\/h2>|Source 1|Source 2|data-provider|providerGrid/);
+  assert.doesNotMatch(html, /"providers":|providers=/);
   assert.doesNotMatch(html, /YTS|EZTV|1337x|The Pirate Bay|KickassTorrents|TorrentGalaxy/);
   assert.doesNotMatch(html, /OpenSubtitles|OPENSUBTITLES_API_KEY/);
 });
