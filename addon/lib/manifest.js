@@ -65,7 +65,7 @@ function getDescription(config) {
     ? `\nDebrid services: ${enabledMochs.map(m => m.name).join(', ')}.`
     : '';
   return (
-    `Aggregates streams from configurable sources. Includes OpenSubtitles-powered subtitle support when configured server-side.` +
+    `Aggregates streams from configurable sources. Includes subtitle support when available.` +
     debridPart +
     `\n\nConfigure at your Stremio settings page.`
   );

@@ -68,6 +68,7 @@ test('configuration page hides provider brand names', () => {
   assert.match(html, /Source 2/);
   assert.match(html, /"providers":\["s1","s2","s7"\]/);
   assert.doesNotMatch(html, /YTS|EZTV|1337x|The Pirate Bay|KickassTorrents|TorrentGalaxy/);
+  assert.doesNotMatch(html, /OpenSubtitles|OPENSUBTITLES_API_KEY/);
 });
 
 test('configured manifest exposes subtitle resource and p2p hint', () => {

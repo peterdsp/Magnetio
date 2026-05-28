@@ -339,16 +339,6 @@ export function landingTemplate(manifest, initialConfig = {}) {
       border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
-    .warning {
-      padding: 14px 16px;
-      border-radius: 16px;
-      background: rgba(255, 123, 114, 0.1);
-      border: 1px solid rgba(255, 123, 114, 0.18);
-      color: #ffc3bc;
-      line-height: 1.55;
-      font-size: 0.9rem;
-    }
-
     .footnote {
       color: var(--muted);
       font-size: 0.84rem;
@@ -445,7 +435,7 @@ export function landingTemplate(manifest, initialConfig = {}) {
 
       <section class="panel section">
         <h2>Subtitles</h2>
-        <p>Magnetio exposes a dedicated Stremio subtitles resource. Select every subtitle language you want returned when the server is configured with OpenSubtitles credentials.</p>
+        <p>Magnetio exposes a dedicated Stremio subtitles resource. Select every subtitle language you want returned when subtitle support is available.</p>
         <label>
           Subtitle languages
           <select id="subtitleLanguages" multiple>
@@ -507,10 +497,6 @@ export function landingTemplate(manifest, initialConfig = {}) {
       <div class="actions">
         <button class="btn btn-primary" type="button" id="installBtn">Install in Stremio</button>
         <button class="btn btn-secondary" type="button" id="copyBtn">Copy manifest URL</button>
-      </div>
-
-      <div class="warning">
-        Subtitle results require server-side OpenSubtitles setup: <code>OPENSUBTITLES_API_KEY</code> plus account credentials for downloadable subtitle links.
       </div>
 
       <div class="status" id="status"></div>
