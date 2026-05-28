@@ -6,12 +6,6 @@ const ADDON_VERSION = '1.1.5';
 const ADDON_NAME    = 'Magnetio';
 const ADDON_LOGO    = 'https://i.imgur.com/magnetio.png';
 
-const PROVIDERS_DESCRIPTION = [
-  'YTS', 'EZTV', 'RARBG', 'TorrentGalaxy', 'ThePirateBay',
-  'KickassTorrents', '1337x', 'Nyaa', 'AnimeSaturn', 'Rutor', 'Rutracker',
-  'LimeTorrents', 'Bitsearch',
-].join(', ');
-
 /**
  * Build the full addon manifest for a given config.
  */
@@ -44,7 +38,7 @@ export function dummyManifest() {
     id:          ADDON_ID,
     version:     ADDON_VERSION,
     name:        ADDON_NAME,
-    description: `${ADDON_NAME} – configure providers, subtitles and debrid services at /configure`,
+    description: `${ADDON_NAME} - configure sources, subtitles and debrid services at /configure`,
     logo:        ADDON_LOGO,
     background:  'https://i.imgur.com/magnetio-bg.jpg',
     types:       ['movie', 'series', 'anime'],
@@ -71,7 +65,7 @@ function getDescription(config) {
     ? `\nDebrid services: ${enabledMochs.map(m => m.name).join(', ')}.`
     : '';
   return (
-    `Aggregates torrents from: ${PROVIDERS_DESCRIPTION}. Includes OpenSubtitles-powered subtitle support when configured server-side.` +
+    `Aggregates streams from configurable sources. Includes OpenSubtitles-powered subtitle support when configured server-side.` +
     debridPart +
     `\n\nConfigure at your Stremio settings page.`
   );
@@ -81,8 +75,8 @@ function getCatalogs(config) {
   return getEnabledMochs(config).flatMap(moch =>
     moch.hasCatalog
       ? [
-          { id: `${moch.id}_movie`,  type: 'movie',  name: `${moch.name} – Movies`  },
-          { id: `${moch.id}_series`, type: 'series', name: `${moch.name} – Series` },
+          { id: `${moch.id}_movie`,  type: 'movie',  name: `${moch.name} - Movies`  },
+          { id: `${moch.id}_series`, type: 'series', name: `${moch.name} - Series` },
         ]
       : []
   );

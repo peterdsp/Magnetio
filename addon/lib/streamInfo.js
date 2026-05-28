@@ -12,7 +12,6 @@ export function toStreamInfo(record, config) {
   const langs      = (record.languages ?? []).map(getLanguageFlag).join('');
   const sizeStr    = record.size ? formatSize(record.size) : '';
   const seedersStr = record.seeders != null ? `👥 ${record.seeders}` : '';
-  const provStr    = record.provider ? `[${record.provider}]` : '';
   const sourceStr  = [record.source, record.codec, record.hdr ? 'HDR' : null].filter(Boolean).join(' · ');
   const filename   = record.fileName || record.title || record.name;
 
@@ -20,7 +19,7 @@ export function toStreamInfo(record, config) {
   const description = [
     record.title || record.name,
     sourceStr,
-    [seedersStr, sizeStr, provStr].filter(Boolean).join(' '),
+    [seedersStr, sizeStr].filter(Boolean).join(' '),
   ].filter(Boolean).join('\n');
 
   const stream = {

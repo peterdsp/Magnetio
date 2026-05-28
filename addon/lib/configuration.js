@@ -1,6 +1,22 @@
 import { TorrentProvider, SortType, SizeLimit } from './types.js';
 
-// ─── Pre-built Configurations ─────────────────────────────────────────────────
+const PublicProviderAliases = {
+  s1: TorrentProvider.YTS,
+  s2: TorrentProvider.EZTV,
+  s3: TorrentProvider.RARBG,
+  s4: TorrentProvider.TORRENTGALAXY,
+  s5: TorrentProvider.THEPIRATEBAY,
+  s6: TorrentProvider.KICKASSTORRENTS,
+  s7: TorrentProvider.LEETX,
+  s8: TorrentProvider.NYAA,
+  s9: TorrentProvider.ANIMESATURN,
+  s10: TorrentProvider.RUTOR,
+  s11: TorrentProvider.RUTRACKER,
+  s12: TorrentProvider.LIMETORRENTS,
+  s13: TorrentProvider.BITSEARCH,
+};
+
+// Pre-built Configurations
 
 export const PreConfigurations = {
   lite: {
@@ -60,7 +76,7 @@ export function parseConfiguration(configString) {
 
     switch (key.toLowerCase()) {
       case 'providers':
-        config.providers = value.toLowerCase().split(',').filter(Boolean);
+        config.providers = value.toLowerCase().split(',').filter(Boolean).map(normalizeProvider);
         break;
       case 'sort':
         config.sort = value.toLowerCase();
@@ -138,7 +154,7 @@ export function getManifestOverride(configString) {
   };
 }
 
-// ─── Defaults ─────────────────────────────────────────────────────────────────
+// Defaults
 
 export function getDefaultConfiguration() {
   return {
@@ -170,6 +186,10 @@ function parseBoolean(value, fallback = false) {
   if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
   if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
   return fallback;
+}
+
+function normalizeProvider(provider) {
+  return PublicProviderAliases[provider] ?? provider;
 }
 
 function clampPrewarmLimit(value, fallback = 3) {

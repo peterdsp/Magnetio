@@ -1,18 +1,22 @@
 const PROVIDERS = [
-  ['yts', 'YTS'],
-  ['eztv', 'EZTV'],
-  ['rarbg', 'RARBG'],
-  ['torrentgalaxy', 'TorrentGalaxy'],
-  ['thepiratebay', 'The Pirate Bay'],
-  ['kickasstorrents', 'KickassTorrents'],
-  ['1337x', '1337x'],
-  ['nyaa', 'Nyaa'],
-  ['animesaturn', 'AnimeSaturn'],
-  ['rutor', 'Rutor'],
-  ['rutracker', 'Rutracker'],
-  ['limetorrents', 'LimeTorrents'],
-  ['bitsearch', 'Bitsearch'],
+  ['s1', 'Source 1', 'yts'],
+  ['s2', 'Source 2', 'eztv'],
+  ['s3', 'Source 3', 'rarbg'],
+  ['s4', 'Source 4', 'torrentgalaxy'],
+  ['s5', 'Source 5', 'thepiratebay'],
+  ['s6', 'Source 6', 'kickasstorrents'],
+  ['s7', 'Source 7', '1337x'],
+  ['s8', 'Source 8', 'nyaa'],
+  ['s9', 'Source 9', 'animesaturn'],
+  ['s10', 'Source 10', 'rutor'],
+  ['s11', 'Source 11', 'rutracker'],
+  ['s12', 'Source 12', 'limetorrents'],
+  ['s13', 'Source 13', 'bitsearch'],
 ];
+
+const PROVIDER_TO_PUBLIC_CODE = Object.fromEntries(
+  PROVIDERS.map(([code, _label, provider]) => [provider, code])
+);
 
 const QUALITIES = [
   ['4k', '4K'],
@@ -56,7 +60,7 @@ const DEBRID_FIELDS = [
  */
 export function landingTemplate(manifest, initialConfig = {}) {
   const initialState = escapeJsonForHtml({
-    providers: initialConfig.providers ?? [],
+    providers: (initialConfig.providers ?? []).map(provider => PROVIDER_TO_PUBLIC_CODE[provider] ?? provider),
     sort: initialConfig.sort ?? 'qualityseeders',
     limit: initialConfig.limit ?? 10,
     qualities: initialConfig.qualities ?? [],
@@ -385,7 +389,7 @@ export function landingTemplate(manifest, initialConfig = {}) {
       <section class="panel hero">
         <span class="eyebrow">Magnetio for Stremio</span>
         <h1>Build the exact addon URL you actually want.</h1>
-        <p>Pick providers, tune stream ranking, set subtitle preferences and plug in your debrid stack. The result is a Stremio manifest URL that is ready to install as-is.</p>
+        <p>Pick sources, tune stream ranking, set subtitle preferences and plug in your debrid stack. The result is a Stremio manifest URL that is ready to install as-is.</p>
         <div class="badges">
           <span class="badge">Torrent aggregation</span>
           <span class="badge">Multi-debrid direct links</span>
@@ -394,7 +398,7 @@ export function landingTemplate(manifest, initialConfig = {}) {
       </section>
 
       <section class="panel section">
-        <h2>Providers</h2>
+        <h2>Sources</h2>
         <p>Balance breadth against noise. You can keep the broad net or trim this down to the sources you trust most.</p>
         <div class="provider-grid" id="providerGrid">
           ${PROVIDERS.map(([value, label]) => `<button class="provider-chip" type="button" data-provider="${value}">${label}</button>`).join('')}

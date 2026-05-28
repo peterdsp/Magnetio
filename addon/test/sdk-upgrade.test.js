@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import { parseConfiguration } from '../lib/configuration.js';
 import { manifest, dummyManifest } from '../lib/manifest.js';
+import { landingTemplate } from '../lib/landingTemplate.js';
 import { buildSubtitleSearchParams, resolveSubtitleLanguages } from '../lib/subtitles.js';
 import { applyFilters } from '../lib/filter.js';
 import { toSubtitleLanguageCode } from '../lib/languages.js';
@@ -17,6 +18,12 @@ test('configuration parser supports subtitle languages', () => {
   assert.deepEqual(config.providers, ['yts', 'eztv']);
   assert.deepEqual(config.subtitleLanguages, ['en', 'es']);
   assert.equal(config.limit, 20);
+});
+
+test('public provider aliases map to internal providers', () => {
+  const config = parseConfiguration('providers=s1,s2,s7');
+
+  assert.deepEqual(config.providers, ['yts', 'eztv', '1337x']);
 });
 
 test('configuration parser supports debrid prewarm controls', () => {
@@ -52,6 +59,15 @@ test('dummy manifest advertises configurable subtitles-enabled addon surface', (
   assert.equal(rootManifest.behaviorHints.configurable, true);
   assert.equal(rootManifest.behaviorHints.p2p, true);
   assert.ok(rootManifest.resources.some(resource => resource.name === 'subtitles'));
+});
+
+test('configuration page hides provider brand names', () => {
+  const html = landingTemplate(dummyManifest(), parseConfiguration('providers=yts,eztv,1337x'));
+
+  assert.match(html, /Source 1/);
+  assert.match(html, /Source 2/);
+  assert.match(html, /"providers":\["s1","s2","s7"\]/);
+  assert.doesNotMatch(html, /YTS|EZTV|1337x|The Pirate Bay|KickassTorrents|TorrentGalaxy/);
 });
 
 test('configured manifest exposes subtitle resource and p2p hint', () => {
