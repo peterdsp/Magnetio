@@ -64,8 +64,13 @@ export async function getAddonInterface(config) {
             return finalStreams;
           });
 
-          const cacheAge = streams.length ? CACHE_TTL_OK : CACHE_TTL_EMPTY;
-          resolve({ streams, cacheMaxAge: cacheAge, staleRevalidate: 3600, staleError: 14400 });
+          const hasStreams = streams.length > 0;
+          resolve({
+            streams,
+            cacheMaxAge: hasStreams ? CACHE_TTL_OK : CACHE_TTL_EMPTY,
+            staleRevalidate: hasStreams ? 3600 : 0,
+            staleError: hasStreams ? 14400 : 0,
+          });
         } catch (err) {
           logger.error(`Stream handler error [${id}]: ${err.message}`);
           resolve({ streams: [], cacheMaxAge: CACHE_TTL_ERROR });
