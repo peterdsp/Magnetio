@@ -5,6 +5,7 @@
 import * as cheerio from 'cheerio';
 import { get } from '../lib/httpClient.js';
 import { parseTitle, buildSearchQuery } from '../lib/titleHelper.js';
+import { extractInfoHash, parseSize } from '../lib/magnetHelper.js';
 import { logger } from '../lib/logger.js';
 
 const BASE = 'https://therarbg.com';
@@ -88,6 +89,7 @@ async function fetchDetail(url, meta) {
     }
 
     return {
+      ...parseTitle(title),
       infoHash,
       title: title || '',
       seeders,
@@ -95,44 +97,10 @@ async function fetchDetail(url, meta) {
       size,
       provider: 'TheRarBG',
       imdbId:   meta.imdbId,
-      ...parseTitle(title),
     };
   } catch {
     return null;
   }
-}
-
-function extractInfoHash(magnet) {
-  const match = magnet.match(/xt=urn:btih:([a-fA-F0-9]{40}|[a-zA-Z2-7]{32})/i);
-  if (!match) return null;
-  const raw = match[1];
-  // Handle base32-encoded hashes
-  if (raw.length === 32) return base32ToHex(raw);
-  return raw.toLowerCase();
-}
-
-function base32ToHex(str) {
-  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-  let bits = '';
-  for (const c of str.toUpperCase()) {
-    const val = alphabet.indexOf(c);
-    if (val === -1) return null;
-    bits += val.toString(2).padStart(5, '0');
-  }
-  let hex = '';
-  for (let i = 0; i + 4 <= bits.length; i += 4) {
-    hex += parseInt(bits.slice(i, i + 4), 2).toString(16);
-  }
-  return hex.length === 40 ? hex : null;
-}
-
-function parseSize(str) {
-  if (!str) return 0;
-  const m = str.match(/([\d.]+)\s*(B|KB|MB|GB|TB)/i);
-  if (!m) return 0;
-  const val   = parseFloat(m[1]);
-  const units = { b: 1, kb: 1024, mb: 1024 ** 2, gb: 1024 ** 3, tb: 1024 ** 4 };
-  return Math.round(val * (units[m[2].toLowerCase()] ?? 1));
 }
 
 function chunkArray(arr, size) {

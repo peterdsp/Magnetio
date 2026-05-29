@@ -5,6 +5,7 @@
 import * as cheerio from 'cheerio';
 import { get } from '../lib/httpClient.js';
 import { parseTitle, buildSearchQuery } from '../lib/titleHelper.js';
+import { extractInfoHash, parseSize } from '../lib/magnetHelper.js';
 import { logger } from '../lib/logger.js';
 
 const FEED_BASE = 'https://feed.animetosho.org';
@@ -42,12 +43,12 @@ export async function scrape(meta) {
 
       let infoHash = null;
 
-      // Try torrent link hash extraction from enclosure or link
-      const magnetMatch = desc.match(/magnet:\?xt=urn:btih:([a-fA-F0-9]{40}|[a-zA-Z2-7]{32})/i)
-        || link.match(/xt=urn:btih:([a-fA-F0-9]{40}|[a-zA-Z2-7]{32})/i);
+      // Try magnet link extraction from description or link
+      const magnetMatch = desc.match(/magnet:\?[^\s"<]+/i)
+        || link.match(/magnet:\?[^\s"<]+/i);
 
       if (magnetMatch) {
-        infoHash = decodeHash(magnetMatch[1]);
+        infoHash = extractInfoHash(magnetMatch[0]);
       }
 
       // Try torrent filename hash (animetosho stores torrents as /storage/torrent/{hash}/...)
@@ -76,11 +77,12 @@ export async function scrape(meta) {
       if (!size) {
         const sizeMatch = desc.match(/([\d.]+)\s*(GB|MB|TB|KB)/i);
         if (sizeMatch) {
-          size = parseSizeStr(sizeMatch[1], sizeMatch[2]);
+          size = parseSize(`${sizeMatch[1]} ${sizeMatch[2]}`);
         }
       }
 
       results.push({
+        ...parseTitle(title),
         infoHash,
         title,
         seeders,
@@ -89,7 +91,6 @@ export async function scrape(meta) {
         provider:  'AnimeTosho',
         imdbId:    meta.imdbId,
         languages: ['ja'],
-        ...parseTitle(title),
       });
     });
 
@@ -100,29 +101,3 @@ export async function scrape(meta) {
   }
 }
 
-function decodeHash(raw) {
-  if (raw.length === 40) return raw.toLowerCase();
-  if (raw.length === 32) return base32ToHex(raw);
-  return null;
-}
-
-function base32ToHex(str) {
-  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-  let bits = '';
-  for (const c of str.toUpperCase()) {
-    const val = alphabet.indexOf(c);
-    if (val === -1) return null;
-    bits += val.toString(2).padStart(5, '0');
-  }
-  let hex = '';
-  for (let i = 0; i + 4 <= bits.length; i += 4) {
-    hex += parseInt(bits.slice(i, i + 4), 2).toString(16);
-  }
-  return hex.length === 40 ? hex : null;
-}
-
-function parseSizeStr(val, unit) {
-  const num = parseFloat(val);
-  const units = { b: 1, kb: 1024, mb: 1024 ** 2, gb: 1024 ** 3, tb: 1024 ** 4 };
-  return Math.round(num * (units[unit.toLowerCase()] ?? 1));
-}

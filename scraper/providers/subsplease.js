@@ -4,6 +4,7 @@
  */
 import { get } from '../lib/httpClient.js';
 import { parseTitle } from '../lib/titleHelper.js';
+import { extractInfoHash } from '../lib/magnetHelper.js';
 import { logger } from '../lib/logger.js';
 
 const BASE = 'https://subsplease.org';
@@ -57,6 +58,7 @@ export async function scrape(meta) {
         const title = dnMatch ? decodeURIComponent(dnMatch[1].replace(/\+/g, ' ')) : `${entry.show} - ${entry.episode} (${res}p)`;
 
         results.push({
+          ...parseTitle(title),
           infoHash,
           title,
           seeders:   0, // SubsPlease API does not provide seeder counts
@@ -67,7 +69,6 @@ export async function scrape(meta) {
           quality,
           languages: ['ja'],
           source:    'WEB',
-          ...parseTitle(title),
         });
       }
     }
@@ -79,25 +80,3 @@ export async function scrape(meta) {
   }
 }
 
-function extractInfoHash(magnet) {
-  const match = magnet.match(/xt=urn:btih:([a-fA-F0-9]{40}|[a-zA-Z2-7]{32})/i);
-  if (!match) return null;
-  const raw = match[1];
-  if (raw.length === 32) return base32ToHex(raw);
-  return raw.toLowerCase();
-}
-
-function base32ToHex(str) {
-  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-  let bits = '';
-  for (const c of str.toUpperCase()) {
-    const val = alphabet.indexOf(c);
-    if (val === -1) return null;
-    bits += val.toString(2).padStart(5, '0');
-  }
-  let hex = '';
-  for (let i = 0; i + 4 <= bits.length; i += 4) {
-    hex += parseInt(bits.slice(i, i + 4), 2).toString(16);
-  }
-  return hex.length === 40 ? hex : null;
-}

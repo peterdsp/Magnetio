@@ -20,10 +20,10 @@ import * as btdig            from './btdig.js';
 import * as glotorrents      from './glotorrents.js';
 import * as torlock          from './torlock.js';
 import * as torrentdownloads from './torrentdownloads.js';
-import * as therarbg        from './therarbg.js';
-import * as subsplease      from './subsplease.js';
-import * as animetosho      from './animetosho.js';
-import * as nekobt          from './nekobt.js';
+import * as therarbg         from './therarbg.js';
+import * as subsplease       from './subsplease.js';
+import * as animetosho       from './animetosho.js';
+import * as nekobt           from './nekobt.js';
 import { logger } from '../lib/logger.js';
 
 const ALL_PROVIDERS = [

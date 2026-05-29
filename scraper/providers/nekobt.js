@@ -5,6 +5,7 @@
 import * as cheerio from 'cheerio';
 import { get } from '../lib/httpClient.js';
 import { parseTitle, buildSearchQuery } from '../lib/titleHelper.js';
+import { extractInfoHash } from '../lib/magnetHelper.js';
 import { logger } from '../lib/logger.js';
 
 const BASE = 'https://nekobt.to';
@@ -41,7 +42,7 @@ export async function scrape(meta) {
       if (!infoHash) {
         const magnetUrl = getAttr($, $item, 'magneturl')
           || $item.find('link').text().trim();
-        infoHash = extractInfoHash(magnetUrl);
+        if (magnetUrl) infoHash = extractInfoHash(magnetUrl);
       }
       if (!infoHash) return;
 
@@ -50,6 +51,7 @@ export async function scrape(meta) {
       const size     = parseInt($item.find('size').text().trim() || getAttr($, $item, 'size') || '0', 10);
 
       results.push({
+        ...parseTitle(title),
         infoHash: infoHash.toLowerCase(),
         title,
         seeders:   seeders || 0,
@@ -58,7 +60,6 @@ export async function scrape(meta) {
         provider:  'nekoBT',
         imdbId:    meta.imdbId,
         languages: ['ja'],
-        ...parseTitle(title),
       });
     });
 
@@ -82,25 +83,3 @@ function getAttr($, $item, name) {
   return val;
 }
 
-function extractInfoHash(magnet = '') {
-  const match = magnet.match(/xt=urn:btih:([a-fA-F0-9]{40}|[a-zA-Z2-7]{32})/i);
-  if (!match) return null;
-  const raw = match[1];
-  if (raw.length === 32) return base32ToHex(raw);
-  return raw.toLowerCase();
-}
-
-function base32ToHex(str) {
-  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-  let bits = '';
-  for (const c of str.toUpperCase()) {
-    const val = alphabet.indexOf(c);
-    if (val === -1) return null;
-    bits += val.toString(2).padStart(5, '0');
-  }
-  let hex = '';
-  for (let i = 0; i + 4 <= bits.length; i += 4) {
-    hex += parseInt(bits.slice(i, i + 4), 2).toString(16);
-  }
-  return hex.length === 40 ? hex : null;
-}
