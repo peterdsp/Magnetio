@@ -80,7 +80,7 @@ services:
       - PGID=1000
       - TZ=Europe/Athens
       - SUBDOMAINS=${DUCKDNS_SUBDOMAIN:-magnetio}
-      - TOKEN=${DUCKDNS_TOKEN:?Set DUCKDNS_TOKEN in .env}
+      - TOKEN=${DUCKDNS_TOKEN:-}
       - UPDATE_IP=ipv4
       - LOG_FILE=false
     networks:
