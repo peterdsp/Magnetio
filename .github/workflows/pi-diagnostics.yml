@@ -1,0 +1,84 @@
+name: Pi Diagnostics
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to run'
+        required: true
+        default: 'status'
+        type: choice
+        options:
+          - status
+          - update-duckdns
+          - restart-containers
+          - flush-redis
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    name: run
+    runs-on: [self-hosted, raspberry-pi, production]
+    timeout-minutes: 5
+
+    steps:
+      - name: Docker status
+        if: inputs.action == 'status'
+        run: |
+          set -euo pipefail
+          echo "=== Docker containers ==="
+          docker compose -f /home/peterdsp/magnetio/docker-compose.yml ps
+          echo ""
+          echo "=== Addon health ==="
+          curl -sf http://localhost:7000/health || echo "UNHEALTHY"
+          echo ""
+          echo "=== Scraper health ==="
+          curl -sf http://localhost:8080/health || echo "UNHEALTHY"
+          echo ""
+          echo "=== Public IP ==="
+          curl -sf https://api.ipify.org || echo "FAILED"
+          echo ""
+          echo "=== DuckDNS resolution ==="
+          nslookup magnetio.duckdns.org 8.8.8.8 2>&1 || true
+          echo ""
+          echo "=== Addon manifest (first 200 chars) ==="
+          curl -sf http://localhost:7000/manifest.json | head -c 200 || echo "FAILED"
+
+      - name: Update DuckDNS
+        if: inputs.action == 'update-duckdns'
+        env:
+          DUCKDNS_TOKEN: ${{ secrets.DUCKDNS_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DUCKDNS_TOKEN:-}" ]; then
+            echo "DUCKDNS_TOKEN secret not set. Add it to repo secrets first."
+            echo "Get your token from https://www.duckdns.org"
+            exit 1
+          fi
+          PUBLIC_IP=$(curl -sf https://api.ipify.org)
+          echo "Current public IP: $PUBLIC_IP"
+          RESULT=$(curl -sf "https://www.duckdns.org/update?domains=magnetio&token=${DUCKDNS_TOKEN}&ip=${PUBLIC_IP}")
+          echo "DuckDNS update result: $RESULT"
+          echo ""
+          echo "Verifying DNS propagation..."
+          sleep 5
+          nslookup magnetio.duckdns.org 8.8.8.8 2>&1 || true
+
+      - name: Restart containers
+        if: inputs.action == 'restart-containers'
+        run: |
+          set -euo pipefail
+          cd /home/peterdsp/magnetio
+          docker compose restart
+          sleep 10
+          docker compose ps
+          curl -sf http://localhost:7000/health && echo "Addon healthy" || echo "Addon unhealthy"
+
+      - name: Flush Redis
+        if: inputs.action == 'flush-redis'
+        run: |
+          set -euo pipefail
+          docker exec magnetio_redis redis-cli FLUSHALL
+          echo "Redis flushed"
