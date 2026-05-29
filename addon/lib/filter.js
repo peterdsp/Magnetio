@@ -24,11 +24,11 @@ const SIZE_LIMITS = {
 export function applyFilters(streams, config) {
   let result = streams;
 
-  // 1. Quality whitelist
+  // 1. Quality whitelist (null/unknown quality always passes through)
   if (config.qualities?.length) {
     result = result.filter(s => {
       const q = extractQuality(s);
-      return config.qualities.includes(q);
+      return !q || config.qualities.includes(q);
     });
   }
 

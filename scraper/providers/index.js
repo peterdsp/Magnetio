@@ -139,7 +139,7 @@ function filterByContent(records, meta) {
       const match = phraseRegex.exec(norm);
       if (!match) return false;
       const after = norm.slice(match.index + match[0].length).trim();
-      const nextWord = after.match(/^([a-z]+)/);
+      const nextWord = after.match(/^([a-z0-9]+)/);
       if (nextWord && !isTorrentMetadata(nextWord[1])) return false;
     } else {
       const matchCount = nameWords.filter(w =>
