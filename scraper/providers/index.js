@@ -128,16 +128,26 @@ function filterByContent(records, meta) {
   const nameWords = normalizeTitle(meta.name).split(/\s+/).filter(w => w.length > 1);
   if (!nameWords.length) return records;
 
+  const phrasePattern = nameWords.map(escapeRegex).join('\\s+');
+  const phraseRegex = new RegExp(`\\b${phrasePattern}\\b`);
+
   return records.filter(r => {
     if (!r.title) return false;
     const norm = normalizeTitle(r.title);
 
-    // Check that the torrent title contains enough words from the content name
-    const matchCount = nameWords.filter(w => norm.includes(w)).length;
-    const nameMatch = matchCount >= Math.max(1, Math.ceil(nameWords.length * 0.5));
-    if (!nameMatch) return false;
+    if (nameWords.length <= 2) {
+      const match = phraseRegex.exec(norm);
+      if (!match) return false;
+      const after = norm.slice(match.index + match[0].length).trim();
+      const nextWord = after.match(/^([a-z]+)/);
+      if (nextWord && !isTorrentMetadata(nextWord[1])) return false;
+    } else {
+      const matchCount = nameWords.filter(w =>
+        new RegExp(`\\b${escapeRegex(w)}\\b`).test(norm)
+      ).length;
+      if (matchCount < Math.max(1, Math.ceil(nameWords.length * 0.5))) return false;
+    }
 
-    // For series, also verify season/episode marker
     if (meta.type === 'series' && meta.season != null) {
       const s = meta.season;
       const e = meta.episode;
@@ -159,6 +169,15 @@ function filterByContent(records, meta) {
 
     return true;
   });
+}
+
+function isTorrentMetadata(word) {
+  return /^(s\d|season|episode|ep\d|web|hdtv|bluray|bdrip|dvd|hdrip|cam|x26|h26|hevc|avc|xvid|aac|ac3|dts|multi|dual|repack|proper|internal|extended|unrated|complete|full|part|the)/.test(word)
+    || /^\d/.test(word);
+}
+
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function normalizeTitle(str) {
