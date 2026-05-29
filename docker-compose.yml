@@ -70,22 +70,6 @@ services:
       timeout: 5s
       retries: 3
 
-  # ─── DuckDNS Dynamic DNS ───────────────────────────────────────────────────
-  duckdns:
-    image: lscr.io/linuxserver/duckdns:latest
-    container_name: magnetio_duckdns
-    restart: unless-stopped
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Europe/Athens
-      - SUBDOMAINS=${DUCKDNS_SUBDOMAIN:-magnetio}
-      - TOKEN=${DUCKDNS_TOKEN:-}
-      - UPDATE_IP=ipv4
-      - LOG_FILE=false
-    networks:
-      - magnetio_net
-
   # ─── Redis Cache ──────────────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
