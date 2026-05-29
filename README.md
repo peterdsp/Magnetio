@@ -1,444 +1,383 @@
-# ⚡ Magnetio
+<p align="center">
+  <img src="https://img.shields.io/badge/Magnetio-v1.1.5-10b981?style=for-the-badge&labelColor=1a1a2e" alt="Version" />
+  <img src="https://img.shields.io/badge/license-Apache--2.0-blue?style=for-the-badge&labelColor=1a1a2e" alt="License" />
+  <img src="https://img.shields.io/badge/node-%3E%3D18-brightgreen?style=for-the-badge&logo=node.js&labelColor=1a1a2e" alt="Node.js" />
+  <img src="https://img.shields.io/badge/docker-ready-2496ed?style=for-the-badge&logo=docker&labelColor=1a1a2e" alt="Docker" />
+  <img src="https://img.shields.io/badge/stremio-addon-7b5bf5?style=for-the-badge&labelColor=1a1a2e" alt="Stremio" />
+</p>
 
-> An open-source advanced Stremio addon with multi-provider torrent aggregation and full multi-debrid support.
+<h1 align="center">Magnetio</h1>
 
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
-[![Docker](https://img.shields.io/badge/docker-ready-blue)](https://hub.docker.com)
+<p align="center">
+  <strong>A fully self-hosted Stremio addon with built-in multi-provider torrent scraping and 8 debrid services.</strong>
+</p>
+
+<p align="center">
+  No external scraper dependency. No third-party backend. Your API keys never leave your server.
+</p>
 
 ---
 
 ## What is Magnetio?
 
-Magnetio is a **fully in-house, self-hostable Stremio addon** with its own built-in torrent scraper — no external scraper service required. It aggregates torrents from multiple providers directly and optionally resolves them to **instant, direct-download streams** through your debrid service of choice.
+Magnetio is an open-source, self-hostable **Stremio addon** that comes with its own **built-in torrent scraper**. It queries 21 torrent providers in parallel, deduplicates results, and optionally resolves them into **instant direct-download streams** through your debrid service of choice.
 
-Unlike Torrentio:
-- **100% in-house** — built-in scrapers for every provider, no third-party back-end needed
-- **Self-hosted** — your API keys never leave your server
-- **Multi-debrid** — connect up to 8 debrid services simultaneously
-- **Configurable** — per-user provider selection, quality filters, language preferences
-- **Modern stack** — ES Modules, Redis caching, Prometheus metrics, Docker-first
+Everything runs on your own hardware (a Raspberry Pi is enough). No cloud subscriptions, no external scraper APIs, no data leaving your network.
 
-## Services
+### Why Magnetio?
 
-| Service | Description | Port |
-|---|---|---|
-| `scraper` | In-house torrent scraper (queries all providers) | 8080 |
-| `addon` | Stremio addon (user-facing, debrid integration) | 7000 |
-| `redis` | Shared cache for both services | 6379 |
+| | Magnetio | Typical Stremio addons |
+|:---|:---:|:---:|
+| Fully in-house scraping | Yes | Depends on external APIs |
+| Self-hosted, private | Yes | Often cloud-hosted |
+| 21 torrent providers | Yes | Varies |
+| 8 debrid services | Yes | 1-3 typically |
+| Background prewarm | Yes | No |
+| Per-user config (providers, quality, language) | Yes | Limited |
+| Subtitle sync pipeline | Yes | No |
+| Redis caching with stale-while-revalidate | Yes | Basic or none |
+| Prometheus metrics | Yes | Rare |
+| Docker Compose one-command deploy | Yes | Varies |
+
+---
+
+## How It Works
+
+```
+                          You open a movie in Stremio
+                                     |
+                                     v
+                    +---------------------------------+
+                    |     Magnetio Addon (:7000)      |
+                    |  Receives stream/catalog/meta   |
+                    |  request from Stremio client    |
+                    +---------------------------------+
+                                     |
+                         Calls internal scraper
+                                     |
+                                     v
+                    +---------------------------------+
+                    |    Magnetio Scraper (:8080)     |
+                    |  Queries up to 21 providers     |
+                    |  in parallel (max 4 concurrent) |
+                    |  22s timeout per provider       |
+                    +---------------------------------+
+                                     |
+                    Deduplicates by infoHash (keeps
+                    highest-seeder entry per hash)
+                                     |
+                    Content-filters results against
+                    the actual requested title/season
+                                     |
+                                     v
+                    +---------------------------------+
+                    |     Back to Addon               |
+                    |  Applies quality/language/size   |
+                    |  filters from user config       |
+                    |  Sorts by chosen strategy       |
+                    +---------------------------------+
+                                     |
+                          If debrid keys present:
+                      check instant availability
+                      on each configured service
+                                     |
+                          +---------+---------+
+                          |                   |
+                       Cached              Not cached
+                     Resolve to           Keep as P2P
+                     direct HTTP          magnet fallback
+                     stream URL           (or prewarm it)
+                          |                   |
+                          +---------+---------+
+                                     |
+                                     v
+                       Return sorted stream list
+                       to Stremio for playback
+```
+
+When a torrent is already cached on your debrid service, Stremio plays it as a direct HTTP stream at full speed. No buffering, no seeding wait, no port forwarding.
 
 ---
 
 ## Supported Torrent Providers
 
-| Provider | Movies | Series | Anime |
-|---|:---:|:---:|:---:|
-| YTS | ✅ | ❌ | ❌ |
-| EZTV | ❌ | ✅ | ❌ |
-| RARBG (mirror) | ✅ | ✅ | ❌ |
-| TorrentGalaxy | ✅ | ✅ | ❌ |
-| The Pirate Bay | ✅ | ✅ | ❌ |
-| KickassTorrents | ✅ | ✅ | ❌ |
-| 1337x | ✅ | ✅ | ❌ |
-| LimeTorrents | ✅ | ✅ | ❌ |
-| Bitsearch | ✅ | ✅ | ❌ |
-| Nyaa | ❌ | ❌ | ✅ |
-| AnimeSaturn | ❌ | ❌ | ✅ |
-| Rutor | ✅ | ✅ | ❌ |
-| Rutracker | ✅ | ✅ | ❌ |
+Magnetio ships with **21 providers** covering movies, TV series, and anime.
+
+### Movies and TV
+
+| Provider | ID | Content | Method |
+|:---|:---|:---|:---|
+| YTS | `yts` | Movies only | JSON API |
+| EZTV | `eztv` | Series only | JSON API |
+| The Pirate Bay | `thepiratebay` | Movies, Series | JSON API (apibay.org) |
+| TorrentGalaxy | `torrentgalaxy` | Movies, Series | HTML scraper |
+| 1337x | `leetx` | Movies, Series | HTML scraper (detail pages) |
+| KickassTorrents | `kickasstorrents` | Movies, Series | HTML scraper |
+| LimeTorrents | `limetorrents` | Movies, Series | HTML scraper |
+| Bitsearch | `bitsearch` | Movies, Series | HTML scraper |
+| BT4G | `bt4g` | Movies, Series | HTML scraper |
+| BTDig | `btdig` | Movies, Series | HTML scraper |
+| GloTorrents | `glotorrents` | Movies, Series | HTML scraper |
+| TorLock | `torlock` | Movies, Series | HTML scraper |
+| TorrentDownloads | `torrentdownloads` | Movies, Series | HTML scraper |
+| TheRarBG | `therarbg` | Movies, Series | HTML scraper (RARBG successor) |
+| Rutor | `rutor` | Movies, Series | HTML scraper (Russian) |
+| Rutracker | `rutracker` | Movies, Series | HTML scraper (Russian) |
+
+### Anime
+
+| Provider | ID | Method |
+|:---|:---|:---|
+| Nyaa | `nyaa` | Atom RSS feed |
+| AnimeSaturn | `animesaturn` | HTML scraper (Italian) |
+| SubsPlease | `subsplease` | JSON API (fansubs) |
+| AnimeTosho | `animetosho` | RSS feed (aggregator) |
+| nekoBT | `nekobt` | Torznab API (fansubs) |
+
+All providers run in parallel with a concurrency limit of 4 and a 22-second timeout. Results are deduplicated by `infoHash`, keeping the entry with the highest seeder count.
 
 ---
 
-## Debrid Service Support
+## Debrid Services
 
-Debrid services cache torrents server-side and serve them as direct HTTP links — giving you **instant, full-speed streams** with no seeding required.
+Debrid services cache torrents server-side and serve them as direct HTTP links, giving you instant, full-speed streams with no seeding required.
 
-| Service | Cache Check | Catalog | Short Code |
-|---|:---:|:---:|:---:|
-| [Real-Debrid](https://real-debrid.com) | ✅ | ✅ | `RD` |
-| [Premiumize](https://premiumize.me) | ✅ | ✅ | `PM` |
-| [AllDebrid](https://alldebrid.com) | ✅ | ❌ | `AD` |
-| [DebridLink](https://debrid-link.com) | ❌ | ✅ | `DL` |
-| [EasyDebrid](https://easydebrid.com) | ✅ | ❌ | `ED` |
-| [Offcloud](https://offcloud.com) | ❌ | ❌ | `OC` |
-| [TorBox](https://torbox.app) | ✅ | ✅ | `TB` |
-| [Put.io](https://put.io) | ❌ | ✅ | `PU` |
+| Service | Code | Cache Check | Catalog | Prewarm |
+|:---|:---:|:---:|:---:|:---:|
+| [Real-Debrid](https://real-debrid.com) | `RD` | Yes | Yes | Yes |
+| [Premiumize](https://premiumize.me) | `PM` | Yes | Yes | No |
+| [AllDebrid](https://alldebrid.com) | `AD` | Yes | No | Yes |
+| [DebridLink](https://debrid-link.com) | `DL` | No | Yes | Yes |
+| [EasyDebrid](https://easydebrid.com) | `ED` | Yes | No | No |
+| [Offcloud](https://offcloud.com) | `OC` | No | No | Yes |
+| [TorBox](https://torbox.app) | `TB` | Yes | Yes | Yes |
+| [Put.io](https://put.io) | `PU` | No | Yes | Yes |
 
-### How debrid integration works
-
-```
-User requests stream
-       │
-       ▼
-Magnetio fetches torrent records from providers
-       │
-       ▼
-For each configured debrid service:
-  ├── Check instant availability (cache hit?)
-  │     ├── YES → resolve to direct download URL → inject as stream
-  │     └── NO  → keep original P2P magnet stream as fallback
-       │
-       ▼
-Return sorted, filtered stream list to Stremio
-```
-
-When a torrent is cached on your debrid service, Stremio plays it as a direct HTTP stream at full speed — no buffering, no seeding wait.
+You can configure multiple debrid services simultaneously. Each one is checked independently for cached content.
 
 ---
 
 ## Quick Start
 
-### Option 1: Docker Compose (recommended)
+### Docker Compose (recommended)
 
 ```bash
-git clone https://github.com/yourname/magnetio.git
-cd magnetio
+git clone https://github.com/peterdsp/Magnetio.git
+cd Magnetio
 
-# Start the full stack (scraper + addon + Redis)
+# Start all three services (scraper + addon + redis)
 docker compose up -d
 
-# Addon is now available at http://localhost:7000
-# Scraper API is available at http://localhost:8080
+# Open in browser
+open http://localhost:7000
 ```
 
-### Option 2: Node.js (two terminals)
+That is it. The addon runs on port 7000, the scraper on 8080, and Redis on 6379. All three services share a Docker bridge network.
 
-**Terminal 1 — Scraper:**
+### Node.js (manual, two terminals)
+
+**Terminal 1 (Scraper):**
 ```bash
 cd scraper
 npm install
-cp .env.example .env
-node index.js       # listens on :8080
+cp .env.example .env    # edit if needed
+node index.js            # listens on :8080
 ```
 
-**Terminal 2 — Addon:**
+**Terminal 2 (Addon):**
 ```bash
 cd addon
 npm install
-cp .env.example .env
-# Set SCRAPER_URL=http://localhost:8080 in .env
-node index.js       # listens on :7000
+cp .env.example .env    # set SCRAPER_URL=http://localhost:8080
+node index.js            # listens on :7000
 ```
 
-The addon will be available at `http://localhost:7000`.
-
----
-
-## Deployment
-
-GitHub Actions cannot keep Magnetio online by itself because GitHub runners are ephemeral. The included workflow deploys to **your own server** over SSH and runs Docker Compose there.
-
-### Server prerequisites
-
-- Linux server or VPS
-- Docker Engine
-- Docker Compose plugin
-- A public domain or tunnel pointing at port `7000`
-
-### Production env file
-
-On the server, place a root `.env` file in the deploy directory. You can start from:
-
-```bash
-cp .env.example .env
-```
-
-At minimum, set:
-
-- `ADDON_PUBLIC_URL=https://your-domain.example`
-- `METRICS_PASSWORD=...`
-- `OPENSUBTITLES_API_KEY=...`
-
-### GitHub Actions secrets
-
-Set these repository secrets before enabling auto-deploy:
-
-- `DEPLOY_HOST`: server hostname or IP
-- `DEPLOY_PORT`: SSH port, usually `22`
-- `DEPLOY_USER`: SSH username
-- `DEPLOY_SSH_KEY`: private key for that server
-- `DEPLOY_PATH`: absolute deploy path on the server, for example `/opt/magnetio`
-- `HEALTHCHECK_URL`: optional, for example `https://your-domain.example/health`
-
-### What the workflow does
-
-The workflow in [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml):
-
-1. installs dependencies
-2. runs addon tests
-3. syncs the repo to your server over SSH
-4. runs `docker compose up -d --build --remove-orphans`
-5. optionally checks your public `/health` endpoint
-
-Push to `main` to deploy automatically, or trigger it manually from the GitHub Actions tab.
+Open `http://localhost:7000` to access the configuration page.
 
 ---
 
 ## Configuration
 
-Open `http://localhost:7000` in your browser to access the **visual configuration page** where you can:
+### Visual Configuration Page
 
-1. Select torrent providers
-2. Set quality and language preferences
-3. Set subtitle language preferences
-4. Enter debrid API keys
-5. Copy the manifest URL or click **Install in Stremio**
+Navigate to `http://your-server:7000` in a browser. The configuration page lets you:
 
-Magnetio also now exposes:
+1. **Select torrent providers** to query
+2. **Set quality filters** (4K, 1080p, 720p, 480p, CAM)
+3. **Set language preferences** for streams and subtitles
+4. **Enter debrid API keys** (with show/hide toggle)
+5. **Configure sort order and result limits**
+6. **Enable or disable background prewarm**
+7. **Copy the manifest URL** or click **Install in Stremio**
 
-- `GET /manifest.json` for a root installable addon manifest
-- `GET /configure` for the Stremio configuration page
-- `GET /:config/configure` to reopen and edit an existing configured addon URL
+The generated URL encodes your preferences in a pipe-delimited config string that becomes part of the manifest path. No server-side storage of user settings.
 
-### Subtitle sync strategy
-
-For direct/debrid HTTP streams, Magnetio can now expose **stream-specific subtitle proxy URLs**. On first subtitle fetch, the addon:
-
-1. fingerprints the selected media file with filename, size, and OpenSubtitles hash when byte-range requests are available
-2. searches OpenSubtitles using those signals
-3. downloads the best matching subtitle candidate
-4. runs optional sync tooling against the actual media URL
-5. caches the corrected `.srt` and serves it from Magnetio
-
-This is the closest practical route to "always synced" subtitles. It is much more reliable for debrid/direct links than for raw P2P torrents, because the addon can access the final HTTP media URL.
-
-### Debrid prewarm strategy
-
-After Magnetio sorts and filters the stream candidates, it can also start **background prewarming** of the top uncached torrents into the user’s debrid account. This does not block the Stremio response. It is meant to increase the chance that the stream the user clicks is already downloading or fully ready by the time playback starts.
-
-Current background prewarm support is implemented for services with explicit add/create torrent flows in this codebase: Real-Debrid, AllDebrid, DebridLink, Offcloud, TorBox, and Put.io.
-
-### Manual configuration URL
-
-You can also build the configuration URL manually:
+### Manual URL Format
 
 ```
-http://your-server:7000/providers=yts,eztv,1337x|sort=qualityseeders|limit=10|RD=YOUR_RD_KEY|PM=YOUR_PM_KEY/manifest.json
+https://your-server:7000/providers=yts,eztv,1337x|sort=qualityseeders|limit=10|RD=YOUR_KEY/manifest.json
 ```
 
-#### Configuration parameters
+### All Configuration Parameters
 
 | Parameter | Values | Default | Description |
-|---|---|---|---|
-| `providers` | comma-separated list | all | Torrent providers to use |
-| `sort` | `qualityseeders`, `qualitysize`, `seeders`, `size` | `qualityseeders` | Stream sort order |
-| `limit` | integer | `10` | Max streams per source |
-| `qualities` | `4k,1080p,720p,480p,cam` | all | Quality whitelist |
-| `languages` | `en,es,pt,fr,...` | all | Language whitelist |
-| `subtitleLanguages` | `en,es,pt,fr,...` | `en` | Subtitle language preference |
-| `prewarm` | `1`, `0`, `true`, `false` | `1` | Background-add top uncached filtered torrents to supported debrid services |
-| `prewarmLimit` | integer `0-10` | `3` | Maximum uncached results to prewarm per supported debrid service |
-| `excludeSizes` | `1GB,2GB,5GB,...` | none | Exclude streams below these sizes |
-| `RD` | API key | — | Real-Debrid API key |
-| `PM` | API key | — | Premiumize API key |
-| `AD` | API key | — | AllDebrid API key |
-| `DL` | API key | — | DebridLink API key |
-| `ED` | API key | — | EasyDebrid API key |
-| `OC` | API key | — | Offcloud API key |
-| `TB` | API key | — | TorBox API key |
-| `PU` | API key | — | Put.io API key |
+|:---|:---|:---|:---|
+| `providers` | Comma-separated provider IDs | All 21 | Which torrent providers to query |
+| `sort` | `qualityseeders`, `qualitysize`, `seeders`, `size` | `qualityseeders` | How to rank streams |
+| `limit` | `1` to `50` | `10` | Max streams returned per request |
+| `qualities` | `4k`, `1080p`, `720p`, `480p`, `cam` | All | Quality whitelist |
+| `languages` | ISO codes (`en`, `es`, `pt`, `fr`, `de`, `it`, `ja`, `ru`, ...) | All | Stream language filter |
+| `subtitleLanguages` | ISO codes | `en` | Subtitle language preference |
+| `prewarm` | `1`, `0`, `true`, `false` | `1` | Background-add top uncached torrents to debrid |
+| `prewarmLimit` | `0` to `10` | `3` | How many uncached results to prewarm per service |
+| `excludeSizes` | Size thresholds like `1GB,2GB` | None | Exclude streams below these sizes |
+| `maxSize` | Bytes | None | Maximum file size |
+| `RD` | API key | - | Real-Debrid |
+| `PM` | API key | - | Premiumize |
+| `AD` | API key | - | AllDebrid |
+| `DL` | API key | - | DebridLink |
+| `ED` | API key | - | EasyDebrid |
+| `OC` | API key | - | Offcloud |
+| `TB` | API key | - | TorBox |
+| `PU` | API key | - | Put.io |
 
-### Pre-built configurations
+### Presets
 
-| Preset | Description |
-|---|---|
-| `lite` | English-only, no cam/screener, minimal providers |
-| `brazuca` | Portuguese-focused configuration |
+Quick-start configurations for common use cases:
 
-Use a preset by visiting: `http://your-server:7000/lite/manifest.json`
+| Preset | What it does |
+|:---|:---|
+| `lite` | English-only, no CAM/screener, 3 providers, limit 5 |
+| `brazuca` | Portuguese-focused, 4 providers, limit 10 |
 
----
-
-## Environment Variables
-
-### Addon (`addon/.env`)
-
-| Variable | Default | Description |
-|---|---|---|
-| `PORT` | `7000` | HTTP port |
-| `REDIS_URI` | *(in-memory)* | Redis URI for distributed caching |
-| `SCRAPER_URL` | `http://localhost:8080` | URL of the Magnetio scraper service |
-| `METRICS_USER` | `admin` | Username for `/swagger` metrics UI |
-| `METRICS_PASSWORD` | `magnetio` | Password for metrics UI |
-| `ADDON_PUBLIC_URL` | auto-detected | Public base URL override for subtitle proxy links |
-| `OPENSUBTITLES_API_KEY` | — | Enables the addon subtitle resource via OpenSubtitles |
-| `OPENSUBTITLES_USERNAME` | — | OpenSubtitles account username for downloadable subtitle links |
-| `OPENSUBTITLES_PASSWORD` | — | OpenSubtitles account password for downloadable subtitle links |
-| `OPENSUBTITLES_USER_AGENT` | `Magnetio v1.0.0` | Custom User-Agent sent to OpenSubtitles |
-| `FFSUBSYNC_PATH` | auto-detected | Optional path to `ffsubsync` for audio-based subtitle alignment |
-| `ALASS_PATH` | auto-detected | Optional path to `alass` / `alass-cli` for split/framerate subtitle alignment |
-| `SUBTITLE_SYNC_MAX_OFFSET_SECONDS` | `300` | Max offset forwarded to `ffsubsync` |
-| `ALASS_SPLIT_PENALTY` | `10` | Split penalty forwarded to `alass` |
-| `LOG_LEVEL` | `info` | Logging level |
-
-### Scraper (`scraper/.env`)
-
-| Variable | Default | Description |
-|---|---|---|
-| `PORT` | `8080` | HTTP port |
-| `REDIS_URI` | *(in-memory)* | Redis URI for result caching |
-| `CACHE_TTL_STREAMS` | `3600` | Stream cache TTL in seconds |
-| `LOG_LEVEL` | `info` | Logging level |
+Use a preset: `https://your-server:7000/lite/manifest.json`
 
 ---
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────┐
-│              Stremio Client             │
-└───────────────────┬─────────────────────┘
-                    │ HTTP :7000
-┌───────────────────▼─────────────────────┐
-│          Magnetio Addon (:7000)         │
-│  ┌─────────────┐  ┌──────────────────┐  │
-│  │  Stream     │  │  Catalog / Meta  │  │
-│  │  Handler    │  │  Handler         │  │
-│  └──────┬──────┘  └────────┬─────────┘  │
-│         │                  │            │
-│  ┌──────▼──────────────────▼─────────┐  │
-│  │       Filter + Sort Engine        │  │
-│  └──────────────────┬────────────────┘  │
-│                     │                   │
-│  ┌──────────────────▼────────────────┐  │
-│  │        Debrid Moch Layer          │  │
-│  │  RD | PM | AD | DL | ED | OC | TB │  │
-│  └──────────────────┬────────────────┘  │
-│                     │                   │
-│  ┌──────────────────▼────────────────┐  │
-│  │         Redis Cache (:6379)       │  │
-│  └───────────────────────────────────┘  │
-└─────────────────────────────────────────┘
-                    │ HTTP :8080
-┌───────────────────▼─────────────────────┐
-│     Magnetio Scraper (:8080)            │
-│     (fully in-house, no deps)           │
-│                                         │
-│  ┌──────────────────────────────────┐   │
-│  │  Provider Aggregator (parallel)  │   │
-│  └──────────────────────────────────┘   │
-│                                         │
-│  YTS   EZTV  TPB   TGX   1337x  KAT    │
-│  Nyaa  AnimeSaturn  Rutor  Rutracker    │
-│                                         │
-│  ┌──────────────────────────────────┐   │
-│  │  Cinemeta metadata lookup        │   │
-│  │  Title parser + deduplication    │   │
-│  │  Redis cache (:6379)             │   │
-│  └──────────────────────────────────┘   │
-└─────────────────────────────────────────┘
-```
-
----
-
-## API Endpoints
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/` | Configuration landing page |
-| `GET` | `/configure` | Stremio configuration page |
-| `GET` | `/manifest.json` | Root addon manifest |
-| `GET` | `/proxy/subtitle/:id.srt` | Stream-specific subtitle proxy / sync endpoint |
-| `GET` | `/health` | Health check |
-| `GET` | `/:config/manifest.json` | Addon manifest |
-| `GET` | `/:config/stream/:type/:id.json` | Stream results |
-| `GET` | `/:config/catalog/:type/:id.json` | Debrid catalog |
-| `GET` | `/:config/meta/:type/:id.json` | Item metadata |
-| `GET` | `/:config/subtitles/:type/:id.json` | Subtitle results |
-| `GET` | `/swagger` | Prometheus metrics (auth required) |
-
----
-
-## Development
-
-```bash
-# Terminal 1 — scraper
-cd scraper && npm install && npm run dev
-
-# Terminal 2 — addon
-cd addon && npm install && npm run dev
-```
-
-### Project Structure
+Magnetio is a three-service stack, each with a clear responsibility:
 
 ```
 magnetio/
-├── docker-compose.yml         # Full stack: scraper + addon + Redis
-│
-├── scraper/                   # In-house torrent scraper back-end
-│   ├── index.js               # Express API server (:8080)
-│   ├── lib/
-│   │   ├── cinemeta.js        # IMDb → title/year/season/episode lookup
-│   │   ├── titleHelper.js     # Quality, codec, language parser
-│   │   ├── httpClient.js      # Throttled HTTP client with retries
-│   │   ├── cache.js           # Redis/in-memory cache
-│   │   └── logger.js          # Winston logger
-│   └── providers/
-│       ├── index.js           # Parallel aggregator + deduplication
-│       ├── yts.js             # YTS JSON API
-│       ├── eztv.js            # EZTV JSON API
-│       ├── thepiratebay.js    # apibay.org JSON API
-│       ├── torrentgalaxy.js   # HTML scraper
-│       ├── leetx.js           # HTML scraper (detail pages)
-│       ├── kickasstorrents.js # HTML scraper
-│       ├── limetorrents.js    # HTML scraper
-│       ├── bitsearch.js       # HTML scraper
-│       ├── nyaa.js            # Atom RSS feed
-│       ├── animesaturn.js     # HTML scraper (Italian anime)
-│       ├── rutor.js           # HTML scraper (Russian)
-│       └── rutracker.js       # HTML scraper (Russian, topic resolve)
-│
-└── addon/                     # Stremio addon (:7000)
-    ├── index.js               # Express server + metrics
-    ├── serverless.js          # SDK router + configure / subtitle proxy endpoints
-    ├── addon.js               # Stremio builder (stream/catalog/meta/subtitles)
-    ├── lib/
-    │   ├── manifest.js        # Dynamic manifest generation
-    │   ├── configuration.js   # Config parser + presets (lite, brazuca)
-    │   ├── repository.js      # Calls scraper service
-    │   ├── sort.js            # Quality-tiered sort
-    │   ├── filter.js          # Quality/language/size filters
-    │   ├── streamInfo.js      # Record → Stremio stream object
-    │   ├── subtitles.js       # OpenSubtitles integration
-    │   ├── subtitleProxy.js   # Stream-specific subtitle proxy + sync pipeline
-    │   ├── cache.js           # Redis/in-memory cache
-    │   ├── languages.js       # Language codes + flag emojis
-    │   ├── magnetHelper.js    # Tracker list + magnet builder
-    │   ├── namedQueue.js      # Request deduplication
-    │   ├── landingTemplate.js # HTML config page
-    │   ├── types.js           # Shared enums
-    │   └── logger.js          # Winston logger
-    └── moch/
-        ├── moch.js            # Debrid orchestrator
-        ├── mochHelper.js      # Shared utils + per-key blacklist
-        ├── options.js         # Debrid service registry
-        ├── static.js          # Static stream injections
-        ├── realdebrid.js      # Real-Debrid
-        ├── premiumize.js      # Premiumize
-        ├── alldebrid.js       # AllDebrid
-        ├── debridlink.js      # DebridLink
-        ├── easydebrid.js      # EasyDebrid
-        ├── offcloud.js        # Offcloud
-        ├── torbox.js          # TorBox
-        └── putio.js           # Put.io
+|
+|   docker-compose.yml             # Orchestrates all three services
+|
++-- scraper/                       # Torrent scraper backend
+|   |   index.js                   # Express server (:8080)
+|   |   package.json
+|   +-- lib/
+|   |   |   cache.js               # Redis/in-memory cache (Keyv)
+|   |   |   catalog.js             # Cinemeta top-content fetcher for prewarm
+|   |   |   cinemeta.js            # IMDb ID to title/year/season/episode resolver
+|   |   |   cron.js                # Scheduled prewarm job (node-cron)
+|   |   |   httpClient.js          # Throttled Axios client with retries (Bottleneck)
+|   |   |   logger.js              # Winston structured logging
+|   |   |   magnetHelper.js        # Shared infoHash extraction, base32, size parsing
+|   |   |   prewarm.js             # Prewarm orchestrator (scrapes top content into cache)
+|   |   +-- titleHelper.js         # Quality/codec/source/language/HDR parser
+|   +-- providers/
+|       |   index.js               # Parallel aggregator, deduplication, content filter
+|       |   yts.js                 # ...21 provider modules
+|       +-- ...
+|
++-- addon/                         # Stremio addon frontend
+|   |   index.js                   # Express server (:7000) + Prometheus metrics
+|   |   serverless.js              # Stremio SDK router + configure + subtitle proxy
+|   |   addon.js                   # Stremio resource handlers (stream/catalog/meta/subtitles)
+|   |   package.json
+|   +-- lib/
+|   |   |   manifest.js            # Dynamic Stremio manifest generation
+|   |   |   configuration.js       # Config URL parser + presets
+|   |   |   repository.js          # HTTP client to call the scraper service
+|   |   |   sort.js                # Quality-tiered stream sorting
+|   |   |   filter.js              # Quality/language/size stream filtering
+|   |   |   streamInfo.js          # Torrent record to Stremio stream object mapper
+|   |   |   subtitles.js           # OpenSubtitles search integration
+|   |   |   subtitleProxy.js       # Subtitle download + sync pipeline
+|   |   |   cache.js               # Redis/in-memory cache (Keyv)
+|   |   |   languages.js           # Language codes, names, flag emojis
+|   |   |   magnetHelper.js        # Best-tracker list + magnet URI builder
+|   |   |   namedQueue.js          # Request deduplication (prevents duplicate in-flight)
+|   |   |   landingTemplate.js     # HTML/CSS/JS for the visual config page
+|   |   |   types.js               # Shared enums and type definitions
+|   |   +-- logger.js              # Winston structured logging
+|   +-- moch/                      # Debrid service integrations
+|       |   moch.js                # Debrid orchestrator (cache check + resolve)
+|       |   mochHelper.js          # Shared utils, per-key blacklisting
+|       |   options.js             # Debrid service registry
+|       |   static.js              # Static stream injections
+|       |   realdebrid.js          # Real-Debrid API client
+|       |   premiumize.js          # Premiumize API client
+|       |   alldebrid.js           # AllDebrid API client
+|       |   debridlink.js          # DebridLink API client
+|       |   easydebrid.js          # EasyDebrid API client
+|       |   offcloud.js            # Offcloud API client
+|       |   torbox.js              # TorBox API client
+|       +-- putio.js               # Put.io API client
+|
++-- .github/workflows/
+    +-- deploy.yml                 # CI/CD: validate, test, deploy via GitHub Actions
 ```
 
-### Scraper API
-
-The scraper exposes a simple REST API consumed by the addon:
+### Service Communication
 
 ```
-GET /health                           → { status: "ok" }
-GET /providers                        → [ { id, name }, ... ]
-GET /streams/:type/:id                → { streams: [...] }
-GET /streams/:type/:id?providers=yts,eztv  → filtered by provider
++------------------+         +-------------------+         +--------+
+|  Stremio Client  | ------> |  Addon (:7000)    | ------> | Redis  |
+|  (your TV/phone) |  HTTP   |  stream/catalog   |  cache  | (:6379)|
++------------------+         |  debrid resolve   | <------ +--------+
+                              +--------+----------+              ^
+                                       |                         |
+                                       | HTTP :8080              |
+                                       v                         |
+                              +-------------------+              |
+                              | Scraper (:8080)   | ------------>+
+                              | provider queries  |    cache
+                              | dedup + filter    |
+                              +-------------------+
 ```
 
-Stream record shape:
+---
+
+## API Reference
+
+### Addon Endpoints (`:7000`)
+
+| Method | Path | Description |
+|:---|:---|:---|
+| `GET` | `/` | Visual configuration page |
+| `GET` | `/configure` | Stremio configuration endpoint |
+| `GET` | `/manifest.json` | Root addon manifest (default config) |
+| `GET` | `/:config/manifest.json` | User-configured addon manifest |
+| `GET` | `/:config/stream/:type/:id.json` | Stream results for a title |
+| `GET` | `/:config/catalog/:type/:id.json` | Debrid catalog (library browsing) |
+| `GET` | `/:config/meta/:type/:id.json` | Title metadata |
+| `GET` | `/:config/subtitles/:type/:id.json` | Subtitle results |
+| `GET` | `/proxy/subtitle/:id.srt` | Subtitle proxy with optional sync |
+| `GET` | `/health` | Health check (`{ status: "ok" }`) |
+| `GET` | `/stats` | Analytics dashboard (request counts, unique users) |
+| `GET` | `/swagger` | Prometheus metrics UI (auth required) |
+
+### Scraper Endpoints (`:8080`)
+
+| Method | Path | Description |
+|:---|:---|:---|
+| `GET` | `/health` | Health check |
+| `GET` | `/providers` | List all available provider IDs and names |
+| `GET` | `/streams/:type/:id` | Scrape all providers for a title |
+| `GET` | `/streams/:type/:id?providers=yts,eztv` | Scrape specific providers only |
+| `POST` | `/prewarm` | Manually trigger cache prewarm |
+| `GET` | `/prewarm/status` | Check prewarm job status |
+
+### Stream Record Shape
+
+Each torrent result from the scraper follows this structure:
+
 ```json
 {
-  "infoHash":  "abc123...",
-  "title":     "Movie.Name.2024.1080p.BluRay.x264",
+  "infoHash":  "a1b2c3d4e5f6...",
+  "title":     "Movie.Name.2024.1080p.BluRay.x264-GROUP",
   "seeders":   248,
   "leechers":  12,
   "size":      8589934592,
@@ -447,35 +386,190 @@ Stream record shape:
   "codec":     "AVC",
   "source":    "BluRay",
   "languages": ["en"],
+  "hdr":       null,
   "imdbId":    "tt1234567"
 }
 ```
 
 ---
 
-## Comparison with Torrentio
+## Caching Strategy
 
-| Feature | Torrentio | Magnetio |
-|---|:---:|:---:|
-| Open source | ✅ | ✅ |
-| Self-hostable | ✅ | ✅ |
-| Real-Debrid | ✅ | ✅ |
-| Premiumize | ✅ | ✅ |
-| AllDebrid | ✅ | ✅ |
-| DebridLink | ✅ | ✅ |
-| TorBox | ✅ | ✅ |
-| Put.io | ✅ | ✅ |
-| EasyDebrid | ✅ | ✅ |
-| Offcloud | ✅ | ✅ |
-| Redis caching | ✅ | ✅ |
-| Prometheus metrics | ✅ | ✅ |
-| Docker Compose | ❌ | ✅ |
-| Visual config page | ✅ | ✅ |
-| Debrid background prewarm | ❌ | ✅ |
-| Pre-built presets | ✅ | ✅ |
-| ES Modules | ❌ | ✅ |
-| Per-key blacklisting | ❌ | ✅ |
-| Health check endpoint | ❌ | ✅ |
+Both services use **Keyv** backed by Redis (falls back to in-memory if Redis is unavailable).
+
+| What | TTL | Notes |
+|:---|:---|:---|
+| Scraper stream results | 1 hour | Per title, deduplicated |
+| Addon stream responses | 1 hour | Stale-while-revalidate: 1h, stale-on-error: 4h |
+| Empty results | Never cached | Prevents cache poisoning from transient failures |
+| Prewarm scraper cache | 4 hours | Pre-populated by scheduled job |
+| Debrid prewarm flags | 6 hours | Prevents re-adding already-prewarmed torrents |
+| Addon router instances | 5 min | LRU with max 64 entries |
+| Subtitle proxy cache | 1 hour | Per stream-specific subtitle |
+
+---
+
+## Special Features
+
+### Background Prewarm
+
+Magnetio can proactively warm the cache and your debrid accounts:
+
+- **Scraper prewarm**: A cron job (default: daily at 4 AM) fetches the top 50 movies and 20 series from Cinemeta, scrapes all providers for each, and stores results in Redis. When a user later requests one of these titles, the response is instant.
+- **Debrid prewarm**: After filtering and sorting streams for a user request, Magnetio background-adds the top uncached torrents (configurable, default 3) to your debrid account. This is non-blocking. By the time you click play, the torrent may already be downloading or fully cached.
+
+### Subtitle Sync Pipeline
+
+For debrid/direct HTTP streams, Magnetio can serve stream-specific subtitles:
+
+1. Fingerprints the media file (filename, size, OpenSubtitles hash via byte-range)
+2. Searches OpenSubtitles for the best match
+3. Downloads the subtitle
+4. Optionally runs `ffsubsync` (audio-based alignment) or `alass` (split/framerate correction)
+5. Caches and serves the corrected `.srt`
+
+This works reliably for debrid streams where the addon has access to the final HTTP URL.
+
+### Content Filtering
+
+The scraper validates that returned torrents actually match the requested content:
+
+- For movies: title must contain at least part of the movie name
+- For series: title must contain a matching season/episode marker (S01E02, 1x02, "Season 1", etc.)
+- Word matching with a 50% threshold for multi-word titles
+- Prevents unrelated results from polluting the stream list
+
+### Analytics
+
+Redis-backed, best-effort usage tracking:
+
+- Daily request counts and per-type breakdowns (stream, catalog, subtitle, page views)
+- Unique users via HyperLogLog (privacy-preserving, no PII stored)
+- 7-day rolling history
+- Available at `/stats`
+
+### Request Deduplication
+
+A `NamedQueue` system prevents duplicate in-flight requests. If 10 users request the same movie at the same instant, the scraper runs once and all 10 get the same result.
+
+---
+
+## Deployment
+
+### Production with Docker Compose
+
+```bash
+# Clone and configure
+git clone https://github.com/peterdsp/Magnetio.git
+cd Magnetio
+cp .env.example .env
+
+# Edit .env with your settings (at minimum):
+# ADDON_PUBLIC_URL=https://your-domain.com
+# METRICS_PASSWORD=your-secure-password
+
+# Launch
+docker compose up -d
+```
+
+### GitHub Actions CI/CD
+
+The included workflow (`.github/workflows/deploy.yml`) handles automated deployment:
+
+1. **Validate**: `npm ci` + `npm test` on Node 22
+2. **Deploy**: `rsync` to your server, preserving `.env` files
+3. **Build**: `docker compose up -d --build --remove-orphans` on the target
+4. **Health check**: Optional ping to your `/health` endpoint
+
+The workflow runs on a self-hosted GitHub Actions runner. Push to `main` triggers automatic deployment.
+
+### Exposing to the Internet
+
+Stremio requires HTTPS for addon URLs. Common approaches:
+
+- **Cloudflare Tunnel** or **Cloudflare DNS proxy** pointing to your server
+- **Nginx reverse proxy** with Let's Encrypt SSL
+- **Tailscale** or **WireGuard** for private access
+
+The `ADDON_PUBLIC_URL` environment variable controls what base URL appears in manifests. The landing page uses `location.origin` which automatically resolves to your public domain when accessed through it.
+
+---
+
+## Environment Variables
+
+### Addon (`addon/.env`)
+
+| Variable | Default | Description |
+|:---|:---|:---|
+| `PORT` | `7000` | HTTP port |
+| `REDIS_URI` | In-memory | Redis connection string |
+| `SCRAPER_URL` | `http://localhost:8080` | Internal scraper service URL |
+| `ADDON_PUBLIC_URL` | Auto-detected | Public URL for manifest and subtitle links |
+| `METRICS_USER` | `admin` | Username for `/swagger` metrics |
+| `METRICS_PASSWORD` | `magnetio` | Password for `/swagger` metrics |
+| `OPENSUBTITLES_API_KEY` | - | Enables subtitle resource |
+| `OPENSUBTITLES_USERNAME` | - | OpenSubtitles account (for downloads) |
+| `OPENSUBTITLES_PASSWORD` | - | OpenSubtitles account password |
+| `OPENSUBTITLES_USER_AGENT` | `Magnetio v1.0.0` | User-Agent for OpenSubtitles API |
+| `FFSUBSYNC_PATH` | Auto-detected | Path to `ffsubsync` binary |
+| `ALASS_PATH` | Auto-detected | Path to `alass` binary |
+| `SUBTITLE_SYNC_MAX_OFFSET_SECONDS` | `300` | Max offset for ffsubsync |
+| `ALASS_SPLIT_PENALTY` | `10` | Split penalty for alass |
+| `LOG_LEVEL` | `info` | Winston log level |
+
+### Scraper (`scraper/.env`)
+
+| Variable | Default | Description |
+|:---|:---|:---|
+| `PORT` | `8080` | HTTP port |
+| `REDIS_URI` | In-memory | Redis connection string |
+| `CACHE_TTL_STREAMS` | `3600` | Stream result cache TTL (seconds) |
+| `PREWARM_CRON` | `0 4 * * *` | Cron schedule for prewarm job |
+| `PREWARM_MOVIES` | `50` | Number of top movies to prewarm |
+| `PREWARM_SERIES` | `20` | Number of top series to prewarm |
+| `LOG_LEVEL` | `info` | Winston log level |
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|:---|:---|
+| Runtime | Node.js >= 18 (CI runs on 22) |
+| Module system | ES Modules throughout |
+| HTTP framework | Express 4 |
+| Stremio integration | stremio-addon-sdk |
+| HTML parsing | Cheerio |
+| HTTP client | Axios |
+| Rate limiting | Bottleneck (scraper), p-limit + p-queue (addon) |
+| Caching | Redis 7 Alpine via Keyv |
+| Monitoring | swagger-stats + prom-client (Prometheus) |
+| Scheduling | node-cron |
+| Logging | Winston |
+| Subtitle sync | ffsubsync, alass (optional) |
+| Containerization | Docker Compose v3.9 |
+| CI/CD | GitHub Actions (self-hosted runner) |
+
+---
+
+## Development
+
+```bash
+# Start Redis (or use in-memory fallback)
+docker run -d --name redis -p 6379:6379 redis:7-alpine
+
+# Terminal 1: Scraper
+cd scraper && npm install && npm run dev
+
+# Terminal 2: Addon
+cd addon && npm install && npm run dev
+```
+
+### Running Tests
+
+```bash
+cd addon && npm test
+```
 
 ---
 
@@ -483,7 +577,7 @@ Stream record shape:
 
 Magnetio does not host, store, or distribute any copyrighted content. It aggregates publicly available metadata (torrent hashes, magnet links) from third-party indexers. Users are solely responsible for complying with copyright laws in their jurisdiction.
 
-Debrid service integrations are provided as convenience features. API keys are passed through configuration URLs and are never stored server-side beyond the caching TTL.
+Debrid service integrations are convenience features. API keys are passed through configuration URLs and are never stored server-side beyond the caching TTL.
 
 ---
 
