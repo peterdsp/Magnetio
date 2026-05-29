@@ -95,6 +95,30 @@ jobs:
             --exclude '.DS_Store' \
             ./ "$DEPLOY_PATH/"
 
+      - name: Ensure DuckDNS token in .env
+        env:
+          DEPLOY_PATH: /home/peterdsp/magnetio
+          DUCKDNS_TOKEN: ${{ secrets.DUCKDNS_TOKEN }}
+        run: |
+          set -euo pipefail
+          cd "$DEPLOY_PATH"
+
+          if [ ! -f .env ]; then
+            cp .env.example .env
+            echo "Created .env from .env.example."
+          fi
+
+          if [ -n "${DUCKDNS_TOKEN:-}" ]; then
+            if grep -q '^DUCKDNS_TOKEN=' .env 2>/dev/null; then
+              sed -i "s|^DUCKDNS_TOKEN=.*|DUCKDNS_TOKEN=${DUCKDNS_TOKEN}|" .env
+            else
+              echo "DUCKDNS_TOKEN=${DUCKDNS_TOKEN}" >> .env
+            fi
+            echo "DuckDNS token configured."
+          else
+            echo "DUCKDNS_TOKEN secret not set; DuckDNS container will not start."
+          fi
+
       - name: Deploy with Docker Compose
         env:
           DEPLOY_PATH: /home/peterdsp/magnetio
@@ -102,11 +126,6 @@ jobs:
           set -euo pipefail
 
           cd "$DEPLOY_PATH"
-
-          if [ ! -f .env ]; then
-            cp .env.example .env
-            echo "Created .env from .env.example. Update it on the server before exposing the addon publicly."
-          fi
 
           docker compose up -d --build --remove-orphans
           docker compose ps
