@@ -52,7 +52,7 @@ app.get('/streams/:type/:id', async (req, res) => {
   const cacheKey = `streams:${type}:${id}:${providerIds?.join(',') ?? 'all'}`;
 
   try {
-    const streams = await cacheWrap(cacheKey, async () => {
+    const { value: streams, cached } = await cacheWrap(cacheKey, async () => {
       // 1. Resolve metadata (title, year, season, episode)
       const meta = await getMetadata(type === 'anime' ? 'series' : type, id);
       if (!meta) {
@@ -67,7 +67,7 @@ app.get('/streams/:type/:id', async (req, res) => {
       return scrapeAll(type, meta, providerIds);
     }, TTL_STREAMS);
 
-    res.json({ streams, cached: true });
+    res.json({ streams, cached });
   } catch (err) {
     logger.error(`Streams error [${id}]: ${err.message}`);
     res.status(500).json({ error: err.message, streams: [] });

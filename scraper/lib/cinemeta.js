@@ -5,10 +5,21 @@ import { logger } from './logger.js';
 const CINEMETA_BASE = 'https://v3-cinemeta.strem.io/meta';
 const TIMEOUT = 8000;
 
-/**
- * Try fetching metadata from Cinemeta for a given type and IMDB ID.
- * Returns the meta object or null.
- */
+async function fetchImdbTitle(imdbId) {
+  try {
+    const { data } = await axios.get(
+      `https://sg.media-imdb.com/suggests/t/${imdbId}.json`,
+      { timeout: TIMEOUT, responseType: 'text' }
+    );
+    const jsonStr = data.replace(/^imdb\$[^(]*\(/, '').replace(/\);?\s*$/, '');
+    const parsed = JSON.parse(jsonStr);
+    const match = parsed?.d?.find(item => item.id === imdbId);
+    return match?.l || null;
+  } catch {
+    return null;
+  }
+}
+
 async function fetchCinemeta(type, imdbId) {
   try {
     const { data } = await axios.get(
@@ -47,7 +58,7 @@ export async function getMetadata(type, id) {
 
   const cacheKey = `cinemeta:${type}:${imdbId}`;
 
-  const meta = await cacheWrap(cacheKey, async () => {
+  const { value: meta } = await cacheWrap(cacheKey, async () => {
     // Primary lookup
     const primary = await fetchCinemeta(type, imdbId);
     if (primary) return primary;
@@ -61,10 +72,16 @@ export async function getMetadata(type, id) {
       return { ...alt, type };
     }
 
-    // Last resort: minimal stub so providers that search by IMDB ID can still work
-    logger.warn(`Cinemeta has no data for ${imdbId}, using IMDB ID stub`);
-    return { name: imdbId, year: null, imdbId, type };
-  }, 3600); // 1h cache - short enough to retry failures, fine for successes
+    // Last resort: try fetching the title from IMDB directly
+    const imdbTitle = await fetchImdbTitle(imdbId);
+    if (imdbTitle) {
+      logger.info(`IMDB fallback hit: ${imdbId} -> "${imdbTitle}"`);
+      return { name: imdbTitle, year: null, imdbId, type };
+    }
+
+    logger.warn(`No metadata found for ${imdbId} from any source`);
+    return null;
+  }, 3600);
 
   if (!meta) return null;
   return { ...meta, season, episode };

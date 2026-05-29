@@ -9,7 +9,6 @@ export const ContentType = {
 export const TorrentProvider = {
   YTS: 'yts',
   EZTV: 'eztv',
-  RARBG: 'rarbg',
   TORRENTGALAXY: 'torrentgalaxy',
   THEPIRATEBAY: 'thepiratebay',
   KICKASSTORRENTS: 'kickasstorrents',
@@ -20,6 +19,11 @@ export const TorrentProvider = {
   RUTRACKER: 'rutracker',
   LIMETORRENTS: 'limetorrents',
   BITSEARCH: 'bitsearch',
+  BT4G: 'bt4g',
+  BTDIG: 'btdig',
+  GLOTORRENTS: 'glotorrents',
+  TORLOCK: 'torlock',
+  TORRENTDOWNLOADS: 'torrentdownloads',
 };
 
 // Sort options exposed in configuration

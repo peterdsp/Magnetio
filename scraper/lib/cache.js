@@ -27,8 +27,11 @@ export async function cacheHas(key) {
 export async function cacheWrap(key, loader, ttlSeconds = 3600) {
   const store = getStore();
   const hit = await store.get(key);
-  if (hit !== undefined) return hit;
+  if (hit !== undefined) return { value: hit, cached: true };
   const value = await loader();
-  await store.set(key, value, ttlSeconds * 1000);
-  return value;
+  const isEmpty = Array.isArray(value) && value.length === 0;
+  if (!isEmpty) {
+    await store.set(key, value, ttlSeconds * 1000);
+  }
+  return { value, cached: false };
 }

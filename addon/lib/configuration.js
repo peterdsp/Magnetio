@@ -3,7 +3,6 @@ import { TorrentProvider, SortType, SizeLimit } from './types.js';
 const PublicProviderAliases = {
   s1: TorrentProvider.YTS,
   s2: TorrentProvider.EZTV,
-  s3: TorrentProvider.RARBG,
   s4: TorrentProvider.TORRENTGALAXY,
   s5: TorrentProvider.THEPIRATEBAY,
   s6: TorrentProvider.KICKASSTORRENTS,
@@ -14,6 +13,12 @@ const PublicProviderAliases = {
   s11: TorrentProvider.RUTRACKER,
   s12: TorrentProvider.LIMETORRENTS,
   s13: TorrentProvider.BITSEARCH,
+  s14: TorrentProvider.BT4G,
+  s15: TorrentProvider.BTDIG,
+  s16: TorrentProvider.GLOTORRENTS,
+  s17: TorrentProvider.TORLOCK,
+  s18: TorrentProvider.TORRENTDOWNLOADS,
+  rarbg: TorrentProvider.TORRENTGALAXY,
 };
 
 // Pre-built Configurations

@@ -34,7 +34,10 @@ export async function cacheWrap(key, loader, ttl = 3600) {
   if (cached !== undefined) return cached;
 
   const value = await loader();
-  await store.set(key, value, ttl * 1000); // Keyv uses milliseconds
+  const isEmpty = Array.isArray(value) && value.length === 0;
+  if (!isEmpty) {
+    await store.set(key, value, ttl * 1000); // Keyv uses milliseconds
+  }
   return value;
 }
 
