@@ -23,6 +23,7 @@ import * as torrentdownloads from './torrentdownloads.js';
 import * as therarbg        from './therarbg.js';
 import * as subsplease      from './subsplease.js';
 import * as animetosho      from './animetosho.js';
+import * as nekobt          from './nekobt.js';
 import { logger } from '../lib/logger.js';
 
 const ALL_PROVIDERS = [
@@ -46,6 +47,7 @@ const ALL_PROVIDERS = [
   therarbg,
   subsplease,
   animetosho,
+  nekobt,
 ];
 
 // Max 4 providers running simultaneously
