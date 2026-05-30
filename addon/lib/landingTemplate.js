@@ -548,7 +548,6 @@ export function landingTemplate(manifest, initialConfig = {}) {
       <div class="hero-top">
         <div class="hero-brand">
           <div class="hero-brand-left">
-            <img class="hero-logo" src="${escapeHtml(manifest.logo)}" alt="" />
             <span class="hero-name">${escapeHtml(manifest.name)}</span>
           </div>
           <div style="display:flex;align-items:center;gap:10px;">
