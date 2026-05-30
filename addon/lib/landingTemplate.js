@@ -78,42 +78,50 @@ export function landingTemplate(manifest, initialConfig = {}) {
   <title>${escapeHtml(manifest.name)} Configure</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Bitter:wght@400;500;700;800&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>
     [data-theme="dark"] {
-      --bg: #0f1117;
-      --surface: #1a1d27;
-      --border: #2a2d3a;
-      --text-primary: #e8eaed;
-      --text-secondary: #9ca3af;
-      --accent: #34d399;
-      --accent-hover: #6ee7b7;
-      --accent-subtle: rgba(52, 211, 153, 0.12);
-      --input-bg: #141620;
-      --chip-bg: #1e2130;
-      --chip-bg-active: rgba(52, 211, 153, 0.18);
-      --chip-border-active: #34d399;
-      --code-bg: #0d0f15;
-      --shadow: 0 1px 3px rgba(0,0,0,0.3);
-      --footer-bg: #1a1d27;
+      --bg: #0a0a0a;
+      --surface: #141414;
+      --surface-alt: #1a1a1a;
+      --border: rgba(255,255,255,0.08);
+      --text-primary: #e5e5e5;
+      --text-secondary: #888;
+      --text-muted: rgba(255,255,255,0.35);
+      --accent: #ffcfaa;
+      --accent-hover: #ffddc2;
+      --accent-subtle: rgba(255,207,170,0.1);
+      --accent-text: #0a0a0a;
+      --input-bg: #1a1a1a;
+      --chip-bg: #1e1e1e;
+      --chip-bg-active: rgba(255,207,170,0.15);
+      --chip-border-active: #ffcfaa;
+      --code-bg: #111;
+      --shadow: 0 2px 12px rgba(0,0,0,0.4);
+      --footer-bg: #141414;
+      --hero-bg: #111;
     }
 
     [data-theme="light"] {
-      --bg: #f8f9fb;
+      --bg: #fafafa;
       --surface: #ffffff;
-      --border: #e2e5eb;
-      --text-primary: #111827;
-      --text-secondary: #6b7280;
-      --accent: #10b981;
-      --accent-hover: #059669;
-      --accent-subtle: rgba(16, 185, 129, 0.1);
-      --input-bg: #f3f4f6;
-      --chip-bg: #f3f4f6;
-      --chip-bg-active: rgba(16, 185, 129, 0.12);
-      --chip-border-active: #10b981;
-      --code-bg: #f0f1f3;
-      --shadow: 0 1px 3px rgba(0,0,0,0.08);
-      --footer-bg: #ffffff;
+      --surface-alt: #f5f5f5;
+      --border: rgba(0,0,0,0.08);
+      --text-primary: #1a1a1a;
+      --text-secondary: #6b6b6b;
+      --text-muted: rgba(0,0,0,0.3);
+      --accent: #c47a4a;
+      --accent-hover: #a86535;
+      --accent-subtle: rgba(196,122,74,0.08);
+      --accent-text: #fff;
+      --input-bg: #f5f5f5;
+      --chip-bg: #f0f0f0;
+      --chip-bg-active: rgba(196,122,74,0.1);
+      --chip-border-active: #c47a4a;
+      --code-bg: #f0f0f0;
+      --shadow: 0 2px 12px rgba(0,0,0,0.06);
+      --footer-bg: #fff;
+      --hero-bg: #f0ece8;
     }
 
     * { box-sizing: border-box; margin: 0; }
@@ -123,74 +131,73 @@ export function landingTemplate(manifest, initialConfig = {}) {
       color: var(--text-primary);
       background: var(--bg);
       font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
-      padding: 32px 20px 48px;
       transition: background 0.2s, color 0.2s;
     }
 
     .shell {
-      max-width: 1100px;
-      margin: 0 auto;
       display: grid;
-      grid-template-columns: 1.2fr 0.8fr;
-      gap: 24px;
-      align-items: start;
+      grid-template-columns: 420px 1fr;
+      min-height: 100vh;
     }
 
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      box-shadow: var(--shadow);
-      transition: background 0.2s, border-color 0.2s;
+    /* Left hero panel */
+    .hero-panel {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      background: var(--hero-bg);
+      padding: 48px 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow-y: auto;
+      border-right: 1px solid var(--border);
     }
 
-    /* Header */
-    .header {
-      padding: 24px 28px;
+    .hero-top { display: grid; gap: 48px; }
+
+    .hero-brand {
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
 
-    .header-left {
+    .hero-brand-left {
       display: flex;
       align-items: center;
       gap: 12px;
     }
 
-    .header-logo {
-      width: 28px;
-      height: 28px;
-      border-radius: 6px;
+    .hero-logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
     }
 
-    .header-title {
-      font-size: 1.1rem;
+    .hero-name {
+      font-family: "Bitter", serif;
       font-weight: 700;
-      letter-spacing: -0.02em;
+      font-size: 1.1rem;
     }
 
     .version-badge {
-      padding: 3px 10px;
-      border-radius: 999px;
-      background: var(--accent-subtle);
-      color: var(--accent);
-      font-size: 0.75rem;
-      font-weight: 600;
+      font-family: "Space Mono", monospace;
+      font-size: 0.7rem;
+      color: var(--text-muted);
     }
 
     .theme-toggle {
       width: 36px;
       height: 36px;
-      border-radius: 10px;
+      border-radius: 50%;
       border: 1px solid var(--border);
-      background: var(--input-bg);
+      background: transparent;
       color: var(--text-secondary);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: border-color 0.2s;
+      transition: all 0.2s;
     }
 
     .theme-toggle:hover {
@@ -198,45 +205,160 @@ export function landingTemplate(manifest, initialConfig = {}) {
       color: var(--accent);
     }
 
-    /* Hero */
-    .hero {
-      padding: 0 28px 28px;
+    .hero-headline {
+      font-family: "Bitter", serif;
+      font-weight: 800;
+      font-size: 2.8rem;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
     }
 
-    .hero h1 {
-      font-size: 1.5rem;
-      font-weight: 700;
-      letter-spacing: -0.03em;
-      line-height: 1.3;
+    .hero-desc {
+      font-family: "Space Mono", monospace;
+      font-size: 0.85rem;
+      line-height: 1.7;
+      color: var(--text-secondary);
+      margin-top: 16px;
+    }
+
+    .hero-features {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .feature {
+      padding: 16px;
+      border-radius: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+    }
+
+    .feature-number {
+      font-family: "Bitter", serif;
+      font-weight: 800;
+      font-size: 2rem;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+
+    .feature-label {
+      font-family: "Bitter", serif;
+      font-weight: 500;
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    .hero-bottom { display: grid; gap: 16px; }
+
+    .hero-install {
+      display: grid;
+      gap: 10px;
+    }
+
+    .preview {
+      padding: 14px;
+      border-radius: 12px;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+    }
+
+    .preview-label {
+      font-family: "Space Mono", monospace;
+      color: var(--text-muted);
+      font-size: 0.65rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
       margin-bottom: 8px;
     }
 
-    .hero p {
-      color: var(--text-secondary);
-      font-size: 0.92rem;
+    .preview-code {
+      font-family: "Space Mono", monospace;
+      color: var(--accent);
+      word-break: break-all;
       line-height: 1.6;
+      font-size: 0.72rem;
     }
 
-    .stack { display: grid; gap: 20px; }
+    .btn {
+      width: 100%;
+      border: none;
+      border-radius: 40px;
+      padding: 16px 32px;
+      font-family: "Space Mono", monospace;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: center;
+    }
 
-    /* Section cards */
-    .section {
-      padding: 24px 28px;
+    .btn:hover { opacity: 0.88; }
+
+    .btn-primary {
+      color: var(--accent-text);
+      background: var(--accent);
+      font-weight: 700;
+    }
+
+    .btn-secondary {
+      color: var(--text-primary);
+      background: transparent;
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover { border-color: var(--accent); }
+
+    .status {
+      font-family: "Space Mono", monospace;
+      color: var(--accent);
+      font-size: 0.78rem;
+      min-height: 1.2rem;
+      text-align: center;
+    }
+
+    .footnote {
+      font-family: "Space Mono", monospace;
+      color: var(--text-muted);
+      font-size: 0.7rem;
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    .footnote a { color: var(--accent); }
+
+    /* Right form panel */
+    .form-panel {
+      padding: 48px 40px;
+      overflow-y: auto;
       display: grid;
-      gap: 18px;
+      gap: 28px;
+      align-content: start;
+    }
+
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      display: grid;
+      gap: 20px;
+      box-shadow: var(--shadow);
     }
 
     .section-title {
-      font-size: 0.92rem;
-      font-weight: 600;
-      padding-left: 12px;
-      border-left: 3px solid var(--accent);
+      font-family: "Bitter", serif;
+      font-weight: 800;
+      font-size: 1.05rem;
+      letter-spacing: -0.01em;
     }
 
     .section-desc {
+      font-family: "Space Mono", monospace;
       color: var(--text-secondary);
-      font-size: 0.88rem;
-      line-height: 1.55;
+      font-size: 0.78rem;
+      line-height: 1.65;
     }
 
     .field-grid {
@@ -248,9 +370,9 @@ export function landingTemplate(manifest, initialConfig = {}) {
     label {
       display: grid;
       gap: 6px;
+      font-family: "Space Mono", monospace;
       color: var(--text-secondary);
-      font-size: 0.82rem;
-      font-weight: 500;
+      font-size: 0.75rem;
     }
 
     select, input[type="number"] {
@@ -260,17 +382,14 @@ export function landingTemplate(manifest, initialConfig = {}) {
       background: var(--input-bg);
       color: var(--text-primary);
       padding: 10px 12px;
-      font: inherit;
-      font-size: 0.88rem;
+      font-family: "Space Mono", monospace;
+      font-size: 0.82rem;
       outline: none;
       transition: border-color 0.15s;
     }
 
-    select:focus, input:focus {
-      border-color: var(--accent);
-    }
+    select:focus, input:focus { border-color: var(--accent); }
 
-    /* Chip grids */
     .chip-grid {
       display: flex;
       flex-wrap: wrap;
@@ -280,17 +399,18 @@ export function landingTemplate(manifest, initialConfig = {}) {
     .chip {
       cursor: pointer;
       display: inline-flex;
-      font-size: 0.82rem;
-      font-weight: 500;
+      font-size: 0.78rem;
     }
 
     .chip span {
       display: inline-block;
-      padding: 6px 14px;
+      padding: 7px 16px;
       border-radius: 999px;
       background: var(--chip-bg);
       border: 1px solid var(--border);
       color: var(--text-secondary);
+      font-family: "Space Mono", monospace;
+      font-size: 0.75rem;
       transition: all 0.15s;
       user-select: none;
     }
@@ -304,10 +424,7 @@ export function landingTemplate(manifest, initialConfig = {}) {
 
     .chip input { display: none; }
 
-    /* Password fields */
-    .password-wrap {
-      position: relative;
-    }
+    .password-wrap { position: relative; }
 
     .password-wrap input {
       width: 100%;
@@ -316,15 +433,13 @@ export function landingTemplate(manifest, initialConfig = {}) {
       background: var(--input-bg);
       color: var(--text-primary);
       padding: 10px 40px 10px 12px;
-      font: inherit;
-      font-size: 0.88rem;
+      font-family: "Space Mono", monospace;
+      font-size: 0.82rem;
       outline: none;
       transition: border-color 0.15s;
     }
 
-    .password-wrap input:focus {
-      border-color: var(--accent);
-    }
+    .password-wrap input:focus { border-color: var(--accent); }
 
     .eye-toggle {
       position: absolute;
@@ -342,97 +457,8 @@ export function landingTemplate(manifest, initialConfig = {}) {
 
     .eye-toggle:hover { color: var(--accent); }
 
-    /* Summary sidebar */
-    .summary {
-      position: sticky;
-      top: 24px;
-      padding: 24px;
-      display: grid;
-      gap: 18px;
-    }
-
-    .summary h2 {
-      font-size: 1.1rem;
-      font-weight: 600;
-      letter-spacing: -0.02em;
-    }
-
-    .summary-desc {
-      color: var(--text-secondary);
-      font-size: 0.88rem;
-      line-height: 1.55;
-    }
-
-    .preview {
-      padding: 14px;
-      border-radius: 12px;
-      background: var(--code-bg);
-      border: 1px solid var(--border);
-    }
-
-    .preview-label {
-      color: var(--text-secondary);
-      font-size: 0.72rem;
-      font-weight: 600;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      margin-bottom: 8px;
-    }
-
-    .preview-code {
-      font-family: "JetBrains Mono", monospace;
-      color: var(--accent);
-      word-break: break-all;
-      line-height: 1.6;
-      font-size: 0.8rem;
-    }
-
-    .actions { display: grid; gap: 10px; }
-
-    .btn {
-      width: 100%;
-      border: none;
-      border-radius: 12px;
-      padding: 12px 16px;
-      font: inherit;
-      font-size: 0.9rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: opacity 0.15s;
-    }
-
-    .btn:hover { opacity: 0.88; }
-
-    .btn-primary {
-      color: #fff;
-      background: var(--accent);
-    }
-
-    [data-theme="dark"] .btn-primary { color: #0f1117; }
-
-    .btn-secondary {
-      color: var(--text-primary);
-      background: transparent;
-      border: 1px solid var(--border);
-    }
-
-    .btn-secondary:hover {
-      border-color: var(--accent);
-    }
-
-    .status {
-      color: var(--accent);
-      font-size: 0.84rem;
-      min-height: 1.2rem;
-    }
-
-    .footnote {
-      color: var(--text-secondary);
-      font-size: 0.8rem;
-      line-height: 1.5;
-    }
-
-    .footnote a { color: var(--accent); }
+    /* Desktop summary (hidden, replaced by hero panel) */
+    .summary { display: none; }
 
     /* Mobile footer */
     .mobile-footer {
@@ -452,71 +478,127 @@ export function landingTemplate(manifest, initialConfig = {}) {
       gap: 10px;
     }
 
-    .mobile-footer .btn { flex: 1; padding: 11px 12px; font-size: 0.85rem; }
+    .mobile-footer .btn {
+      flex: 1;
+      padding: 12px 12px;
+      font-size: 0.8rem;
+      border-radius: 40px;
+    }
 
     .mobile-footer .footer-preview {
       margin-top: 8px;
       display: none;
     }
 
-    .mobile-footer .footer-preview.open {
-      display: block;
-    }
+    .mobile-footer .footer-preview.open { display: block; }
 
     .mobile-footer .preview-toggle {
       background: none;
       border: none;
+      font-family: "Space Mono", monospace;
       color: var(--text-secondary);
-      font-size: 0.78rem;
+      font-size: 0.72rem;
       cursor: pointer;
       padding: 6px 0 0;
       text-decoration: underline;
     }
 
     .mobile-footer .preview-code {
-      font-family: "JetBrains Mono", monospace;
+      font-family: "Space Mono", monospace;
       color: var(--accent);
       word-break: break-all;
-      font-size: 0.72rem;
+      font-size: 0.68rem;
       line-height: 1.5;
       margin-top: 6px;
     }
 
     @media (max-width: 980px) {
       .shell { grid-template-columns: 1fr; }
-      .summary { position: static; display: none; }
+      .hero-panel {
+        position: static;
+        height: auto;
+        padding: 32px 24px;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
+      .hero-headline { font-size: 2rem; }
+      .hero-features { grid-template-columns: 1fr 1fr 1fr; }
+      .hero-install { display: none; }
       .mobile-footer { display: block; }
       body { padding-bottom: 90px; }
+      .form-panel { padding: 24px 16px; }
     }
 
     @media (max-width: 640px) {
-      body { padding: 16px 12px 90px; }
-      .header, .hero, .section { padding-left: 20px; padding-right: 20px; }
+      .hero-panel { padding: 24px 20px; }
+      .hero-headline { font-size: 1.6rem; }
+      .hero-desc { font-size: 0.78rem; }
+      .hero-features { grid-template-columns: 1fr; gap: 8px; }
+      .feature { padding: 12px; display: flex; align-items: center; gap: 12px; }
+      .feature-number { font-size: 1.4rem; }
+      .form-panel { padding: 16px 12px; }
+      .section { padding: 20px; }
       .field-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
   <div class="shell">
-    <div class="stack">
-      <div class="card">
-        <div class="header">
-          <div class="header-left">
-            <img class="header-logo" src="${escapeHtml(manifest.logo)}" alt="" />
-            <span class="header-title">${escapeHtml(manifest.name)}</span>
-            <span class="version-badge">v${escapeHtml(manifest.version)}</span>
+    <div class="hero-panel">
+      <div class="hero-top">
+        <div class="hero-brand">
+          <div class="hero-brand-left">
+            <img class="hero-logo" src="${escapeHtml(manifest.logo)}" alt="" />
+            <span class="hero-name">${escapeHtml(manifest.name)}</span>
           </div>
-          <button class="theme-toggle" id="themeToggle" type="button" title="Toggle theme">
-            ${SVG_MOON}
-          </button>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span class="version-badge">v${escapeHtml(manifest.version)}</span>
+            <button class="theme-toggle" id="themeToggle" type="button" title="Toggle theme">
+              ${SVG_MOON}
+            </button>
+          </div>
         </div>
-        <div class="hero">
-          <h1>Configure your addon</h1>
-          <p>Tune stream ranking, subtitle preferences and debrid services. The result is a manifest URL ready to install in Stremio.</p>
+
+        <div>
+          <h1 class="hero-headline">Stream everything, your way</h1>
+          <p class="hero-desc">Configure providers, debrid services and subtitles. Install the result in Stremio with one click.</p>
+        </div>
+
+        <div class="hero-features">
+          <div class="feature">
+            <div class="feature-number">01</div>
+            <div class="feature-label">Torznab indexers</div>
+          </div>
+          <div class="feature">
+            <div class="feature-number">02</div>
+            <div class="feature-label">Debrid services</div>
+          </div>
+          <div class="feature">
+            <div class="feature-number">03</div>
+            <div class="feature-label">Subtitle sync</div>
+          </div>
         </div>
       </div>
 
-      <section class="card section">
+      <div class="hero-bottom">
+        <div class="hero-install" id="desktopSummary">
+          <div class="preview">
+            <div class="preview-label">Manifest URL</div>
+            <div class="preview-code" id="manifestPreview"></div>
+          </div>
+          <button class="btn btn-primary" type="button" id="installBtn">Install in Stremio</button>
+          <button class="btn btn-secondary" type="button" id="copyBtn">Copy manifest URL</button>
+          <div class="status" id="status"></div>
+        </div>
+        <div class="footnote">
+          Magnetio does not host content.
+          <a href="https://github.com/peterdsp/Magnetio#disclaimer" target="_blank" rel="noreferrer">Read disclaimer</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-panel">
+      <section class="section">
         <h2 class="section-title">Stream Rules</h2>
         <div class="field-grid">
           <label>
@@ -554,7 +636,7 @@ export function landingTemplate(manifest, initialConfig = {}) {
         </label>
       </section>
 
-      <section class="card section">
+      <section class="section">
         <h2 class="section-title">Subtitles</h2>
         <p class="section-desc">Select every subtitle language you want returned. Magnetio provides a dedicated Stremio subtitles resource.</p>
         <label>
@@ -565,7 +647,7 @@ export function landingTemplate(manifest, initialConfig = {}) {
         </label>
       </section>
 
-      <section class="card section">
+      <section class="section">
         <h2 class="section-title">Torznab / Jackett / Prowlarr</h2>
         <p class="section-desc">Connect a Torznab-compatible indexer manager. Enter the full Torznab API URL and your API key.</p>
         <div class="field-grid">
@@ -585,7 +667,7 @@ export function landingTemplate(manifest, initialConfig = {}) {
         </div>
       </section>
 
-      <section class="card section">
+      <section class="section">
         <h2 class="section-title">Debrid Services</h2>
         <p class="section-desc">Add API keys for your debrid services. Cached torrents resolve as direct streams automatically.</p>
         <div class="field-grid">
@@ -619,29 +701,6 @@ export function landingTemplate(manifest, initialConfig = {}) {
         </div>
       </section>
     </div>
-
-    <aside class="card summary" id="desktopSummary">
-      <div>
-        <h2>Install Target</h2>
-        <p class="summary-desc">This is the manifest URL Stremio will install. Re-open from a configured URL to adjust settings later.</p>
-      </div>
-
-      <div class="preview">
-        <div class="preview-label">Manifest URL</div>
-        <div class="preview-code" id="manifestPreview"></div>
-      </div>
-
-      <div class="actions">
-        <button class="btn btn-primary" type="button" id="installBtn">Install in Stremio</button>
-        <button class="btn btn-secondary" type="button" id="copyBtn">Copy manifest URL</button>
-      </div>
-
-      <div class="status" id="status"></div>
-      <div class="footnote">
-        Magnetio does not host content.
-        <a href="https://github.com/Magnetio/magnetio#disclaimer" target="_blank" rel="noreferrer">Read disclaimer</a>
-      </div>
-    </aside>
   </div>
 
   <div class="mobile-footer" id="mobileFooter">
