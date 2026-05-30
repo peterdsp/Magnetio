@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { isValidToken, blacklistToken, selectVideoFile, buildDebridStream, resolveWithCache } from './mochHelper.js';
 import { logger } from '../lib/logger.js';
+import { getClientIp } from '../lib/requestContext.js';
 
 const RD_BASE = 'https://api.real-debrid.com/rest/1.0';
 const SERVICE  = 'RD';
@@ -202,6 +203,10 @@ function rdGet(url, apiKey, params = {}) {
 }
 
 function rdPost(url, apiKey, data = {}) {
+  const clientIp = getClientIp();
+  if (clientIp) {
+    data.ip = clientIp;
+  }
   const form = new URLSearchParams(data);
   return axios.post(url, form.toString(), {
     headers: {
