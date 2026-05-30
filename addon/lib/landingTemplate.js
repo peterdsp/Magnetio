@@ -213,6 +213,12 @@ export function landingTemplate(manifest, initialConfig = {}) {
       letter-spacing: -0.03em;
     }
 
+    .hero-headline em {
+      font-style: italic;
+      font-weight: 400;
+      color: var(--text-muted);
+    }
+
     .hero-desc {
       font-family: "Space Mono", monospace;
       font-size: 0.85rem;
@@ -223,32 +229,44 @@ export function landingTemplate(manifest, initialConfig = {}) {
 
     .hero-features {
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 12px;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
       margin-top: 8px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      backdrop-filter: blur(6px);
+      overflow: hidden;
     }
 
     .feature {
-      padding: 16px;
-      border-radius: 12px;
-      background: var(--surface);
-      border: 1px solid var(--border);
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .feature:nth-child(odd) {
+      border-right: 1px solid var(--border);
+    }
+
+    .feature:nth-last-child(-n+2) {
+      border-bottom: none;
     }
 
     .feature-number {
       font-family: "Bitter", serif;
       font-weight: 800;
-      font-size: 2rem;
-      color: var(--text-muted);
+      font-size: 1.6rem;
+      color: var(--text-primary);
       line-height: 1;
     }
 
     .feature-label {
-      font-family: "Bitter", serif;
-      font-weight: 500;
-      font-size: 0.78rem;
+      font-family: "Space Mono", monospace;
+      font-weight: 400;
+      font-size: 0.7rem;
       color: var(--text-secondary);
-      margin-top: 4px;
+      margin-top: 6px;
+      line-height: 1.4;
     }
 
     .hero-bottom { display: grid; gap: 16px; }
@@ -522,7 +540,7 @@ export function landingTemplate(manifest, initialConfig = {}) {
         border-bottom: 1px solid var(--border);
       }
       .hero-headline { font-size: 2rem; }
-      .hero-features { grid-template-columns: 1fr 1fr 1fr; }
+      .hero-features { grid-template-columns: 1fr 1fr; }
       .hero-install { display: none; }
       .mobile-footer { display: block; }
       body { padding-bottom: 90px; }
@@ -533,9 +551,9 @@ export function landingTemplate(manifest, initialConfig = {}) {
       .hero-panel { padding: 24px 20px; }
       .hero-headline { font-size: 1.6rem; }
       .hero-desc { font-size: 0.78rem; }
-      .hero-features { grid-template-columns: 1fr; gap: 8px; }
-      .feature { padding: 12px; display: flex; align-items: center; gap: 12px; }
-      .feature-number { font-size: 1.4rem; }
+      .hero-features { grid-template-columns: 1fr 1fr; }
+      .feature { padding: 12px 16px; }
+      .feature-number { font-size: 1.2rem; }
       .form-panel { padding: 16px 12px; }
       .section { padding: 20px; }
       .field-grid { grid-template-columns: 1fr; }
@@ -559,22 +577,26 @@ export function landingTemplate(manifest, initialConfig = {}) {
         </div>
 
         <div>
-          <h1 class="hero-headline">Stream everything, your way</h1>
+          <h1 class="hero-headline">Stream <em>your</em> own way</h1>
           <p class="hero-desc">Configure providers, debrid services and subtitles. Install the result in Stremio with one click.</p>
         </div>
 
         <div class="hero-features">
           <div class="feature">
-            <div class="feature-number">01</div>
-            <div class="feature-label">Torznab indexers</div>
+            <div class="feature-number">8+</div>
+            <div class="feature-label">Debrid services supported</div>
           </div>
           <div class="feature">
-            <div class="feature-number">02</div>
-            <div class="feature-label">Debrid services</div>
+            <div class="feature-number">15</div>
+            <div class="feature-label">Subtitle languages</div>
           </div>
           <div class="feature">
-            <div class="feature-number">03</div>
-            <div class="feature-label">Subtitle sync</div>
+            <div class="feature-number">5</div>
+            <div class="feature-label">Quality tiers</div>
+          </div>
+          <div class="feature">
+            <div class="feature-number">1-click</div>
+            <div class="feature-label">Stremio install</div>
           </div>
         </div>
       </div>
