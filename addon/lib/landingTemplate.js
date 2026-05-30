@@ -571,7 +571,9 @@ export function landingTemplate(manifest, initialConfig = {}) {
         <div class="field-grid">
           <label>
             Torznab URL
-            <input type="text" id="torznabUrl" autocomplete="off" placeholder="http://jackett:9117/api/v2.0/indexers/all/results/torznab" />
+            <div class="password-wrap">
+              <input type="text" id="torznabUrl" autocomplete="off" placeholder="http://jackett:9117/api/v2.0/indexers/all/results/torznab" />
+            </div>
           </label>
           <label>
             Torznab API Key
