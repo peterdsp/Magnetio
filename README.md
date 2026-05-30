@@ -20,7 +20,7 @@
 
 ## What is Magnetio?
 
-Magnetio is an open-source, self-hostable **Stremio addon** that comes with its own **built-in torrent scraper**. It queries 21 torrent providers in parallel, deduplicates results, and optionally resolves them into **instant direct-download streams** through your debrid service of choice.
+Magnetio is an open-source, self-hostable **Stremio addon** that comes with its own **built-in torrent scraper**. It queries 22 torrent providers in parallel (including Torznab-compatible indexers via Jackett or Prowlarr), deduplicates results, and optionally resolves them into **instant direct-download streams** through your debrid service of choice.
 
 Everything runs on your own hardware (a Raspberry Pi is enough). No cloud subscriptions, no external scraper APIs, no data leaving your network.
 
@@ -30,7 +30,8 @@ Everything runs on your own hardware (a Raspberry Pi is enough). No cloud subscr
 |:---|:---:|:---:|
 | Fully in-house scraping | Yes | Depends on external APIs |
 | Self-hosted, private | Yes | Often cloud-hosted |
-| 21 torrent providers | Yes | Varies |
+| 22 torrent providers + Torznab | Yes | Varies |
+| Jackett / Prowlarr support | Yes | Rare |
 | 8 debrid services | Yes | 1-3 typically |
 | Background prewarm | Yes | No |
 | Per-user config (providers, quality, language) | Yes | Limited |
@@ -101,7 +102,7 @@ When a torrent is already cached on your debrid service, Stremio plays it as a d
 
 ## Supported Torrent Providers
 
-Magnetio ships with **21 providers** covering movies, TV series, and anime.
+Magnetio ships with **22 providers** covering movies, TV series, and anime, plus Torznab support for connecting external indexer managers.
 
 ### Movies and TV
 
@@ -133,6 +134,19 @@ Magnetio ships with **21 providers** covering movies, TV series, and anime.
 | SubsPlease | `subsplease` | JSON API (fansubs) |
 | AnimeTosho | `animetosho` | RSS feed (aggregator) |
 | nekoBT | `nekobt` | Torznab API (fansubs) |
+
+### Torznab / Jackett / Prowlarr
+
+| Provider | ID | Method |
+|:---|:---|:---|
+| Torznab | `torznab` | Torznab XML API (any compatible endpoint) |
+
+The Torznab provider is a universal connector that works with any Torznab-compatible indexer manager. Configure the API URL and key on the configure page. Magnetio will search all indexers you have set up in your Jackett or Prowlarr instance.
+
+- **[Jackett](https://github.com/Jackett/Jackett)** - translates queries to 500+ tracker-specific requests. Free, open-source (MIT).
+- **[Prowlarr](https://github.com/Prowlarr/Prowlarr)** - newer indexer manager with tighter *arr integration. Free, open-source (GPL-3.0).
+
+Both are available as optional Docker Compose services (see [Quick Start](#quick-start)).
 
 All providers run in parallel with a concurrency limit of 4 and a 22-second timeout. Results are deduplicated by `infoHash`, keeping the entry with the highest seeder count.
 
@@ -168,11 +182,17 @@ cd Magnetio
 # Start all three services (scraper + addon + redis)
 docker compose up -d
 
+# Optional: include Jackett for 500+ additional indexers
+docker compose --profile jackett up -d
+
+# Optional: include Prowlarr instead (or alongside)
+docker compose --profile prowlarr up -d
+
 # Open in browser
 open http://localhost:7000
 ```
 
-That is it. The addon runs on port 7000, the scraper on 8080, and Redis on 6379. All three services share a Docker bridge network.
+That is it. The addon runs on port 7000, the scraper on 8080, and Redis on 6379. Jackett runs on 9117 and Prowlarr on 9696 (both optional). All services share a Docker bridge network.
 
 ### Node.js (manual, two terminals)
 
@@ -202,9 +222,9 @@ Open `http://localhost:7000` to access the configuration page.
 
 Navigate to `http://your-server:7000` in a browser. The configuration page lets you:
 
-1. **Select torrent providers** to query
-2. **Set quality filters** (4K, 1080p, 720p, 480p, CAM)
-3. **Set language preferences** for streams and subtitles
+1. **Set quality filters** (4K, 1080p, 720p, 480p, CAM)
+2. **Set language preferences** for streams and subtitles
+3. **Connect Torznab indexers** (Jackett, Prowlarr, or any Torznab endpoint)
 4. **Enter debrid API keys** (with show/hide toggle)
 5. **Configure sort order and result limits**
 6. **Enable or disable background prewarm**
@@ -228,6 +248,8 @@ https://your-server:7000/providers=yts,eztv,1337x|sort=qualityseeders|limit=10|R
 | `qualities` | `4k`, `1080p`, `720p`, `480p`, `cam` | All | Quality whitelist |
 | `languages` | ISO codes (`en`, `es`, `pt`, `fr`, `de`, `it`, `ja`, `ru`, ...) | All | Stream language filter |
 | `subtitleLanguages` | ISO codes | `en` | Subtitle language preference |
+| `torznabUrl` | Full Torznab API URL | - | Torznab endpoint (Jackett/Prowlarr) |
+| `torznabKey` | API key | - | Torznab API key |
 | `prewarm` | `1`, `0`, `true`, `false` | `1` | Background-add top uncached torrents to debrid |
 | `prewarmLimit` | `0` to `10` | `3` | How many uncached results to prewarm per service |
 | `excludeSizes` | Size thresholds like `1GB,2GB` | None | Exclude streams below these sizes |
@@ -278,7 +300,8 @@ magnetio/
 |   |   +-- titleHelper.js         # Quality/codec/source/language/HDR parser
 |   +-- providers/
 |       |   index.js               # Parallel aggregator, deduplication, content filter
-|       |   yts.js                 # ...21 provider modules
+|       |   yts.js                 # ...21 built-in provider modules
+|       |   torznab.js             # Universal Torznab provider (Jackett/Prowlarr)
 |       +-- ...
 |
 +-- addon/                         # Stremio addon frontend
@@ -528,6 +551,22 @@ The `ADDON_PUBLIC_URL` environment variable controls what base URL appears in ma
 | `PREWARM_MOVIES` | `50` | Number of top movies to prewarm |
 | `PREWARM_SERIES` | `20` | Number of top series to prewarm |
 | `LOG_LEVEL` | `info` | Winston log level |
+
+### Optional Services
+
+| Variable | Default | Description |
+|:---|:---|:---|
+| `JACKETT_PORT` | `9117` | Exposed port for Jackett UI (profile: `jackett`) |
+| `PROWLARR_PORT` | `9696` | Exposed port for Prowlarr UI (profile: `prowlarr`) |
+| `TZ` | `Etc/UTC` | Timezone for Jackett/Prowlarr containers |
+
+Start optional services with Docker Compose profiles:
+
+```bash
+docker compose --profile jackett up -d                    # Jackett only
+docker compose --profile prowlarr up -d                   # Prowlarr only
+docker compose --profile jackett --profile prowlarr up -d # Both
+```
 
 ---
 
