@@ -24,6 +24,7 @@ import * as therarbg         from './therarbg.js';
 import * as subsplease       from './subsplease.js';
 import * as animetosho       from './animetosho.js';
 import * as nekobt           from './nekobt.js';
+import * as torznab          from './torznab.js';
 import { logger } from '../lib/logger.js';
 
 const ALL_PROVIDERS = [
@@ -48,6 +49,7 @@ const ALL_PROVIDERS = [
   subsplease,
   animetosho,
   nekobt,
+  torznab,
 ];
 
 // Max 4 providers running simultaneously
@@ -62,7 +64,7 @@ const PROVIDER_TIMEOUT_MS = 22_000;
  * @param {string[]} providerIds Optional whitelist of provider IDs
  * @returns {Promise<TorrentRecord[]>}
  */
-export async function scrapeAll(type, meta, providerIds = null) {
+export async function scrapeAll(type, meta, providerIds = null, context = {}) {
   const providers = ALL_PROVIDERS.filter(p =>
     !providerIds || providerIds.includes(p.id)
   );
@@ -72,7 +74,7 @@ export async function scrapeAll(type, meta, providerIds = null) {
       limit(async () => {
         const start   = Date.now();
         const results = await withTimeout(
-          p.scrape({ ...meta, type }),
+          p.scrape({ ...meta, ...context, type }),
           PROVIDER_TIMEOUT_MS,
           `${p.name} timed out`
         );

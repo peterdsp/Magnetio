@@ -135,7 +135,17 @@ export function parseConfiguration(configString) {
       case 'pu':
         config.putioApiKey = value;
         break;
+      case 'torznaburl':
+        config.torznabUrl = decodeURIComponent(value);
+        break;
+      case 'torznabkey':
+        config.torznabApiKey = value;
+        break;
     }
+  }
+
+  if (config.torznabUrl && !config.providers.includes('torznab')) {
+    config.providers.push('torznab');
   }
 
   return config;
@@ -170,6 +180,9 @@ export function getDefaultConfiguration() {
     prewarmLimit:       3,
     excludeSizes:       [],
     maxSize:            null,
+    // Torznab (Jackett / Prowlarr)
+    torznabUrl:         null,
+    torznabApiKey:      null,
     // Debrid keys (all null by default)
     realDebridApiKey:   null,
     premiumizeApiKey:   null,

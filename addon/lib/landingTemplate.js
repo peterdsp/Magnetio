@@ -58,6 +58,8 @@ export function landingTemplate(manifest, initialConfig = {}) {
     subtitleLanguages: initialConfig.subtitleLanguages ?? ['en'],
     prewarmDebrid: initialConfig.prewarmDebrid ?? true,
     prewarmLimit: initialConfig.prewarmLimit ?? 3,
+    torznabUrl: initialConfig.torznabUrl ?? '',
+    torznabApiKey: initialConfig.torznabApiKey ?? '',
     realDebridApiKey: initialConfig.realDebridApiKey ?? '',
     premiumizeApiKey: initialConfig.premiumizeApiKey ?? '',
     allDebridApiKey: initialConfig.allDebridApiKey ?? '',
@@ -564,6 +566,24 @@ export function landingTemplate(manifest, initialConfig = {}) {
       </section>
 
       <section class="card section">
+        <h2 class="section-title">Torznab / Jackett / Prowlarr</h2>
+        <p class="section-desc">Connect a Torznab-compatible indexer manager. Enter the full Torznab API URL and your API key.</p>
+        <div class="field-grid">
+          <label>
+            Torznab URL
+            <input type="text" id="torznabUrl" autocomplete="off" placeholder="http://jackett:9117/api/v2.0/indexers/all/results/torznab" />
+          </label>
+          <label>
+            Torznab API Key
+            <div class="password-wrap">
+              <input type="password" id="torznabKey" autocomplete="off" placeholder="API key" />
+              <button type="button" class="eye-toggle" data-target="torznabKey" title="Toggle visibility">${SVG_EYE}</button>
+            </div>
+          </label>
+        </div>
+      </section>
+
+      <section class="card section">
         <h2 class="section-title">Debrid Services</h2>
         <p class="section-desc">Add API keys for your debrid services. Cached torrents resolve as direct streams automatically.</p>
         <div class="field-grid">
@@ -697,6 +717,9 @@ export function landingTemplate(manifest, initialConfig = {}) {
       setChipGrid('languages', initialConfig.languages || []);
       setChipGrid('subtitleLanguages', initialConfig.subtitleLanguages || ['en']);
 
+      document.getElementById('torznabUrl').value = initialConfig.torznabUrl || '';
+      document.getElementById('torznabKey').value = initialConfig.torznabApiKey || '';
+
       document.getElementById('rd').value = initialConfig.realDebridApiKey || '';
       document.getElementById('pm').value = initialConfig.premiumizeApiKey || '';
       document.getElementById('ad').value = initialConfig.allDebridApiKey || '';
@@ -721,6 +744,11 @@ export function landingTemplate(manifest, initialConfig = {}) {
       if (qualities.length) parts.push('qualities=' + qualities.join(','));
       if (languages.length) parts.push('languages=' + languages.join(','));
       if (subtitleLanguages.length) parts.push('subtitleLanguages=' + subtitleLanguages.join(','));
+
+      var torznabUrl = document.getElementById('torznabUrl').value.trim();
+      var torznabKey = document.getElementById('torznabKey').value.trim();
+      if (torznabUrl) parts.push('torznabUrl=' + encodeURIComponent(torznabUrl));
+      if (torznabKey) parts.push('torznabKey=' + torznabKey);
 
       var keys = ['rd','pm','ad','dl','ed','oc','tb','pu'];
       keys.forEach(function(id) {

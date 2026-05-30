@@ -86,8 +86,49 @@ services:
       timeout: 5s
       retries: 5
 
+  # ─── Jackett (Optional) ───────────────────────────────────────────────────
+  jackett:
+    image: lscr.io/linuxserver/jackett:latest
+    container_name: magnetio_jackett
+    restart: unless-stopped
+    profiles:
+      - jackett
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ:-Etc/UTC}
+      - AUTO_UPDATE=true
+    volumes:
+      - jackett_config:/config
+      - jackett_downloads:/downloads
+    ports:
+      - "${JACKETT_PORT:-9117}:9117"
+    networks:
+      - magnetio_net
+
+  # ─── Prowlarr (Optional) ─────────────────────────────────────────────────
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: magnetio_prowlarr
+    restart: unless-stopped
+    profiles:
+      - prowlarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ:-Etc/UTC}
+    volumes:
+      - prowlarr_config:/config
+    ports:
+      - "${PROWLARR_PORT:-9696}:9696"
+    networks:
+      - magnetio_net
+
 volumes:
   redis_data:
+  jackett_config:
+  jackett_downloads:
+  prowlarr_config:
 
 networks:
   magnetio_net:

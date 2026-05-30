@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import crypto from 'crypto';
 import express from 'express';
 import { scrapeAll, listProviders } from './providers/index.js';
 import { getMetadata } from './lib/cinemeta.js';
@@ -45,11 +46,18 @@ app.get('/streams/:type/:id', async (req, res) => {
     ? req.query.providers.split(',').map(s => s.trim()).filter(Boolean)
     : null;
 
+  const torznabUrl    = req.query.torznabUrl || null;
+  const torznabApiKey = req.query.torznabApiKey || null;
+  const context = { torznabUrl, torznabApiKey };
+
   if (!['movie', 'series', 'anime'].includes(type)) {
     return res.status(400).json({ error: 'Invalid type. Use movie, series, or anime.' });
   }
 
-  const cacheKey = `streams:${type}:${id}:${providerIds?.join(',') ?? 'all'}`;
+  const torznabSuffix = torznabUrl
+    ? `:tz-${crypto.createHash('sha256').update(torznabUrl).digest('hex').slice(0, 12)}`
+    : '';
+  const cacheKey = `streams:${type}:${id}:${providerIds?.join(',') ?? 'all'}${torznabSuffix}`;
 
   try {
     const { value: streams, cached } = await cacheWrap(cacheKey, async () => {
@@ -64,7 +72,7 @@ app.get('/streams/:type/:id', async (req, res) => {
       logger.info(`Scraping ${label} [${type}] from ${providerIds?.join(',') ?? 'all providers'}`);
 
       // 2. Scrape all providers in parallel
-      return scrapeAll(type, meta, providerIds);
+      return scrapeAll(type, meta, providerIds, context);
     }, TTL_STREAMS);
 
     res.json({ streams, cached });

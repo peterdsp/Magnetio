@@ -24,6 +24,7 @@ export const TorrentProvider = {
   GLOTORRENTS: 'glotorrents',
   TORLOCK: 'torlock',
   TORRENTDOWNLOADS: 'torrentdownloads',
+  TORZNAB: 'torznab',
 };
 
 // Sort options exposed in configuration
