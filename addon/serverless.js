@@ -31,6 +31,41 @@ router.get('/manifest.json', (_req, res) => {
   res.json(dummyManifest());
 });
 
+// ─── SEO: robots.txt and sitemap ─────────────────────────────────────────────
+
+router.get('/robots.txt', (_req, res) => {
+  res.type('text/plain').send([
+    'User-agent: *',
+    'Allow: /',
+    'Disallow: /proxy/',
+    'Disallow: /swagger',
+    'Disallow: /stats',
+    '',
+    'Sitemap: https://magnetio.peterdsp.dev/sitemap.xml',
+  ].join('\n'));
+});
+
+router.get('/sitemap.xml', (_req, res) => {
+  const now = new Date().toISOString().split('T')[0];
+  res.type('application/xml').send([
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    '  <url>',
+    '    <loc>https://magnetio.peterdsp.dev/</loc>',
+    `    <lastmod>${now}</lastmod>`,
+    '    <changefreq>weekly</changefreq>',
+    '    <priority>1.0</priority>',
+    '  </url>',
+    '  <url>',
+    '    <loc>https://magnetio.peterdsp.dev/configure</loc>',
+    `    <lastmod>${now}</lastmod>`,
+    '    <changefreq>weekly</changefreq>',
+    '    <priority>0.8</priority>',
+    '  </url>',
+    '</urlset>',
+  ].join('\n'));
+});
+
 const subtitleProxyLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,

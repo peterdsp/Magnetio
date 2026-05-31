@@ -76,7 +76,64 @@ export function landingTemplate(manifest, initialConfig = {}) {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${escapeHtml(manifest.name)} - Stream Anything</title>
+  <title>${escapeHtml(manifest.name)} - Self-Hosted Stremio Addon with 22+ Providers and Debrid Support</title>
+  <meta name="description" content="Magnetio is a free, open-source, self-hosted Stremio addon with 22+ torrent providers, 8 debrid services, Torznab/Jackett/Prowlarr support, TMDB recommendations, and subtitle sync. Stream movies, series, and anime instantly." />
+  <meta name="keywords" content="Magnetio, Stremio addon, self-hosted, torrent, debrid, Real-Debrid, Premiumize, AllDebrid, TorBox, Jackett, Prowlarr, Torznab, streaming, movies, series, anime, open source, TMDB" />
+  <meta name="author" content="peterdsp" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://magnetio.peterdsp.dev/" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Magnetio - Self-Hosted Stremio Addon" />
+  <meta property="og:description" content="Stream anything with 22+ providers, 8 debrid services, Torznab support, and TMDB recommendations. Fully self-hosted, your API keys never leave your server." />
+  <meta property="og:url" content="https://magnetio.peterdsp.dev/" />
+  <meta property="og:site_name" content="Magnetio" />
+  <meta property="og:image" content="https://magnetio.peterdsp.dev/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Magnetio - Self-Hosted Stremio Addon" />
+  <meta name="twitter:description" content="Stream anything with 22+ providers, 8 debrid services, and Torznab support. Open source and self-hosted." />
+  <meta name="twitter:image" content="https://magnetio.peterdsp.dev/og-image.png" />
+
+  <!-- JSON-LD Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Magnetio",
+    "applicationCategory": "MultimediaApplication",
+    "operatingSystem": "Docker, Node.js",
+    "url": "https://magnetio.peterdsp.dev",
+    "description": "Self-hosted Stremio addon with 22+ torrent providers, 8 debrid services, Torznab/Jackett/Prowlarr support, TMDB recommendations, and subtitle sync pipeline.",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "author": {
+      "@type": "Person",
+      "name": "peterdsp",
+      "url": "https://github.com/peterdsp"
+    },
+    "softwareVersion": "${escapeHtml(manifest.version)}",
+    "license": "https://github.com/peterdsp/Magnetio/blob/main/LICENSE",
+    "codeRepository": "https://github.com/peterdsp/Magnetio",
+    "featureList": [
+      "22+ torrent providers",
+      "8 debrid services (Real-Debrid, Premiumize, AllDebrid, TorBox, etc.)",
+      "Torznab/Jackett/Prowlarr integration",
+      "TMDB similar content recommendations",
+      "Subtitle search and sync pipeline",
+      "Background cache prewarm",
+      "Self-hosted on Raspberry Pi or any server"
+    ]
+  }
+  </script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />

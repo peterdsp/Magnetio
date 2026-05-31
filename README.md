@@ -1,19 +1,22 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/Magnetio-v1.1.5-10b981?style=for-the-badge&labelColor=1a1a2e" alt="Version" />
+  <img src="https://img.shields.io/badge/Magnetio-v1.1.5-10b981?style=for-the-badge&labelColor=1a1a2e" alt="Magnetio Version" />
   <img src="https://img.shields.io/badge/license-Apache--2.0-blue?style=for-the-badge&labelColor=1a1a2e" alt="License" />
   <img src="https://img.shields.io/badge/node-%3E%3D18-brightgreen?style=for-the-badge&logo=node.js&labelColor=1a1a2e" alt="Node.js" />
   <img src="https://img.shields.io/badge/docker-ready-2496ed?style=for-the-badge&logo=docker&labelColor=1a1a2e" alt="Docker" />
-  <img src="https://img.shields.io/badge/stremio-addon-7b5bf5?style=for-the-badge&labelColor=1a1a2e" alt="Stremio" />
+  <img src="https://img.shields.io/badge/stremio-addon-7b5bf5?style=for-the-badge&labelColor=1a1a2e" alt="Stremio Addon" />
+  <img src="https://img.shields.io/badge/debrid-8%20services-ff6b6b?style=for-the-badge&labelColor=1a1a2e" alt="Debrid Services" />
+  <img src="https://img.shields.io/badge/torznab-Jackett%20%2F%20Prowlarr-f5a623?style=for-the-badge&labelColor=1a1a2e" alt="Torznab Jackett Prowlarr" />
 </p>
 
 <h1 align="center">Magnetio</h1>
 
 <p align="center">
-  <strong>A fully self-hosted Stremio addon with built-in multi-provider torrent scraping and 8 debrid services.</strong>
+  <strong>A fully self-hosted Stremio addon with 22+ torrent providers, 8 debrid services, Torznab/Jackett/Prowlarr integration, and TMDB recommendations.</strong>
 </p>
 
 <p align="center">
-  No external scraper dependency. No third-party backend. Your API keys never leave your server.
+  No external scraper dependency. No third-party backend. Your API keys never leave your server.<br />
+  <a href="https://magnetio.peterdsp.dev">magnetio.peterdsp.dev</a> | <a href="https://magnetio.peterdsp.dev/configure">Configure and Install</a>
 </p>
 
 ---
