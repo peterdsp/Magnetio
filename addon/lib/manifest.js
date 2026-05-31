@@ -72,7 +72,7 @@ function getDescription(config) {
 }
 
 function getCatalogs(config) {
-  return getEnabledMochs(config).flatMap(moch =>
+  const debridCatalogs = getEnabledMochs(config).flatMap(moch =>
     moch.hasCatalog
       ? [
           { id: `${moch.id}_movie`,  type: 'movie',  name: `${moch.name} - Movies`  },
@@ -80,6 +80,25 @@ function getCatalogs(config) {
         ]
       : []
   );
+
+  const similarCatalogs = config?.tmdbApiKey
+    ? [
+        {
+          id: 'magnetio_similar_movie',
+          type: 'movie',
+          name: 'Magnetio - Similar',
+          extra: [{ name: 'genre', isRequired: true }],
+        },
+        {
+          id: 'magnetio_similar_series',
+          type: 'series',
+          name: 'Magnetio - Similar',
+          extra: [{ name: 'genre', isRequired: true }],
+        },
+      ]
+    : [];
+
+  return [...debridCatalogs, ...similarCatalogs];
 }
 
 function getResources() {
@@ -97,7 +116,7 @@ function getResources() {
     {
       name: 'catalog',
       types: ['movie', 'series'],
-      idPrefixes: ['rd', 'pm', 'ad', 'dl', 'ed', 'oc', 'tb', 'pu'],
+      idPrefixes: ['rd', 'pm', 'ad', 'dl', 'ed', 'oc', 'tb', 'pu', 'magnetio_similar'],
     },
     {
       name: 'meta',

@@ -7,6 +7,7 @@ import { sortStreams } from './lib/sort.js';
 import { toStreamInfo } from './lib/streamInfo.js';
 import { getSubtitles } from './lib/subtitles.js';
 import { toStaticStream } from './moch/static.js';
+import { getSimilarContent } from './lib/similar.js';
 import NamedQueue from './lib/namedQueue.js';
 import pLimit from 'p-limit';
 import { logger } from './lib/logger.js';
@@ -84,6 +85,20 @@ export async function getAddonInterface(config) {
   // ─── CATALOG HANDLER ───────────────────────────────────────────────────────
   builder.defineCatalogHandler(async ({ type, id, extra }) => {
     try {
+      // Similar content recommendations (TMDB)
+      if (id.startsWith('magnetio_similar_')) {
+        const imdbId = extra?.genre || null;
+        if (!imdbId || !config.tmdbApiKey) {
+          return { metas: [], cacheMaxAge: CACHE_TTL_EMPTY };
+        }
+        const metas = await getSimilarContent(imdbId, type, config.tmdbApiKey);
+        return {
+          metas,
+          cacheMaxAge: metas.length ? 86400 : CACHE_TTL_EMPTY,
+        };
+      }
+
+      // Debrid library catalogs
       const skip = extra?.skip ? parseInt(extra.skip, 10) : 0;
       const metas = await getMochCatalog(id, type, config, skip);
       return { metas, cacheMaxAge: CACHE_TTL_OK };

@@ -135,6 +135,9 @@ export function parseConfiguration(configString) {
       case 'pu':
         config.putioApiKey = value;
         break;
+      case 'tmdb':
+        config.tmdbApiKey = value;
+        break;
       case 'torznaburl':
         config.torznabUrl = decodeURIComponent(value);
         break;
@@ -180,6 +183,8 @@ export function getDefaultConfiguration() {
     prewarmLimit:       3,
     excludeSizes:       [],
     maxSize:            null,
+    // Recommendations (TMDB)
+    tmdbApiKey:         null,
     // Torznab (Jackett / Prowlarr)
     torznabUrl:         null,
     torznabApiKey:      null,

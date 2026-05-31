@@ -58,6 +58,7 @@ export function landingTemplate(manifest, initialConfig = {}) {
     subtitleLanguages: initialConfig.subtitleLanguages ?? ['en'],
     prewarmDebrid: initialConfig.prewarmDebrid ?? true,
     prewarmLimit: initialConfig.prewarmLimit ?? 3,
+    tmdbApiKey: initialConfig.tmdbApiKey ?? '',
     torznabUrl: initialConfig.torznabUrl ?? '',
     torznabApiKey: initialConfig.torznabApiKey ?? '',
     realDebridApiKey: initialConfig.realDebridApiKey ?? '',
@@ -669,6 +670,20 @@ export function landingTemplate(manifest, initialConfig = {}) {
       </section>
 
       <section class="section">
+        <h2 class="section-title">Recommendations</h2>
+        <p class="section-desc">Enable "More Like This" suggestions powered by TMDB. Get a free API key at <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noreferrer" style="color:var(--accent)">themoviedb.org</a>.</p>
+        <div class="field-grid">
+          <label>
+            TMDB API Key
+            <div class="password-wrap">
+              <input type="password" id="tmdb" autocomplete="off" placeholder="TMDB API key (v3 auth)" />
+              <button type="button" class="eye-toggle" data-target="tmdb" title="Toggle visibility">${SVG_EYE}</button>
+            </div>
+          </label>
+        </div>
+      </section>
+
+      <section class="section">
         <h2 class="section-title">Torznab / Jackett / Prowlarr</h2>
         <p class="section-desc">Connect a Torznab-compatible indexer manager. Enter the full Torznab API URL and your API key.</p>
         <div class="field-grid">
@@ -799,6 +814,8 @@ export function landingTemplate(manifest, initialConfig = {}) {
       setChipGrid('languages', initialConfig.languages || []);
       setChipGrid('subtitleLanguages', initialConfig.subtitleLanguages || ['en']);
 
+      document.getElementById('tmdb').value = initialConfig.tmdbApiKey || '';
+
       document.getElementById('torznabUrl').value = initialConfig.torznabUrl || '';
       document.getElementById('torznabKey').value = initialConfig.torznabApiKey || '';
 
@@ -826,6 +843,9 @@ export function landingTemplate(manifest, initialConfig = {}) {
       if (qualities.length) parts.push('qualities=' + qualities.join(','));
       if (languages.length) parts.push('languages=' + languages.join(','));
       if (subtitleLanguages.length) parts.push('subtitleLanguages=' + subtitleLanguages.join(','));
+
+      var tmdbKey = document.getElementById('tmdb').value.trim();
+      if (tmdbKey) parts.push('tmdb=' + tmdbKey);
 
       var torznabUrl = document.getElementById('torznabUrl').value.trim();
       var torznabKey = document.getElementById('torznabKey').value.trim();
