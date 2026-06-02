@@ -25,7 +25,7 @@ Everything runs on your own hardware (a Raspberry Pi is enough). No cloud subscr
 
 ## 🔎 Advanced Scraping Capabilities
 
-- **22+ built-in torrent providers** queried in parallel (YTS, EZTV, ThePirateBay, 1337x, TorrentGalaxy, KickassTorrents, Nyaa, and more)
+- **22+ built-in torrent providers** queried in parallel
 - **Torznab/Jackett/Prowlarr support** for 500+ additional indexers through a single universal connector
 - **Smart early-return** returns results in 3-6 seconds without waiting for slow providers
 - **Intelligent deduplication** by infoHash, keeping the entry with the highest seeder count
