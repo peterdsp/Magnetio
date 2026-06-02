@@ -52,12 +52,16 @@ const ALL_PROVIDERS = [
   torznab,
 ];
 
-// Max 4 providers running simultaneously
-const limit = pLimit(4);
-const PROVIDER_TIMEOUT_MS = 22_000;
+// Max 6 providers running simultaneously (up from 4 for faster throughput)
+const limit = pLimit(6);
+const PROVIDER_TIMEOUT_MS = 15_000;
+const EARLY_RETURN_MS     = 5_000;   // Return results after 5s if we have enough
+const MIN_EARLY_RESULTS   = 10;      // Minimum results before early return kicks in
 
 /**
  * Scrape all (or a subset of) providers for a given content item.
+ * Uses early-return: responds after EARLY_RETURN_MS if enough results
+ * are collected, without waiting for slow providers.
  *
  * @param {string}   type        'movie' | 'series' | 'anime'
  * @param {object}   meta        From cinemeta: { name, year, imdbId, season, episode }
@@ -70,34 +74,68 @@ export async function scrapeAll(type, meta, providerIds = null, context = {}) {
     !providerIds || providerIds.includes(p.id)
   );
 
-  const settled = await Promise.allSettled(
-    providers.map(p =>
+  const collected = [];
+  let resolved = false;
+  let completedCount = 0;
+
+  return new Promise((resolve) => {
+    const finalize = () => {
+      if (resolved) return;
+      resolved = true;
+      clearTimeout(earlyTimer);
+      clearTimeout(hardTimer);
+
+      logger.info(`Scrape totals: ${collected.length} raw, ${completedCount}/${providers.length} providers responded`);
+      const deduped = deduplicate(collected);
+      const matched = filterByContent(deduped, meta);
+      if (deduped.length !== matched.length) {
+        logger.info(`Content filter: ${deduped.length} -> ${matched.length} (dropped ${deduped.length - matched.length} unrelated)`);
+      }
+      resolve(matched);
+    };
+
+    // Early return: after EARLY_RETURN_MS, return if we have enough results
+    const earlyTimer = setTimeout(() => {
+      if (!resolved && collected.length >= MIN_EARLY_RESULTS) {
+        logger.info(`Early return: ${collected.length} results from ${completedCount}/${providers.length} providers after ${EARLY_RETURN_MS}ms`);
+        finalize();
+      }
+    }, EARLY_RETURN_MS);
+
+    // Hard deadline: never wait longer than PROVIDER_TIMEOUT_MS
+    const hardTimer = setTimeout(() => {
+      if (!resolved) {
+        logger.info(`Hard timeout: ${collected.length} results from ${completedCount}/${providers.length} providers after ${PROVIDER_TIMEOUT_MS}ms`);
+        finalize();
+      }
+    }, PROVIDER_TIMEOUT_MS);
+
+    // Launch all providers in parallel (concurrency-limited)
+    const tasks = providers.map(p =>
       limit(async () => {
-        const start   = Date.now();
-        const results = await withTimeout(
-          p.scrape({ ...meta, ...context, type }),
-          PROVIDER_TIMEOUT_MS,
-          `${p.name} timed out`
-        );
-        logger.info(`[${p.name}] ${results.length} results in ${Date.now() - start}ms`);
-        return results;
+        if (resolved) return;
+        const start = Date.now();
+        try {
+          const results = await withTimeout(
+            p.scrape({ ...meta, ...context, type }),
+            PROVIDER_TIMEOUT_MS,
+            `${p.name} timed out`
+          );
+          logger.info(`[${p.name}] ${results.length} results in ${Date.now() - start}ms`);
+          collected.push(...results);
+        } catch (err) {
+          logger.warn(`[${p.name}] ${err.message} (${Date.now() - start}ms)`);
+        } finally {
+          completedCount++;
+          // If all providers finished, return immediately
+          if (completedCount >= providers.length) finalize();
+        }
       })
-    )
-  );
+    );
 
-  const raw = settled.flatMap(r => {
-    if (r.status === 'fulfilled') return r.value;
-    logger.warn(`Provider error: ${r.reason?.message}`);
-    return [];
+    // Safety: if Promise.all somehow resolves before timers
+    Promise.allSettled(tasks).then(finalize);
   });
-
-  logger.info(`Scrape totals: ${raw.length} raw, ${providers.length} providers queried`);
-  const deduped = deduplicate(raw);
-  const matched = filterByContent(deduped, meta);
-  if (deduped.length !== matched.length) {
-    logger.info(`Content filter: ${deduped.length} -> ${matched.length} (dropped ${deduped.length - matched.length} unrelated)`);
-  }
-  return matched;
 }
 
 async function withTimeout(promise, timeoutMs, message) {
