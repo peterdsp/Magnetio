@@ -14,10 +14,14 @@ import { runWithClientIp } from './lib/requestContext.js';
 
 const router = express.Router();
 
-// CORS: required for Stremio clients and addon catalogs to reach the manifest
+// Security and CORS headers
 router.use((_req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', '*');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   next();
 });
 
@@ -41,6 +45,15 @@ router.get('/manifest.json', (_req, res) => {
 });
 
 // ─── SEO: robots.txt and sitemap ─────────────────────────────────────────────
+
+router.get('/.well-known/security.txt', (_req, res) => {
+  res.type('text/plain').send([
+    'Contact: mailto:info@peterdsp.dev',
+    'Preferred-Languages: en, el',
+    'Canonical: https://magnetio.peterdsp.dev/.well-known/security.txt',
+    'Policy: https://github.com/peterdsp/Magnetio/blob/main/SECURITY.md',
+  ].join('\n'));
+});
 
 router.get('/robots.txt', (_req, res) => {
   res.type('text/plain').send([
@@ -75,6 +88,14 @@ router.get('/sitemap.xml', (_req, res) => {
   ].join('\n'));
 });
 
+const globalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, try again later' },
+});
+
 const subtitleProxyLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -89,7 +110,20 @@ router.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'Magnetio', version: '1.1.5' });
 });
 
-router.get('/stats', async (req, res) => {
+router.get('/stats', (req, res, next) => {
+  const user = process.env.METRICS_USER || 'admin';
+  const pass = process.env.METRICS_PASSWORD || 'magnetio';
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith('Basic ')) {
+    res.setHeader('WWW-Authenticate', 'Basic realm="Magnetio Stats"');
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  const [u, p] = Buffer.from(auth.slice(6), 'base64').toString().split(':');
+  if (u !== user || p !== pass) {
+    return res.status(403).json({ error: 'Invalid credentials' });
+  }
+  next();
+}, async (req, res) => {
   const stats = await getStats();
   const wantsHtml = (req.headers.accept || '').includes('text/html');
   if (!wantsHtml) return res.json(stats);
@@ -119,7 +153,7 @@ router.get('/:configuration/configure', (req, res) => {
   }
 });
 
-router.use('/:configuration', async (req, res, next) => {
+router.use('/:configuration', globalLimiter, async (req, res, next) => {
   const clientIp = req.ip || req.connection?.remoteAddress;
 
   runWithClientIp(clientIp, async () => {

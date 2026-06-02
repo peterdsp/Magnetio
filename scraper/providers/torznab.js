@@ -18,14 +18,8 @@ export async function scrape(meta) {
   const apiKey  = meta.torznabApiKey;
   if (!baseUrl) return [];
 
-  try {
-    const parsed = new URL(baseUrl);
-    if (!['http:', 'https:'].includes(parsed.protocol)) {
-      logger.warn('[Torznab] Rejected non-HTTP URL scheme');
-      return [];
-    }
-  } catch {
-    logger.warn('[Torznab] Invalid URL provided');
+  if (!isUrlSafe(baseUrl)) {
+    logger.warn('[Torznab] Rejected unsafe or invalid URL');
     return [];
   }
 
@@ -131,6 +125,24 @@ function extractInfoHash(item) {
 function attrValue(item, attrName) {
   const el = item.find(`torznab\\:attr[name="${attrName}"], attr[name="${attrName}"]`);
   return el.length ? el.attr('value') : null;
+}
+
+function isUrlSafe(urlStr) {
+  try {
+    const parsed = new URL(urlStr);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
+    const host = parsed.hostname;
+    if (host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '0.0.0.0') return false;
+    if (host.startsWith('10.')) return false;
+    if (host.startsWith('192.168.')) return false;
+    if (host.startsWith('169.254.')) return false;
+    if (/^172\.(1[6-9]|2\d|3[01])\./.test(host)) return false;
+    if (host.endsWith('.local') || host.endsWith('.internal')) return false;
+    if (host.includes('metadata.google') || host.includes('metadata.aws')) return false;
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function base32ToHex(base32) {
