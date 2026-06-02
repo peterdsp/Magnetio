@@ -12,6 +12,14 @@ import { trackRequest, getStats } from './lib/analytics.js';
 import { runWithClientIp } from './lib/requestContext.js';
 
 const router = express.Router();
+
+// CORS: required for Stremio clients and addon catalogs to reach the manifest
+router.use((_req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Headers', '*');
+  next();
+});
+
 const ROUTER_CACHE_TTL_MS = 1000 * 60 * 5;
 const MAX_CACHED_ROUTERS = 64;
 const addonRouterCache = new Map();
