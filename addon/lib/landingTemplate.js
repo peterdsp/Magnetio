@@ -25,14 +25,14 @@ const LANGUAGES = [
 ];
 
 const DEBRID_FIELDS = [
-  ['rd', 'Real-Debrid'],
-  ['pm', 'Premiumize'],
-  ['ad', 'AllDebrid'],
-  ['dl', 'DebridLink'],
-  ['ed', 'EasyDebrid'],
-  ['oc', 'Offcloud'],
-  ['tb', 'TorBox'],
-  ['pu', 'Put.io'],
+  ['rd', 'Real-Debrid', 'https://real-debrid.com/apitoken'],
+  ['pm', 'Premiumize', 'https://www.premiumize.me/account'],
+  ['ad', 'AllDebrid', 'https://alldebrid.com/apikeys'],
+  ['dl', 'DebridLink', 'https://debrid-link.com/webapp/apikey'],
+  ['ed', 'EasyDebrid', 'https://easydebrid.com/settings'],
+  ['oc', 'Offcloud', 'https://offcloud.com/#/account'],
+  ['tb', 'TorBox', 'https://torbox.app/settings'],
+  ['pu', 'Put.io', 'https://put.io/oauth/apps'],
 ];
 
 const SVG_SUN = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
@@ -1085,9 +1085,9 @@ export function landingTemplate(manifest, initialConfig = {}) {
         </label>
       </div>
       <div class="field-grid">
-        ${DEBRID_FIELDS.map(([id, label]) => `
+        ${DEBRID_FIELDS.map(([id, label, url]) => `
           <label>
-            ${label}
+            <a href="${url}" target="_blank" rel="noreferrer" style="color:var(--accent);text-decoration:none;">${label} <span style="font-size:0.65em;opacity:0.6;">&#8599;</span></a>
             <div class="password-wrap">
               <input type="password" id="${id}" autocomplete="off" placeholder="${label} API key" />
               <button type="button" class="eye-toggle" data-target="${id}" title="Toggle visibility">${SVG_EYE}</button>
