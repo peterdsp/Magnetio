@@ -55,7 +55,7 @@ app.get('/streams/:type/:id', async (req, res) => {
   }
 
   const torznabSuffix = torznabUrl
-    ? `:tz-${crypto.createHash('sha256').update(torznabUrl).digest('hex').slice(0, 12)}`
+    ? `:tz-${crypto.createHash('sha256').update(torznabUrl + (torznabApiKey || '')).digest('hex').slice(0, 12)}`
     : '';
   const cacheKey = `streams:${type}:${id}:${providerIds?.join(',') ?? 'all'}${torznabSuffix}`;
 

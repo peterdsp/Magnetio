@@ -62,6 +62,7 @@ const PROVIDER_TIMEOUT_MS = 22_000;
  * @param {string}   type        'movie' | 'series' | 'anime'
  * @param {object}   meta        From cinemeta: { name, year, imdbId, season, episode }
  * @param {string[]} providerIds Optional whitelist of provider IDs
+ * @param {object}   context     Optional per-request context (e.g. { torznabUrl, torznabApiKey })
  * @returns {Promise<TorrentRecord[]>}
  */
 export async function scrapeAll(type, meta, providerIds = null, context = {}) {

@@ -19,6 +19,17 @@ export async function scrape(meta) {
   if (!baseUrl) return [];
 
   try {
+    const parsed = new URL(baseUrl);
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      logger.warn('[Torznab] Rejected non-HTTP URL scheme');
+      return [];
+    }
+  } catch {
+    logger.warn('[Torznab] Invalid URL provided');
+    return [];
+  }
+
+  try {
     const params = buildParams(meta, apiKey);
 
     const { data } = await get(baseUrl, {
@@ -36,7 +47,8 @@ export async function scrape(meta) {
       if (record) results.push(record);
     });
 
-    logger.info(`[Torznab] ${results.length} results from ${baseUrl}`);
+    const redactedUrl = (() => { try { return new URL(baseUrl).origin; } catch { return '(invalid)'; } })();
+    logger.info(`[Torznab] ${results.length} results from ${redactedUrl}`);
     return results;
   } catch (err) {
     logger.warn(`[Torznab] ${err.message}`);
@@ -79,12 +91,16 @@ function normalise(item, meta) {
 
   const parsed = parseTitle(title);
 
+  const parsedSeeders = parseInt(seeders, 10);
+  const parsedPeers   = parseInt(peers, 10);
+  const parsedSize    = parseInt(sizeEl || encLen || '0', 10);
+
   return {
     infoHash,
     title,
-    seeders:  seeders != null ? parseInt(seeders, 10) : 0,
-    leechers: peers != null ? Math.max(0, parseInt(peers, 10) - (parseInt(seeders, 10) || 0)) : 0,
-    size:     parseInt(sizeEl || encLen || '0', 10),
+    seeders:  Number.isFinite(parsedSeeders) ? parsedSeeders : 0,
+    leechers: Number.isFinite(parsedPeers) ? Math.max(0, parsedPeers - (parsedSeeders || 0)) : 0,
+    size:     Number.isFinite(parsedSize) ? parsedSize : 0,
     provider: 'Torznab',
     imdbId:   meta.imdbId || null,
     ...parsed,

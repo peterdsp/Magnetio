@@ -139,16 +139,18 @@ export function parseConfiguration(configString) {
         config.tmdbApiKey = value;
         break;
       case 'torznaburl':
-        config.torznabUrl = decodeURIComponent(value);
+        try { config.torznabUrl = decodeURIComponent(value); }
+        catch { config.torznabUrl = value; }
         break;
       case 'torznabkey':
-        config.torznabApiKey = value;
+        try { config.torznabApiKey = decodeURIComponent(value); }
+        catch { config.torznabApiKey = value; }
         break;
     }
   }
 
-  if (config.torznabUrl && !config.providers.includes('torznab')) {
-    config.providers.push('torznab');
+  if (config.torznabUrl && !config.providers.includes(TorrentProvider.TORZNAB)) {
+    config.providers.push(TorrentProvider.TORZNAB);
   }
 
   return config;

@@ -27,7 +27,7 @@ function simpleHash(str) {
 export async function getStreams(type, id, config) {
   const providerKey = config?.providers?.length ? config.providers.join(',') : 'all';
   const torznabSuffix = config.torznabUrl
-    ? `:tz-${simpleHash(config.torznabUrl)}`
+    ? `:tz-${simpleHash(config.torznabUrl + (config.torznabApiKey || ''))}`
     : '';
   const cacheKey = `streams:${type}:${id}:${providerKey}${torznabSuffix}`;
 

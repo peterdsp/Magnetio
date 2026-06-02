@@ -1236,7 +1236,7 @@ export function landingTemplate(manifest, initialConfig = {}) {
       var torznabUrl = document.getElementById('torznabUrl').value.trim();
       var torznabKey = document.getElementById('torznabKey').value.trim();
       if (torznabUrl) parts.push('torznabUrl=' + encodeURIComponent(torznabUrl));
-      if (torznabKey) parts.push('torznabKey=' + torznabKey);
+      if (torznabKey) parts.push('torznabKey=' + encodeURIComponent(torznabKey));
 
       var keys = ['rd','pm','ad','dl','ed','oc','tb','pu'];
       keys.forEach(function(id) {
