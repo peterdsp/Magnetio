@@ -6,6 +6,7 @@ import { dummyManifest } from './lib/manifest.js';
 import { getDefaultConfiguration, parseConfiguration } from './lib/configuration.js';
 import { getAddonInterface } from './addon.js';
 import { landingTemplate } from './lib/landingTemplate.js';
+import { statsDashboard } from './lib/statsDashboard.js';
 import { logger } from './lib/logger.js';
 import { handleSubtitleProxyRequest } from './lib/subtitleProxy.js';
 import { trackRequest, getStats } from './lib/analytics.js';
@@ -88,9 +89,12 @@ router.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'Magnetio', version: '1.1.5' });
 });
 
-router.get('/stats', async (_req, res) => {
+router.get('/stats', async (req, res) => {
   const stats = await getStats();
-  res.json(stats);
+  const wantsHtml = (req.headers.accept || '').includes('text/html');
+  if (!wantsHtml) return res.json(stats);
+  res.setHeader('content-type', 'text/html');
+  res.send(statsDashboard(stats));
 });
 
 router.get('/:configuration', (req, res) => {
