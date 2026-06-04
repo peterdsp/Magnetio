@@ -12,7 +12,7 @@
   "author": "Magnetio Contributors",
   "license": "Apache-2.0",
   "dependencies": {
-    "@keyv/redis": "^2.8.2",
+    "@keyv/redis": "^5.1.6",
     "axios": "^1.16.1",
     "cron": "^3.1.6",
     "dotenv": "^16.3.1",
