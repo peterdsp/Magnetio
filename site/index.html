@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Magnetio</title>
+  <meta name="description" content="Magnetio is an open source Stremio addon stack with torrent provider aggregation, debrid integrations, subtitles, and self-hosted deployment docs.">
+  <meta name="theme-color" content="#09090b">
+  <link rel="canonical" href="https://magnetio.peterdsp.dev/">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <div class="eyebrow">Open source Stremio stack</div>
+      <h1>Magnetio</h1>
+      <p class="lede">
+        Torrent aggregation, debrid support, subtitle sync, and a Raspberry Pi friendly deployment path.
+        The public site is now static and hosted on GitHub Pages.
+      </p>
+      <div class="actions">
+        <a class="button button-primary" href="https://github.com/peterdsp/Magnetio">View repository</a>
+        <a class="button button-secondary" href="https://github.com/peterdsp/Magnetio#deployment">Deployment guide</a>
+      </div>
+    </header>
+
+    <section class="grid">
+      <article class="card">
+        <h2>What it includes</h2>
+        <ul>
+          <li>22 plus provider support</li>
+          <li>Real-Debrid, Premiumize, AllDebrid, TorBox, Put.io, and more</li>
+          <li>Torznab, Jackett, and Prowlarr support</li>
+          <li>Subtitle search and sync pipeline</li>
+          <li>Self-hosted addon and scraper services</li>
+        </ul>
+      </article>
+
+      <article class="card">
+        <h2>Current hosting split</h2>
+        <p>
+          This domain now serves the public website through GitHub Pages.
+          The actual addon runtime remains a separate self-hosted service because GitHub Pages cannot execute the Stremio API backend.
+        </p>
+      </article>
+
+      <article class="card">
+        <h2>Install path</h2>
+        <ol>
+          <li>Clone the repository.</li>
+          <li>Copy <code>.env.example</code> to <code>.env</code>.</li>
+          <li>Set your debrid keys and public URL.</li>
+          <li>Run <code>docker compose up -d</code> on your host.</li>
+        </ol>
+      </article>
+    </section>
+  </main>
+</body>
+</html>
