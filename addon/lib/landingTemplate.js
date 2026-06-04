@@ -50,6 +50,8 @@ function escapeHtml(str) {
 }
 
 export function landingTemplate(manifest, initialConfig = {}) {
+  const brandLogo = escapeHtml(manifest.logo || '');
+  const brandBackground = escapeHtml(manifest.background || manifest.logo || '');
   const initialState = escapeJsonForHtml({
     sort: initialConfig.sort ?? 'qualityseeders',
     limit: initialConfig.limit ?? 10,
@@ -89,7 +91,7 @@ export function landingTemplate(manifest, initialConfig = {}) {
   <meta property="og:description" content="Stream anything with 22+ providers, 8 debrid services, Torznab support, and TMDB recommendations. Fully self-hosted, your API keys never leave your server." />
   <meta property="og:url" content="https://magnetio.peterdsp.dev/" />
   <meta property="og:site_name" content="Magnetio" />
-  <meta property="og:image" content="https://magnetio.peterdsp.dev/og-image.png" />
+  <meta property="og:image" content="${brandLogo}" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
 
@@ -97,7 +99,9 @@ export function landingTemplate(manifest, initialConfig = {}) {
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Magnetio - Self-Hosted Stremio Addon" />
   <meta name="twitter:description" content="Stream anything with 22+ providers, 8 debrid services, and Torznab support. Open source and self-hosted." />
-  <meta name="twitter:image" content="https://magnetio.peterdsp.dev/og-image.png" />
+  <meta name="twitter:image" content="${brandLogo}" />
+  <link rel="icon" href="${brandLogo}" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="${brandLogo}" />
 
   <!-- JSON-LD Structured Data -->
   <script type="application/ld+json">
@@ -194,6 +198,13 @@ export function landingTemplate(manifest, initialConfig = {}) {
       gap: 12px;
     }
 
+    .nav-logo {
+      width: 32px;
+      height: 32px;
+      display: block;
+      flex-shrink: 0;
+    }
+
     .nav-brand {
       font-weight: 800;
       font-size: 1.15rem;
@@ -243,6 +254,17 @@ export function landingTemplate(manifest, initialConfig = {}) {
       text-align: center;
       padding: 120px 24px 80px;
       overflow: hidden;
+    }
+
+    .hero-watermark {
+      position: absolute;
+      top: 120px;
+      left: 50%;
+      width: min(520px, 70vw);
+      height: auto;
+      opacity: 0.06;
+      transform: translateX(-50%);
+      pointer-events: none;
     }
 
     .hero-orb {
@@ -303,6 +325,19 @@ export function landingTemplate(manifest, initialConfig = {}) {
       position: relative;
       z-index: 1;
       max-width: 800px;
+    }
+
+    .hero-brand {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .hero-brand img {
+      width: min(560px, 82vw);
+      height: auto;
+      display: block;
+      filter: drop-shadow(0 24px 80px rgba(0, 0, 0, 0.28));
     }
 
     .hero-headline {
@@ -821,6 +856,7 @@ export function landingTemplate(manifest, initialConfig = {}) {
     /* ---- Responsive ---- */
     @media (max-width: 980px) {
       .hero-headline { font-size: 2.8rem; }
+      .hero-watermark { width: min(440px, 76vw); }
       .features-grid { grid-template-columns: repeat(2, 1fr); }
       .stats-bar { flex-wrap: wrap; margin-top: 0; }
       .stat-item { flex: 1 1 45%; }
@@ -839,8 +875,12 @@ export function landingTemplate(manifest, initialConfig = {}) {
 
     @media (max-width: 640px) {
       .navbar { padding: 0 16px; }
+      .nav-logo { width: 28px; height: 28px; }
       .nav-version { display: none; }
       .hero { padding: 100px 16px 60px; }
+      .hero-watermark { width: min(300px, 74vw); top: 132px; }
+      .hero-brand { margin-bottom: 22px; }
+      .hero-brand img { width: min(420px, 84vw); }
       .hero-headline { font-size: 2rem; }
       .hero-sub { font-size: 0.95rem; }
       .features-grid { grid-template-columns: 1fr; }
@@ -857,6 +897,7 @@ export function landingTemplate(manifest, initialConfig = {}) {
   <!-- Navbar -->
   <nav class="navbar">
     <div class="nav-left">
+      <img class="nav-logo" src="${brandLogo}" alt="" aria-hidden="true" />
       <span class="nav-brand">${escapeHtml(manifest.name)}</span>
       <span class="nav-version">v${escapeHtml(manifest.version)}</span>
     </div>
@@ -865,10 +906,14 @@ export function landingTemplate(manifest, initialConfig = {}) {
 
   <!-- Hero -->
   <section class="hero">
+    <img class="hero-watermark" src="${brandLogo}" alt="" aria-hidden="true" />
     <div class="hero-orb hero-orb-1"></div>
     <div class="hero-orb hero-orb-2"></div>
     <div class="hero-orb hero-orb-3"></div>
     <div class="hero-content">
+      <div class="hero-brand">
+        <img src="${brandBackground}" alt="${escapeHtml(manifest.name)}" />
+      </div>
       <h1 class="hero-headline">
         <span class="gradient-text">Stream anything.</span><br />Own your setup.
       </h1>

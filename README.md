@@ -1,4 +1,8 @@
 <p align="center">
+  <img src="./README_assets/magnetio-logo.svg" alt="Magnetio logo" width="128" />
+</p>
+
+<p align="center">
   <img src="./README_assets/magnetio-wordmark.svg" alt="Magnetio" width="720" />
 </p>
 

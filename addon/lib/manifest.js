@@ -4,7 +4,9 @@ import { MochOptions } from '../moch/options.js';
 const ADDON_ID      = 'com.magnetio.addon';
 const ADDON_VERSION = '1.1.5';
 const ADDON_NAME    = 'Magnetio';
-const ADDON_LOGO    = 'https://i.imgur.com/magnetio.png';
+const ASSET_BASE_URL = `${(process.env.ADDON_PUBLIC_URL || 'https://magnetio.peterdsp.dev').replace(/\/$/, '')}/static`;
+const ADDON_LOGO = `${ASSET_BASE_URL}/magnetio-logo.svg`;
+const ADDON_BACKGROUND = `${ASSET_BASE_URL}/magnetio-wordmark.svg`;
 
 /**
  * Build the full addon manifest for a given config.
@@ -18,7 +20,7 @@ export function manifest(config) {
     name:        override?.name        ?? getName(config),
     description: override?.description ?? getDescription(config),
     logo:        override?.logo        ?? ADDON_LOGO,
-    background:  'https://i.imgur.com/magnetio-bg.jpg',
+    background:  ADDON_BACKGROUND,
     types:       ['movie', 'series', 'anime'],
     resources:   getResources(),
     catalogs:    getCatalogs(config),
@@ -44,7 +46,7 @@ export function dummyManifest() {
     name:        ADDON_NAME,
     description: `${ADDON_NAME} - configure sources, subtitles and debrid services at /configure`,
     logo:        ADDON_LOGO,
-    background:  'https://i.imgur.com/magnetio-bg.jpg',
+    background:  ADDON_BACKGROUND,
     types:       ['movie', 'series', 'anime'],
     resources:   getResources(),
     catalogs:    [],

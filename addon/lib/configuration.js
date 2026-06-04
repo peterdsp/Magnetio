@@ -1,5 +1,8 @@
 import { TorrentProvider, SortType, SizeLimit } from './types.js';
 
+const ASSET_BASE_URL = `${(process.env.ADDON_PUBLIC_URL || 'https://magnetio.peterdsp.dev').replace(/\/$/, '')}/static`;
+const PRESET_LOGO = `${ASSET_BASE_URL}/magnetio-logo.svg`;
+
 const PublicProviderAliases = {
   s1: TorrentProvider.YTS,
   s2: TorrentProvider.EZTV,
@@ -27,7 +30,7 @@ export const PreConfigurations = {
   lite: {
     name: 'Magnetio Lite',
     description: 'Lightweight configuration – English-only, no cam/screener sources',
-    logo:        'https://i.imgur.com/magnetio-lite.png',
+    logo:        PRESET_LOGO,
     overrideId:  'lite',
     providers:   [TorrentProvider.YTS, TorrentProvider.EZTV, TorrentProvider.TORRENTGALAXY],
     qualities:   ['4k', '1080p', '720p'],
@@ -42,7 +45,7 @@ export const PreConfigurations = {
   brazuca: {
     name: 'Magnetio Brazuca',
     description: 'Brazilian-focused configuration with Portuguese language sources',
-    logo:        'https://i.imgur.com/magnetio-brazuca.png',
+    logo:        PRESET_LOGO,
     overrideId:  'brazuca',
     providers:   [TorrentProvider.YTS, TorrentProvider.EZTV, TorrentProvider.TORRENTGALAXY, TorrentProvider.RUTOR],
     qualities:   [],
