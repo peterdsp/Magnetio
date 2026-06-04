@@ -11,7 +11,7 @@
   "author": "Magnetio Contributors",
   "license": "Apache-2.0",
   "dependencies": {
-    "@keyv/redis": "^2.8.2",
+    "@keyv/redis": "^5.1.6",
     "axios": "^1.16.1",
     "bottleneck": "^2.19.5",
     "cheerio": "^1.0.0-rc.12",
