@@ -27,7 +27,7 @@
     "redis": "^4.6.11",
     "stremio-addon-sdk": "^1.6.10",
     "swagger-stats": "^0.99.7",
-    "ua-parser-js": "^1.0.37",
+    "ua-parser-js": "^2.0.10",
     "winston": "^3.11.0"
   },
   "devDependencies": {
