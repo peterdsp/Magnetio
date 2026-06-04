@@ -24,7 +24,7 @@
     "p-limit": "^5.0.0",
     "p-queue": "^7.4.1",
     "prom-client": "^14.2.0",
-    "redis": "^4.6.11",
+    "redis": "^6.0.0",
     "stremio-addon-sdk": "^1.6.10",
     "swagger-stats": "^0.99.7",
     "ua-parser-js": "^1.0.37",
