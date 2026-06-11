@@ -22,7 +22,7 @@
     "magnet-uri": "^6.0.1",
     "node-fetch": "^3.3.2",
     "p-limit": "^5.0.0",
-    "p-queue": "^7.4.1",
+    "p-queue": "^9.3.0",
     "prom-client": "^14.2.0",
     "redis": "^6.0.0",
     "stremio-addon-sdk": "^1.6.10",
