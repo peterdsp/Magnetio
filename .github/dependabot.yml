@@ -5,15 +5,35 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      actions:
+        patterns:
+          - "*"
 
   - package-ecosystem: npm
     directory: /addon
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      addon-minor-patch:
+        update-types:
+          - minor
+          - patch
+      addon-major:
+        update-types:
+          - major
 
   - package-ecosystem: npm
     directory: /scraper
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      scraper-minor-patch:
+        update-types:
+          - minor
+          - patch
+      scraper-major:
+        update-types:
+          - major
