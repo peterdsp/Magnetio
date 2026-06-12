@@ -108,6 +108,8 @@ jobs:
             echo "Created .env from .env.example. Update it on the server before exposing the addon publicly."
           fi
 
+          docker compose stop addon || true
+          docker compose rm -f addon || true
           docker compose up -d --build --remove-orphans
           docker compose ps
 
