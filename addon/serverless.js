@@ -9,6 +9,10 @@ import { landingTemplate } from './lib/landingTemplate.js';
 import { statsDashboard } from './lib/statsDashboard.js';
 import { logger } from './lib/logger.js';
 import { handleSubtitleProxyRequest } from './lib/subtitleProxy.js';
+import { handleYifySubtitleProxy } from './lib/yifySubtitles.js';
+import { handleTvSubtitlesProxy } from './lib/tvSubtitles.js';
+import { handleCommunitySubtitlesProxy } from './lib/communitySubtitles.js';
+import { handleTranslatedSubtitleProxy } from './lib/translatedSubtitles.js';
 import { trackRequest, getStats } from './lib/analytics.js';
 import { runWithClientIp } from './lib/requestContext.js';
 
@@ -105,6 +109,10 @@ const subtitleProxyLimiter = rateLimit({
 });
 
 router.get('/proxy/subtitle/:id.srt', subtitleProxyLimiter, handleSubtitleProxyRequest);
+router.get('/proxy/yify/:id.srt', subtitleProxyLimiter, handleYifySubtitleProxy);
+router.get('/proxy/tvsubs/:id.srt', subtitleProxyLimiter, handleTvSubtitlesProxy);
+router.get('/proxy/community/:id.srt', subtitleProxyLimiter, handleCommunitySubtitlesProxy);
+router.get('/proxy/translated/:id.srt', subtitleProxyLimiter, handleTranslatedSubtitleProxy);
 
 router.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'Magnetio', version: '1.1.5' });

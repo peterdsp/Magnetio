@@ -6,6 +6,10 @@ import { applyFilters } from './lib/filter.js';
 import { sortStreams } from './lib/sort.js';
 import { toStreamInfo } from './lib/streamInfo.js';
 import { getSubtitles } from './lib/subtitles.js';
+import { getYifySubtitles } from './lib/yifySubtitles.js';
+import { getTvSubtitles } from './lib/tvSubtitles.js';
+import { getCommunitySubtitles } from './lib/communitySubtitles.js';
+import { attachTranslatedSubtitles } from './lib/translatedSubtitles.js';
 import { toStaticStream } from './moch/static.js';
 import { getSimilarContent } from './lib/similar.js';
 import NamedQueue from './lib/namedQueue.js';
@@ -122,7 +126,28 @@ export async function getAddonInterface(config) {
   // ─── SUBTITLES HANDLER ─────────────────────────────────────────────────────
   builder.defineSubtitlesHandler(async ({ type, id, extra = {} }) => {
     try {
-      const subtitles = await getSubtitles({ type, id, extra }, config);
+      const args = { type, id, extra };
+      const [opensubtitles, yify, tvsubs, community] = await Promise.all([
+        getSubtitles(args, config).catch(err => {
+          logger.warn(`Primary subtitle source failed [${id}]: ${err.message}`);
+          return [];
+        }),
+        getYifySubtitles(args, config).catch(err => {
+          logger.warn(`Movie subtitle source failed [${id}]: ${err.message}`);
+          return [];
+        }),
+        getTvSubtitles(args, config).catch(err => {
+          logger.warn(`Series subtitle source failed [${id}]: ${err.message}`);
+          return [];
+        }),
+        getCommunitySubtitles(args, config).catch(err => {
+          logger.warn(`Community subtitle source failed [${id}]: ${err.message}`);
+          return [];
+        }),
+      ]);
+
+      const merged = mergeSubtitles(opensubtitles, yify, tvsubs, community);
+      const subtitles = attachTranslatedSubtitles(merged, config);
       const cacheAge = subtitles.length ? CACHE_TTL_OK : CACHE_TTL_EMPTY;
       return {
         subtitles,
@@ -142,6 +167,34 @@ export async function getAddonInterface(config) {
 export function applyFinalStreamLimit(streams, config = {}) {
   const limit = Math.max(0, parseInt(config.limit, 10) || 10);
   return streams.slice(0, limit);
+}
+
+export function mergeSubtitles(...sources) {
+  const merged = [];
+  const seenIds = new Set();
+  const seenUrls = new Set();
+  const perLanguageCount = new Map();
+  const PER_LANGUAGE_CAP = 4;
+  const TOTAL_CAP = 12;
+
+  for (const subtitle of sources.flat()) {
+    if (!subtitle?.url) continue;
+    const id = String(subtitle.id || subtitle.url);
+    const url = String(subtitle.url);
+    if (seenIds.has(id) || seenUrls.has(url)) continue;
+
+    const lang = subtitle.lang || 'eng';
+    const count = perLanguageCount.get(lang) || 0;
+    if (count >= PER_LANGUAGE_CAP) continue;
+
+    merged.push(subtitle);
+    seenIds.add(id);
+    seenUrls.add(url);
+    perLanguageCount.set(lang, count + 1);
+    if (merged.length >= TOTAL_CAP) break;
+  }
+
+  return merged;
 }
 
 function logStreamSummary({ type, id, config, records, filtered, baseStreams, finalStreams }) {
