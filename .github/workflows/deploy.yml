@@ -108,8 +108,13 @@ jobs:
             echo "Created .env from .env.example. Update it on the server before exposing the addon publicly."
           fi
 
-          docker compose stop addon || true
-          docker compose rm -f addon || true
+          echo "--- Containers publishing port 7000 (before) ---"
+          docker ps -a --filter "publish=7000" --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' || true
+
+          docker stop magnetio_addon 2>/dev/null || true
+          docker rm -f magnetio_addon 2>/dev/null || true
+          docker compose rm -f addon 2>/dev/null || true
+
           docker compose up -d --build --remove-orphans
           docker compose ps
 
