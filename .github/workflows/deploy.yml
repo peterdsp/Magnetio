@@ -111,9 +111,29 @@ jobs:
           echo "--- Containers publishing port 7000 (before) ---"
           docker ps -a --filter "publish=7000" --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' || true
 
-          docker stop magnetio_addon 2>/dev/null || true
-          docker rm -f magnetio_addon 2>/dev/null || true
+          docker compose stop addon 2>/dev/null || true
           docker compose rm -f addon 2>/dev/null || true
+
+          # Force-remove any container still publishing port 7000, regardless of name.
+          mapfile -t port_holders < <(docker ps -a --filter "publish=7000" --format '{{.ID}}')
+          if [ "${#port_holders[@]}" -gt 0 ]; then
+            echo "Force-removing containers holding port 7000: ${port_holders[*]}"
+            docker rm -f "${port_holders[@]}" 2>/dev/null || true
+          fi
+
+          # As a last resort, free port 7000 from any non-Docker process.
+          if command -v ss >/dev/null 2>&1 && ss -ltnp 2>/dev/null | grep -q ':7000 '; then
+            echo "--- Listeners on port 7000 (after container cleanup) ---"
+            ss -ltnp 2>/dev/null | grep ':7000 ' || true
+            mapfile -t pids < <(ss -ltnp 2>/dev/null | grep ':7000 ' | grep -oE 'pid=[0-9]+' | cut -d= -f2 | sort -u)
+            for pid in "${pids[@]}"; do
+              [ -n "$pid" ] && kill "$pid" 2>/dev/null || true
+            done
+            sleep 2
+            for pid in "${pids[@]}"; do
+              [ -n "$pid" ] && kill -9 "$pid" 2>/dev/null || true
+            done
+          fi
 
           docker compose up -d --build --remove-orphans
           docker compose ps
