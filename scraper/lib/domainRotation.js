@@ -1,24 +1,39 @@
 import { logger } from './logger.js';
 
 const domainHealth = new Map();
-const COOLDOWN_MS = 5 * 60 * 1000;
+const DEFAULT_COOLDOWN_MS    = 5 * 60 * 1000;
+const DEFAULT_RATELIMIT_MS   = 10 * 60 * 1000;
+const COOLDOWN_MS  = parseInt(process.env.SCRAPER_DOMAIN_COOLDOWN_MS  ?? String(DEFAULT_COOLDOWN_MS),  10);
+const RATELIMIT_MS = parseInt(process.env.SCRAPER_RATELIMIT_COOLDOWN_MS ?? String(DEFAULT_RATELIMIT_MS), 10);
+
+function cooldownFor(reason) {
+  return reason === 'ratelimited' ? RATELIMIT_MS : COOLDOWN_MS;
+}
 
 function isHealthy(domain) {
   const entry = domainHealth.get(domain);
   if (!entry) return true;
-  if (Date.now() - entry.failedAt > COOLDOWN_MS) {
+  if (Date.now() - entry.failedAt > cooldownFor(entry.reason)) {
     domainHealth.delete(domain);
     return true;
   }
   return false;
 }
 
-function markFailed(domain) {
-  domainHealth.set(domain, { failedAt: Date.now() });
+function markFailed(domain, reason) {
+  domainHealth.set(domain, { failedAt: Date.now(), reason });
 }
 
 function markHealthy(domain) {
   domainHealth.delete(domain);
+}
+
+function classifyError(status) {
+  if (status === 429) return 'ratelimited';
+  if (status === 403) return 'blocked';
+  if (!status) return 'network';
+  if (status >= 500) return 'server';
+  return null;
 }
 
 export async function tryDomains(domains, requestFn, providerName) {
@@ -32,10 +47,10 @@ export async function tryDomains(domains, requestFn, providerName) {
       return result;
     } catch (err) {
       const status = err.response?.status;
-      const isBadDomain = !status || status >= 500 || status === 403;
-      if (isBadDomain) {
-        markFailed(domain);
-        logger.debug(`[${providerName}] domain ${domain} failed (${status ?? err.code ?? err.message}), trying next`);
+      const reason = classifyError(status);
+      if (reason) {
+        markFailed(domain, reason);
+        logger.debug(`[${providerName}] domain ${domain} ${reason} (${status ?? err.code ?? err.message}), trying next`);
       } else {
         throw err;
       }

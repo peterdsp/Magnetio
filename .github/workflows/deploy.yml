@@ -108,6 +108,45 @@ jobs:
             echo "Created .env from .env.example. Update it on the server before exposing the addon publicly."
           fi
 
+          port_in_use() {
+            # Returns 0 if anything is bound to TCP 7000.
+            if command -v ss >/dev/null 2>&1; then
+              ss -ltn 2>/dev/null | awk '{print $4}' | grep -qE '(:|\.)7000$' && return 0
+            fi
+            if command -v lsof >/dev/null 2>&1; then
+              lsof -iTCP:7000 -sTCP:LISTEN -t >/dev/null 2>&1 && return 0
+            fi
+            if command -v fuser >/dev/null 2>&1; then
+              fuser 7000/tcp >/dev/null 2>&1 && return 0
+            fi
+            return 1
+          }
+
+          kill_port_holders() {
+            # Best-effort kill of anything bound to TCP 7000.
+            # docker-proxy is the usual culprit, lingering after `docker rm`.
+            local pids=""
+            if command -v lsof >/dev/null 2>&1; then
+              pids=$(lsof -iTCP:7000 -sTCP:LISTEN -t 2>/dev/null | sort -u)
+            fi
+            if [ -z "$pids" ] && command -v fuser >/dev/null 2>&1; then
+              pids=$(fuser 7000/tcp 2>/dev/null | tr -s ' ' '\n' | grep -E '^[0-9]+$' | sort -u)
+            fi
+            if [ -z "$pids" ] && command -v ss >/dev/null 2>&1; then
+              pids=$(ss -ltnp 2>/dev/null | awk '$4 ~ /(:|\.)7000$/' | grep -oE 'pid=[0-9]+' | cut -d= -f2 | sort -u)
+            fi
+            for pid in $pids; do
+              echo "Killing PID $pid ($(ps -o comm= -p "$pid" 2>/dev/null)) bound to :7000"
+              sudo kill "$pid" 2>/dev/null || kill "$pid" 2>/dev/null || true
+            done
+            sleep 1
+            for pid in $pids; do
+              if kill -0 "$pid" 2>/dev/null; then
+                sudo kill -9 "$pid" 2>/dev/null || kill -9 "$pid" 2>/dev/null || true
+              fi
+            done
+          }
+
           echo "--- Containers publishing port 7000 (before) ---"
           docker ps -a --filter "publish=7000" --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' || true
 
@@ -121,21 +160,40 @@ jobs:
             docker rm -f "${port_holders[@]}" 2>/dev/null || true
           fi
 
-          # As a last resort, free port 7000 from any non-Docker process.
-          if command -v ss >/dev/null 2>&1 && ss -ltnp 2>/dev/null | grep -q ':7000 '; then
-            echo "--- Listeners on port 7000 (after container cleanup) ---"
-            ss -ltnp 2>/dev/null | grep ':7000 ' || true
-            mapfile -t pids < <(ss -ltnp 2>/dev/null | grep ':7000 ' | grep -oE 'pid=[0-9]+' | cut -d= -f2 | sort -u)
-            for pid in "${pids[@]}"; do
-              [ -n "$pid" ] && kill "$pid" 2>/dev/null || true
-            done
-            sleep 2
-            for pid in "${pids[@]}"; do
-              [ -n "$pid" ] && kill -9 "$pid" 2>/dev/null || true
-            done
+          # Drop stale network endpoints (the lingering docker-proxy keeps the port).
+          docker network prune -f >/dev/null 2>&1 || true
+
+          # Wait up to 30s for the port to actually be free; if not, kill the holder.
+          for i in $(seq 1 30); do
+            if ! port_in_use; then
+              break
+            fi
+            if [ "$i" -eq 10 ] || [ "$i" -eq 20 ]; then
+              echo "Port 7000 still bound after ${i}s, killing holders..."
+              kill_port_holders
+            fi
+            sleep 1
+          done
+
+          if port_in_use; then
+            echo "Port 7000 still bound after 30s. Listing holders before giving up:"
+            (lsof -iTCP:7000 -sTCP:LISTEN -P -n 2>/dev/null \
+              || ss -ltnp 2>/dev/null | grep ':7000 ' \
+              || fuser -v 7000/tcp 2>/dev/null) || true
           fi
 
-          docker compose up -d --build --remove-orphans
+          # Compose up with a single retry on EADDRINUSE — docker-proxy
+          # occasionally re-grabs the port between our check and create.
+          if ! docker compose up -d --build --remove-orphans 2>&1 | tee /tmp/compose-up.log; then
+            if grep -q "address already in use" /tmp/compose-up.log; then
+              echo "EADDRINUSE on first attempt; killing holders and retrying once..."
+              kill_port_holders
+              sleep 3
+              docker compose up -d --build --remove-orphans
+            else
+              exit 1
+            fi
+          fi
           docker compose ps
 
       - name: Health check

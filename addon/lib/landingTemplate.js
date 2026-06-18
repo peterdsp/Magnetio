@@ -60,6 +60,7 @@ export function landingTemplate(manifest, initialConfig = {}) {
     subtitleLanguages: initialConfig.subtitleLanguages ?? ['en'],
     prewarmDebrid: initialConfig.prewarmDebrid ?? true,
     prewarmLimit: initialConfig.prewarmLimit ?? 3,
+    debridCatalogs: initialConfig.debridCatalogs ?? true,
     tmdbApiKey: initialConfig.tmdbApiKey ?? '',
     torznabUrl: initialConfig.torznabUrl ?? '',
     torznabApiKey: initialConfig.torznabApiKey ?? '',
@@ -1128,6 +1129,13 @@ export function landingTemplate(manifest, initialConfig = {}) {
             <option value="5">5</option>
           </select>
         </label>
+        <label>
+          Add Debrid cloud catalogs
+          <select id="debridCatalogs" title="When a Debrid API key is set, also expose your cloud catalog (Movies/Series) in Stremio">
+            <option value="1">Enabled</option>
+            <option value="0">Disabled</option>
+          </select>
+        </label>
       </div>
       <div class="field-grid">
         ${DEBRID_FIELDS.map(([id, label, url]) => `
@@ -1240,6 +1248,7 @@ export function landingTemplate(manifest, initialConfig = {}) {
       document.getElementById('limit').value = String(initialConfig.limit || 10);
       document.getElementById('prewarm').value = initialConfig.prewarmDebrid === false ? '0' : '1';
       document.getElementById('prewarmLimit').value = String(initialConfig.prewarmLimit || 3);
+      document.getElementById('debridCatalogs').value = initialConfig.debridCatalogs === false ? '0' : '1';
 
       setChipGrid('qualities', initialConfig.qualities || []);
       setChipGrid('languages', initialConfig.languages || []);
@@ -1266,6 +1275,8 @@ export function landingTemplate(manifest, initialConfig = {}) {
       parts.push('limit=' + document.getElementById('limit').value);
       parts.push('prewarm=' + document.getElementById('prewarm').value);
       parts.push('prewarmLimit=' + document.getElementById('prewarmLimit').value);
+      var debridCatalogsValue = document.getElementById('debridCatalogs').value;
+      if (debridCatalogsValue === '0') parts.push('debridCatalogs=0');
 
       var qualities = selectedValues('qualities');
       var languages = selectedValues('languages');
