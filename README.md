@@ -261,6 +261,7 @@ https://your-server:7000/providers=yts,eztv,1337x|sort=qualityseeders|limit=10|R
 | `torznabKey` | API key | - | Torznab API key |
 | `prewarm` | `1`, `0`, `true`, `false` | `1` | Background-add top uncached torrents to debrid |
 | `prewarmLimit` | `0` to `10` | `3` | How many uncached results to prewarm per service |
+| `debridCatalogs` | `1`, `0`, `true`, `false` | `1` | Expose debrid cloud catalogs (Movies/Series) when a key is set |
 | `excludeSizes` | Size thresholds like `1GB,2GB` | None | Exclude streams below these sizes |
 | `maxSize` | Bytes | None | Maximum file size |
 | `RD` | API key | - | Real-Debrid |
@@ -517,13 +518,52 @@ The workflow runs on a self-hosted GitHub Actions runner. Push to `main` trigger
 
 ### Exposing to the Internet
 
-Stremio requires HTTPS for addon URLs. Common approaches:
+> **Don't want to self-host?** There's a public hosted instance at [magnetio.peterdsp.dev](https://magnetio.peterdsp.dev) (configure and install at [magnetio.peterdsp.dev/configure](https://magnetio.peterdsp.dev/configure)). Your Debrid keys still stay between your browser and your Debrid provider, the manifest URL just points at the hosted addon. The rest of this section is only relevant if you're running your own instance on a VPS or home server.
 
-- **Cloudflare Tunnel** or **Cloudflare DNS proxy** pointing to your server
-- **Nginx reverse proxy** with Let's Encrypt SSL
-- **Tailscale** or **WireGuard** for private access
+Stremio's clients (web, desktop, mobile) refuse to install an addon over plain `http://`. This is a Stremio-side restriction, not something the addon can opt out of. If you can hit the configure page on `http://YOUR_IP:7000/configure` but Stremio fails to install, HTTPS is almost always the reason.
 
-The `ADDON_PUBLIC_URL` environment variable controls what base URL appears in manifests. The landing page uses `location.origin` which automatically resolves to your public domain when accessed through it.
+The fix is to put any HTTPS-terminating reverse proxy in front of the addon. The `ADDON_PUBLIC_URL` env var controls the base URL that appears inside manifests; the landing page uses `location.origin` so it picks up your public domain automatically when accessed through the proxy.
+
+#### Caddy (recommended, auto Let's Encrypt)
+
+```caddyfile
+magnetio.example.com {
+  reverse_proxy localhost:7000
+}
+```
+
+Caddy handles the certificate, the renewals, and HTTP-to-HTTPS redirect by itself. One file, restart, done.
+
+#### Cloudflare Tunnel (no open ports)
+
+```bash
+cloudflared tunnel create magnetio
+cloudflared tunnel route dns magnetio magnetio.example.com
+cloudflared tunnel run --url http://localhost:7000 magnetio
+```
+
+Useful when you don't want to open inbound ports on your firewall at all.
+
+#### Nginx + certbot, Tailscale, WireGuard
+
+Also fine. Anything that gives the addon a real `https://` URL on a public domain works.
+
+#### Oracle Cloud / Free Tier VPS notes
+
+Oracle's free-tier VMs block inbound traffic in **two** places by default. If you set up the addon, `:7000` works locally on the box, but install from Stremio (or even `curl` from your laptop) fails, you almost certainly need to open both:
+
+1. **VCN security list** (web console): add an ingress rule for TCP `443` (and `7000` if you're testing without a proxy), source `0.0.0.0/0`.
+2. **Host iptables** (Oracle Linux ships a strict default):
+
+   ```bash
+   sudo iptables -I INPUT 6 -p tcp --dport 443 -j ACCEPT
+   sudo iptables -I INPUT 6 -p tcp --dport 7000 -j ACCEPT
+   sudo netfilter-persistent save   # or: sudo service iptables save
+   ```
+
+   On Ubuntu images use `ufw allow 443/tcp` and `ufw allow 7000/tcp` instead.
+
+Combined with the HTTPS step above, that's enough to install Magnetio on an Oracle VPS.
 
 ---
 
@@ -559,6 +599,12 @@ The `ADDON_PUBLIC_URL` environment variable controls what base URL appears in ma
 | `PREWARM_CRON` | `0 4 * * *` | Cron schedule for prewarm job |
 | `PREWARM_MOVIES` | `50` | Number of top movies to prewarm |
 | `PREWARM_SERIES` | `20` | Number of top series to prewarm |
+| `SCRAPER_PROVIDER_TIMEOUT_MS` | `25000` | Per-provider timeout (raise if slow providers keep firing `timed out`) |
+| `SCRAPER_HARD_TIMEOUT_MS` | `provider + 2000` | Overall scrape budget |
+| `SCRAPER_EARLY_RETURN_MS` | `6000` | Return early once enough results land |
+| `SCRAPER_MIN_EARLY_RESULTS` | `10` | Minimum results before early return kicks in |
+| `SCRAPER_DOMAIN_COOLDOWN_MS` | `300000` | Cooldown when a domain returns 403/5xx/timeout |
+| `SCRAPER_RATELIMIT_COOLDOWN_MS` | `600000` | Longer cooldown when a domain returns 429 |
 | `LOG_LEVEL` | `info` | Winston log level |
 
 ### Optional Services

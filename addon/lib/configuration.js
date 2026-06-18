@@ -104,6 +104,9 @@ export function parseConfiguration(configString) {
       case 'prewarm':
         config.prewarmDebrid = parseBoolean(value, config.prewarmDebrid);
         break;
+      case 'debridcatalogs':
+        config.debridCatalogs = parseBoolean(value, config.debridCatalogs);
+        break;
       case 'prewarmlimit':
         config.prewarmLimit = clampPrewarmLimit(parseInt(value, 10), config.prewarmLimit);
         break;
@@ -186,6 +189,7 @@ export function getDefaultConfiguration() {
     subtitleLanguages:  ['en'],       // subtitle preference defaults to English
     prewarmDebrid:      true,         // warm a few top uncached results in debrid
     prewarmLimit:       3,
+    debridCatalogs:     true,         // expose debrid cloud catalogs when a key is set
     excludeSizes:       [],
     maxSize:            null,
     // Recommendations (TMDB)

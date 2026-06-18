@@ -54,9 +54,10 @@ const ALL_PROVIDERS = [
 
 // Max 6 providers running simultaneously (up from 4 for faster throughput)
 const limit = pLimit(6);
-const PROVIDER_TIMEOUT_MS = 15_000;
-const EARLY_RETURN_MS     = 5_000;   // Return results after 5s if we have enough
-const MIN_EARLY_RESULTS   = 10;      // Minimum results before early return kicks in
+const PROVIDER_TIMEOUT_MS = parseInt(process.env.SCRAPER_PROVIDER_TIMEOUT_MS ?? '25000', 10);
+const HARD_TIMEOUT_MS     = parseInt(process.env.SCRAPER_HARD_TIMEOUT_MS     ?? String(PROVIDER_TIMEOUT_MS + 2000), 10);
+const EARLY_RETURN_MS     = parseInt(process.env.SCRAPER_EARLY_RETURN_MS     ?? '6000', 10);
+const MIN_EARLY_RESULTS   = parseInt(process.env.SCRAPER_MIN_EARLY_RESULTS   ?? '10', 10);
 
 /**
  * Scrape all (or a subset of) providers for a given content item.
@@ -102,13 +103,13 @@ export async function scrapeAll(type, meta, providerIds = null, context = {}) {
       }
     }, EARLY_RETURN_MS);
 
-    // Hard deadline: never wait longer than PROVIDER_TIMEOUT_MS
+    // Hard deadline: cut off after HARD_TIMEOUT_MS even if providers are still pending
     const hardTimer = setTimeout(() => {
       if (!resolved) {
-        logger.info(`Hard timeout: ${collected.length} results from ${completedCount}/${providers.length} providers after ${PROVIDER_TIMEOUT_MS}ms`);
+        logger.info(`Hard timeout: ${collected.length} results from ${completedCount}/${providers.length} providers after ${HARD_TIMEOUT_MS}ms`);
         finalize();
       }
-    }, PROVIDER_TIMEOUT_MS);
+    }, HARD_TIMEOUT_MS);
 
     // Launch all providers in parallel (concurrency-limited)
     const tasks = providers.map(p =>
