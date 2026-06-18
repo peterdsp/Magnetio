@@ -518,6 +518,8 @@ The workflow runs on a self-hosted GitHub Actions runner. Push to `main` trigger
 
 ### Exposing to the Internet
 
+> **Don't want to self-host?** There's a public hosted instance at [magnetio.peterdsp.dev](https://magnetio.peterdsp.dev) (configure and install at [magnetio.peterdsp.dev/configure](https://magnetio.peterdsp.dev/configure)). Your Debrid keys still stay between your browser and your Debrid provider, the manifest URL just points at the hosted addon. The rest of this section is only relevant if you're running your own instance on a VPS or home server.
+
 Stremio's clients (web, desktop, mobile) refuse to install an addon over plain `http://`. This is a Stremio-side restriction, not something the addon can opt out of. If you can hit the configure page on `http://YOUR_IP:7000/configure` but Stremio fails to install, HTTPS is almost always the reason.
 
 The fix is to put any HTTPS-terminating reverse proxy in front of the addon. The `ADDON_PUBLIC_URL` env var controls the base URL that appears inside manifests; the landing page uses `location.origin` so it picks up your public domain automatically when accessed through the proxy.
