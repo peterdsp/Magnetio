@@ -20,6 +20,10 @@ const LANGUAGES = [
   ['ar', 'Arabic'],
   ['tr', 'Turkish'],
   ['hi', 'Hindi'],
+  ['ta', 'Tamil'],
+  ['te', 'Telugu'],
+  ['ml', 'Malayalam'],
+  ['kn', 'Kannada'],
   ['el', 'Greek'],
   ['sq', 'Albanian'],
 ];
