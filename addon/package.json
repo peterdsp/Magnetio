@@ -37,7 +37,7 @@
     "swagger-stats": {
       "prom-client": "$prom-client"
     },
-    "path-to-regexp": "0.1.10"
+    "path-to-regexp@0.1.7": "0.1.10"
   },
   "engines": {
     "node": ">=18.0.0"
