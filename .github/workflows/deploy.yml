@@ -37,7 +37,7 @@ jobs:
 
       - name: Install addon dependencies
         working-directory: addon
-        run: npm ci
+        run: npm install --ignore-scripts=false
 
       - name: Test addon
         working-directory: addon
