@@ -15,22 +15,26 @@ function buildMagnet(infoHash, trackers = []) {
   return uri;
 }
 
-function buildEngineOpts() {
+function buildEngineOpts(proxyUrl) {
   const opts = { path: DOWNLOAD_PATH, connections: 30, uploads: 0, verify: false };
-  if (PROXY_SOCKS) {
-    const url = new URL(PROXY_SOCKS);
-    opts.tracker = {
-      proxy: { host: url.hostname, port: parseInt(url.port, 10) || 1080 },
-    };
+  const socks = proxyUrl || PROXY_SOCKS;
+  if (socks) {
+    try {
+      const url = new URL(socks);
+      opts.tracker = {
+        proxy: { host: url.hostname, port: parseInt(url.port, 10) || 1080 },
+      };
+    } catch {}
   }
   return opts;
 }
 
-function getOrCreateEngine(infoHash, trackers) {
-  const existing = engines.get(infoHash);
+function getOrCreateEngine(infoHash, trackers, proxyUrl) {
+  const engineKey = proxyUrl ? `${infoHash}:${proxyUrl}` : infoHash;
+  const existing = engines.get(engineKey);
   if (existing) {
     existing.lastAccess = Date.now();
-    return existing;
+    return { entry: existing, engineKey };
   }
 
   while (engines.size >= MAX_ENGINES) {
@@ -42,7 +46,7 @@ function getOrCreateEngine(infoHash, trackers) {
   }
 
   const magnet = buildMagnet(infoHash, trackers);
-  const engine = torrentStream(magnet, buildEngineOpts());
+  const engine = torrentStream(magnet, buildEngineOpts(proxyUrl));
 
   const entry = {
     engine,
@@ -65,10 +69,10 @@ function getOrCreateEngine(infoHash, trackers) {
     });
   });
 
-  resetIdleTimer(infoHash, entry);
-  engines.set(infoHash, entry);
+  resetIdleTimer(engineKey, entry);
+  engines.set(engineKey, entry);
   logger.info(`Torrent engine started: ${infoHash} (${engines.size}/${MAX_ENGINES})`);
-  return entry;
+  return { entry, engineKey };
 }
 
 function resetIdleTimer(infoHash, entry) {
@@ -95,18 +99,18 @@ function selectFile(engine, fileIdx) {
   return video || files[0];
 }
 
-export async function streamTorrent(infoHash, fileIdx, req, res) {
-  const entry = getOrCreateEngine(infoHash, []);
+export async function streamTorrent(infoHash, fileIdx, req, res, proxyUrl) {
+  const { entry, engineKey } = getOrCreateEngine(infoHash, [], proxyUrl);
   try {
     await entry.readyPromise;
   } catch (err) {
-    destroyEngine(infoHash);
+    destroyEngine(engineKey);
     res.status(504).json({ error: 'Torrent engine failed to start' });
     return;
   }
 
   entry.lastAccess = Date.now();
-  resetIdleTimer(infoHash, entry);
+  resetIdleTimer(engineKey, entry);
 
   const file = selectFile(entry.engine, fileIdx);
   if (!file) {
@@ -153,7 +157,7 @@ export async function streamTorrent(infoHash, fileIdx, req, res) {
 
   res.on('close', () => {
     entry.lastAccess = Date.now();
-    resetIdleTimer(infoHash, entry);
+    resetIdleTimer(engineKey, entry);
   });
 }
 

@@ -120,8 +120,15 @@ router.get('/proxy/stream/:infoHash/:fileIdx', async (req, res) => {
   if (!/^[a-f0-9]{40}$/i.test(infoHash)) {
     return res.status(400).json({ error: 'Invalid infoHash' });
   }
+  let proxyUrl = null;
+  if (req.query.p) {
+    try { proxyUrl = Buffer.from(req.query.p, 'base64url').toString('utf8'); } catch {}
+    if (proxyUrl && !/^socks[45]?:\/\//i.test(proxyUrl)) {
+      return res.status(400).json({ error: 'Invalid proxy URL scheme (must be socks5://)' });
+    }
+  }
   try {
-    await streamTorrent(infoHash, parseInt(fileIdx, 10) || 0, req, res);
+    await streamTorrent(infoHash, parseInt(fileIdx, 10) || 0, req, res, proxyUrl);
   } catch (err) {
     logger.error(`Proxy stream error: ${err.message}`);
     if (!res.headersSent) res.status(500).json({ error: 'Stream failed' });

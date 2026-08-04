@@ -42,9 +42,13 @@ export function toStreamInfo(record, config) {
   };
 
   if (useProxy) {
-    stream.url = `${baseUrl}/proxy/stream/${record.infoHash}/${fileIdx ?? 0}`;
+    const proxyParams = config.proxyUrl
+      ? `?p=${encodeURIComponent(Buffer.from(config.proxyUrl).toString('base64url'))}`
+      : '';
+    stream.url = `${baseUrl}/proxy/stream/${record.infoHash}/${fileIdx ?? 0}${proxyParams}`;
     stream.behaviorHints.notWebReady = true;
-    const proxyDesc = description + '\n🛡️ Privacy Proxy';
+    const proxyLabel = config.proxyUrl ? '🛡️ VPN Proxy' : '🛡️ Privacy Proxy';
+    const proxyDesc = description + '\n' + proxyLabel;
     stream.title = proxyDesc;
     stream.description = proxyDesc;
   } else {

@@ -155,6 +155,10 @@ export function parseConfiguration(configString) {
       case 'proxy':
         config.proxyStreams = parseBoolean(value, config.proxyStreams);
         break;
+      case 'proxyurl':
+        try { config.proxyUrl = decodeURIComponent(value); }
+        catch { config.proxyUrl = value; }
+        break;
     }
   }
 
@@ -202,6 +206,7 @@ export function getDefaultConfiguration() {
     torznabApiKey:      null,
     // P2P privacy proxy
     proxyStreams:        false,
+    proxyUrl:            null,
     // Debrid keys (all null by default)
     realDebridApiKey:   null,
     premiumizeApiKey:   null,
