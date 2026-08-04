@@ -22,7 +22,7 @@ RUN apt-get update \
 
 # Install dependencies separately for better layer caching
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm install --omit=dev
 
 # Copy source
 COPY . .
