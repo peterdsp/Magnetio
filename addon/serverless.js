@@ -115,16 +115,26 @@ router.get('/proxy/tvsubs/:id.srt', subtitleProxyLimiter, handleTvSubtitlesProxy
 router.get('/proxy/community/:id.srt', subtitleProxyLimiter, handleCommunitySubtitlesProxy);
 router.get('/proxy/translated/:id.srt', subtitleProxyLimiter, handleTranslatedSubtitleProxy);
 
-router.get('/proxy/stream/:infoHash/:fileIdx', async (req, res) => {
+const proxyStreamLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many proxy stream requests, try again later' },
+});
+
+router.get('/proxy/stream/:infoHash/:fileIdx', proxyStreamLimiter, async (req, res) => {
   const { infoHash, fileIdx } = req.params;
   if (!/^[a-f0-9]{40}$/i.test(infoHash)) {
     return res.status(400).json({ error: 'Invalid infoHash' });
   }
   let proxyUrl = null;
   if (req.query.p) {
-    try { proxyUrl = Buffer.from(req.query.p, 'base64url').toString('utf8'); } catch {}
+    try { proxyUrl = Buffer.from(req.query.p, 'base64url').toString('utf8'); } catch {
+      return res.status(400).json({ error: 'Invalid proxy parameter encoding' });
+    }
     if (proxyUrl && !/^socks[45]?:\/\//i.test(proxyUrl)) {
-      return res.status(400).json({ error: 'Invalid proxy URL scheme (must be socks5://)' });
+      return res.status(400).json({ error: 'Invalid proxy URL scheme (must be socks4:// or socks5://)' });
     }
   }
   try {

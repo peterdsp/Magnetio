@@ -1,8 +1,9 @@
 import torrentStream from 'torrent-stream';
 import { logger } from './logger.js';
+import { getBestTrackers } from './magnetHelper.js';
 import path from 'path';
 
-const MAX_ENGINES = parseInt(process.env.PROXY_MAX_ENGINES ?? '3', 10);
+const MAX_ENGINES = Math.max(1, parseInt(process.env.PROXY_MAX_ENGINES ?? '3', 10) || 3);
 const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 const DOWNLOAD_PATH = process.env.PROXY_DOWNLOAD_PATH || '/tmp/magnetio-torrents';
 const PROXY_SOCKS = process.env.TORRENT_PROXY || null;
@@ -90,17 +91,17 @@ function destroyEngine(infoHash) {
 }
 
 function selectFile(engine, fileIdx) {
-  const files = engine.files.sort((a, b) => b.length - a.length);
   if (fileIdx != null && fileIdx < engine.files.length) {
     return engine.files[fileIdx];
   }
+  const files = [...engine.files].sort((a, b) => b.length - a.length);
   const videoExts = ['.mp4', '.mkv', '.avi', '.m4v', '.webm', '.mov'];
   const video = files.find(f => videoExts.includes(path.extname(f.name).toLowerCase()));
   return video || files[0];
 }
 
 export async function streamTorrent(infoHash, fileIdx, req, res, proxyUrl) {
-  const { entry, engineKey } = getOrCreateEngine(infoHash, [], proxyUrl);
+  const { entry, engineKey } = getOrCreateEngine(infoHash, getBestTrackers(), proxyUrl);
   try {
     await entry.readyPromise;
   } catch (err) {
@@ -129,8 +130,15 @@ export async function streamTorrent(infoHash, fileIdx, req, res, proxyUrl) {
   const range = req.headers.range;
   if (range) {
     const parts = range.replace(/bytes=/, '').split('-');
-    const start = parseInt(parts[0], 10);
+    const start = parseInt(parts[0], 10) || 0;
     const end = parts[1] ? parseInt(parts[1], 10) : total - 1;
+
+    if (start >= total || end >= total || start > end || start < 0) {
+      res.writeHead(416, { 'Content-Range': `bytes */${total}` });
+      res.end();
+      return;
+    }
+
     const chunkSize = end - start + 1;
 
     res.writeHead(206, {

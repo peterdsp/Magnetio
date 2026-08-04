@@ -924,7 +924,7 @@ export function landingTemplate(manifest, initialConfig = {}) {
         <span class="gradient-text">Stream anything.</span><br />Own your setup.
       </h1>
       <p class="hero-sub">
-        Magnetio is a self-hosted Stremio addon that aggregates torrents from 22+ providers,
+        Magnetio is a self-hosted addon for <strong>Stremio</strong> and <strong><a href="https://nuvioplugin.com" target="_blank" rel="noreferrer" style="color:var(--accent);text-decoration:none;">Nuvio</a></strong> that aggregates torrents from 22+ providers,
         resolves them through 8 debrid services, and delivers instant high-quality streams.
       </p>
       <div class="hero-buttons">
@@ -989,6 +989,11 @@ export function landingTemplate(manifest, initialConfig = {}) {
         <span class="feature-icon">&#128274;</span>
         <div class="feature-title">Self-Hosted</div>
         <div class="feature-desc">Runs on a Raspberry Pi. Your API keys never leave your server. No tracking, no telemetry.</div>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">&#128257;</span>
+        <div class="feature-title">Stremio + Nuvio</div>
+        <div class="feature-desc">Works with both <a href="https://www.stremio.com" target="_blank" rel="noreferrer" style="color:var(--accent);">Stremio</a> and <a href="https://nuvioplugin.com" target="_blank" rel="noreferrer" style="color:var(--accent);">Nuvio</a>. Same manifest URL, same configuration — install once, use on both platforms.</div>
       </div>
     </div>
   </section>
