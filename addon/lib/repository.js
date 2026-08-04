@@ -3,7 +3,7 @@ import { cacheWrap } from './cache.js';
 import { logger } from './logger.js';
 
 const SCRAPER_BASE_URL = process.env.SCRAPER_URL || 'http://localhost:8080';
-const REQUEST_TIMEOUT  = 30_000;
+const REQUEST_TIMEOUT  = 20_000;
 
 function simpleHash(str) {
   let h = 0;
@@ -32,18 +32,27 @@ export async function getStreams(type, id, config) {
   const cacheKey = `streams:${type}:${id}:${providerKey}${torznabSuffix}`;
 
   return cacheWrap(cacheKey, async () => {
-    try {
-      const params = { providers: config.providers?.join(',') };
-      if (config.torznabUrl) {
-        params.torznabUrl = config.torznabUrl;
-        params.torznabApiKey = config.torznabApiKey || '';
-      }
+    const params = { providers: config.providers?.join(',') };
+    if (config.torznabUrl) {
+      params.torznabUrl = config.torznabUrl;
+      params.torznabApiKey = config.torznabApiKey || '';
+    }
 
+    const fetchOnce = async () => {
       const { data } = await axios.get(`${SCRAPER_BASE_URL}/streams/${type}/${id}`, {
         timeout: REQUEST_TIMEOUT,
         params,
       });
       return Array.isArray(data.streams) ? data.streams : [];
+    };
+
+    try {
+      const results = await fetchOnce();
+      if (results.length === 0) {
+        await new Promise(r => setTimeout(r, 1000));
+        return fetchOnce();
+      }
+      return results;
     } catch (err) {
       logger.warn(`Repository fetch failed [${id}]: ${err.message}`);
       return [];

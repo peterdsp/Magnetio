@@ -1114,6 +1114,20 @@ export function landingTemplate(manifest, initialConfig = {}) {
     </div>
 
     <div class="config-card">
+      <div class="config-card-title">Privacy Proxy</div>
+      <div class="config-card-desc">Stream torrents through the server instead of connecting directly to the swarm. Your IP address is never exposed to peers or trackers. Requires ADDON_PUBLIC_URL to be set on the server.</div>
+      <div class="field-grid">
+        <label>
+          P2P Privacy Proxy
+          <select id="proxyStreams">
+            <option value="0">Disabled</option>
+            <option value="1">Enabled</option>
+          </select>
+        </label>
+      </div>
+    </div>
+
+    <div class="config-card">
       <div class="config-card-title">Debrid Services</div>
       <div class="config-card-desc">Add API keys for your debrid services. Cached torrents resolve as direct streams automatically.</div>
       <div class="field-grid">
@@ -1253,6 +1267,7 @@ export function landingTemplate(manifest, initialConfig = {}) {
       document.getElementById('prewarm').value = initialConfig.prewarmDebrid === false ? '0' : '1';
       document.getElementById('prewarmLimit').value = String(initialConfig.prewarmLimit || 3);
       document.getElementById('debridCatalogs').value = initialConfig.debridCatalogs === false ? '0' : '1';
+      document.getElementById('proxyStreams').value = initialConfig.proxyStreams ? '1' : '0';
 
       setChipGrid('qualities', initialConfig.qualities || []);
       setChipGrid('languages', initialConfig.languages || []);
@@ -1281,6 +1296,8 @@ export function landingTemplate(manifest, initialConfig = {}) {
       parts.push('prewarmLimit=' + document.getElementById('prewarmLimit').value);
       var debridCatalogsValue = document.getElementById('debridCatalogs').value;
       if (debridCatalogsValue === '0') parts.push('debridCatalogs=0');
+      var proxyValue = document.getElementById('proxyStreams').value;
+      if (proxyValue === '1') parts.push('proxy=1');
 
       var qualities = selectedValues('qualities');
       var languages = selectedValues('languages');

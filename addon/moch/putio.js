@@ -3,7 +3,6 @@ import { isValidToken, blacklistToken, selectVideoFile, resolveWithCache } from 
 import { logger } from '../lib/logger.js';
 
 const PU_BASE = 'https://api.put.io/v2';
-const SERVICE  = 'PU';
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 

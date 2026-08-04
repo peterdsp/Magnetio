@@ -4,7 +4,6 @@ import { logger } from '../lib/logger.js';
 import { getClientIp } from '../lib/requestContext.js';
 
 const RD_BASE = 'https://api.real-debrid.com/rest/1.0';
-const SERVICE  = 'RD';
 
 // RealDebrid error codes that indicate the token is no longer valid
 const AUTH_ERROR_CODES = new Set([8, 9, 20]);
@@ -239,12 +238,6 @@ function handleRdError(err, apiKey) {
 }
 
 // ─── Utils ────────────────────────────────────────────────────────────────────
-
-function chunkArray(arr, size) {
-  const chunks = [];
-  for (let i = 0; i < arr.length; i += size) chunks.push(arr.slice(i, i + size));
-  return chunks;
-}
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));

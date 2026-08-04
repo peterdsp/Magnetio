@@ -4,7 +4,6 @@ import { logger } from '../lib/logger.js';
 
 const AD_BASE  = 'https://api.alldebrid.com/v4';
 const APP_NAME = 'magnetio';
-const SERVICE  = 'AD';
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 

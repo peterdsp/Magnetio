@@ -15,6 +15,8 @@ RUN apt-get update \
     python3-pip \
     wget \
     ca-certificates \
+    build-essential \
+    python3-setuptools \
   && python3 -m pip install --no-cache-dir --break-system-packages ffsubsync \
   && rm -rf /var/lib/apt/lists/*
 

@@ -15,6 +15,7 @@ import { handleCommunitySubtitlesProxy } from './lib/communitySubtitles.js';
 import { handleTranslatedSubtitleProxy } from './lib/translatedSubtitles.js';
 import { trackRequest, getStats } from './lib/analytics.js';
 import { runWithClientIp } from './lib/requestContext.js';
+import { streamTorrent } from './lib/torrentProxy.js';
 
 const router = express.Router();
 
@@ -113,6 +114,19 @@ router.get('/proxy/yify/:id.srt', subtitleProxyLimiter, handleYifySubtitleProxy)
 router.get('/proxy/tvsubs/:id.srt', subtitleProxyLimiter, handleTvSubtitlesProxy);
 router.get('/proxy/community/:id.srt', subtitleProxyLimiter, handleCommunitySubtitlesProxy);
 router.get('/proxy/translated/:id.srt', subtitleProxyLimiter, handleTranslatedSubtitleProxy);
+
+router.get('/proxy/stream/:infoHash/:fileIdx', async (req, res) => {
+  const { infoHash, fileIdx } = req.params;
+  if (!/^[a-f0-9]{40}$/i.test(infoHash)) {
+    return res.status(400).json({ error: 'Invalid infoHash' });
+  }
+  try {
+    await streamTorrent(infoHash, parseInt(fileIdx, 10) || 0, req, res);
+  } catch (err) {
+    logger.error(`Proxy stream error: ${err.message}`);
+    if (!res.headersSent) res.status(500).json({ error: 'Stream failed' });
+  }
+});
 
 router.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'Magnetio', version: '1.1.5' });

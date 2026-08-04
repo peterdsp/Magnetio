@@ -3,7 +3,6 @@ import { isValidToken, blacklistToken, selectVideoFile, resolveWithCache } from 
 import { logger } from '../lib/logger.js';
 
 const TB_BASE = 'https://api.torbox.app/v1/api';
-const SERVICE  = 'TB';
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 

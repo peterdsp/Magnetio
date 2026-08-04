@@ -3,7 +3,6 @@ import { isValidToken, blacklistToken, selectVideoFile, resolveWithCache } from 
 import { logger } from '../lib/logger.js';
 
 const DL_BASE = 'https://debrid-link.com/api/v2';
-const SERVICE  = 'DL';
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 

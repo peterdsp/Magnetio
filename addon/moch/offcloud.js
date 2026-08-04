@@ -3,7 +3,6 @@ import { isValidToken, blacklistToken, selectVideoFile, resolveWithCache } from 
 import { logger } from '../lib/logger.js';
 
 const OC_BASE = 'https://offcloud.com/api';
-const SERVICE  = 'OC';
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 

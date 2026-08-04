@@ -3,7 +3,6 @@ import { isValidToken, blacklistToken, selectVideoFile, resolveWithCache } from 
 import { logger } from '../lib/logger.js';
 
 const PM_BASE = 'https://www.premiumize.me/api';
-const SERVICE  = 'PM';
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 

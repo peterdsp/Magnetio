@@ -52,12 +52,11 @@ const ALL_PROVIDERS = [
   torznab,
 ];
 
-// Max 6 providers running simultaneously (up from 4 for faster throughput)
-const limit = pLimit(6);
-const PROVIDER_TIMEOUT_MS = parseInt(process.env.SCRAPER_PROVIDER_TIMEOUT_MS ?? '25000', 10);
+const limit = pLimit(parseInt(process.env.SCRAPER_CONCURRENCY ?? '12', 10));
+const PROVIDER_TIMEOUT_MS = parseInt(process.env.SCRAPER_PROVIDER_TIMEOUT_MS ?? '15000', 10);
 const HARD_TIMEOUT_MS     = parseInt(process.env.SCRAPER_HARD_TIMEOUT_MS     ?? String(PROVIDER_TIMEOUT_MS + 2000), 10);
-const EARLY_RETURN_MS     = parseInt(process.env.SCRAPER_EARLY_RETURN_MS     ?? '6000', 10);
-const MIN_EARLY_RESULTS   = parseInt(process.env.SCRAPER_MIN_EARLY_RESULTS   ?? '10', 10);
+const EARLY_RETURN_MS     = parseInt(process.env.SCRAPER_EARLY_RETURN_MS     ?? '3000', 10);
+const MIN_EARLY_RESULTS   = parseInt(process.env.SCRAPER_MIN_EARLY_RESULTS   ?? '3', 10);
 
 /**
  * Scrape all (or a subset of) providers for a given content item.

@@ -11,7 +11,6 @@ const MAX_INPUT_BYTES = 768 * 1024;
 const MAX_BATCH_CHARS = 4000;
 const TRANSLATION_SEPARATOR = '\n\n@@~~@@\n\n';
 const SOURCE_LANGUAGE = 'en';
-const TARGET_LANGUAGES = ['el'];
 const MAX_TRANSLATIONS = 2;
 
 const BLOCKED_HOSTNAMES = new Set([
@@ -27,7 +26,8 @@ const HTTP_HEADERS = {
 
 export function attachTranslatedSubtitles(subtitles, config) {
   const languages = resolveSubtitleLanguages(config);
-  const target = TARGET_LANGUAGES.find(code => languages.includes(code));
+  const nonEnglish = languages.filter(code => code !== SOURCE_LANGUAGE);
+  const target = nonEnglish[0];
   if (!target) return subtitles;
 
   const baseUrl = String(config?._publicBaseUrl || '').replace(/\/$/, '');

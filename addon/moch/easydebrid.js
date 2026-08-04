@@ -3,7 +3,6 @@ import { isValidToken, blacklistToken, resolveWithCache } from './mochHelper.js'
 import { logger } from '../lib/logger.js';
 
 const ED_BASE = 'https://easydebrid.com/api/v1';
-const SERVICE  = 'ED';
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 

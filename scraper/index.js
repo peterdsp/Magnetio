@@ -101,9 +101,17 @@ app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   logger.info(`Magnetio scraper running on port ${PORT}`);
   startCronJobs();
 });
+
+const shutdown = () => {
+  logger.info('Shutting down…');
+  server.close(() => process.exit(0));
+  setTimeout(() => process.exit(1), 10_000);
+};
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
 
 export default app;

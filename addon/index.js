@@ -2,6 +2,7 @@ import express from 'express';
 import swaggerStats from 'swagger-stats';
 import { serverless } from './serverless.js';
 import { initBestTrackers } from './lib/magnetHelper.js';
+import { destroyAllEngines } from './lib/torrentProxy.js';
 import { logger } from './lib/logger.js';
 
 const app = express();
@@ -27,10 +28,24 @@ app.use('/', serverless);
 
 const PORT = process.env.PORT || 7000;
 
-app.listen(PORT, async () => {
-  logger.info(`Magnetio addon running on port ${PORT}`);
+async function start() {
   await initBestTrackers();
   logger.info('Best trackers initialized');
-});
+
+  const server = app.listen(PORT, () => {
+    logger.info(`Magnetio addon running on port ${PORT}`);
+  });
+
+  const shutdown = () => {
+    logger.info('Shutting down…');
+    destroyAllEngines();
+    server.close(() => process.exit(0));
+    setTimeout(() => process.exit(1), 10_000);
+  };
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
+}
+
+start();
 
 export default app;

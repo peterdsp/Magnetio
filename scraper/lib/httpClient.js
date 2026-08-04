@@ -10,12 +10,11 @@ const DEFAULT_HEADERS = {
   'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
 };
 
-// Per-provider rate limiters (max 2 req/s to be polite)
 const limiters = new Map();
 
 function getLimiter(key) {
   if (!limiters.has(key)) {
-    limiters.set(key, new Bottleneck({ minTime: 500, maxConcurrent: 2 }));
+    limiters.set(key, new Bottleneck({ minTime: 250, maxConcurrent: 4 }));
   }
   return limiters.get(key);
 }

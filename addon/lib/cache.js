@@ -21,22 +21,45 @@ function getStore() {
   return _store;
 }
 
+const _inflight = new Map();
+
 /**
- * Fetch from cache; call loader on miss and store the result.
+ * Fetch from cache with stale-while-revalidate semantics.
  *
- * @param {string}   key
- * @param {Function} loader    async () => value
- * @param {number}   ttl       TTL in seconds
+ * - Fresh hit (within TTL): return immediately.
+ * - Stale hit (past TTL but within 2x TTL): return stale data, refresh in background.
+ * - Miss: block on loader.
+ *
+ * Stored format: { data, createdAt }
  */
 export async function cacheWrap(key, loader, ttl = 3600) {
   const store = getStore();
-  const cached = await store.get(key);
-  if (cached !== undefined) return cached;
+  const ttlMs = ttl * 1000;
+  const entry = await store.get(key);
+
+  if (entry?.data !== undefined && entry.createdAt) {
+    const age = Date.now() - entry.createdAt;
+    if (age < ttlMs) return entry.data;
+
+    if (!_inflight.has(key)) {
+      const refresh = loader()
+        .then(value => {
+          const isEmpty = Array.isArray(value) && value.length === 0;
+          if (!isEmpty) {
+            return store.set(key, { data: value, createdAt: Date.now() }, ttlMs * 2);
+          }
+        })
+        .catch(err => logger.warn(`SWR refresh failed [${key}]: ${err.message}`))
+        .finally(() => _inflight.delete(key));
+      _inflight.set(key, refresh);
+    }
+    return entry.data;
+  }
 
   const value = await loader();
   const isEmpty = Array.isArray(value) && value.length === 0;
   if (!isEmpty) {
-    await store.set(key, value, ttl * 1000); // Keyv uses milliseconds
+    await store.set(key, { data: value, createdAt: Date.now() }, ttlMs * 2);
   }
   return value;
 }
