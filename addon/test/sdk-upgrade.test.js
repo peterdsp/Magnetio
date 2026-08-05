@@ -138,7 +138,7 @@ test('stream info exposes tracker sources and subtitle matching hints', () => {
   }, {});
 
   assert.equal(stream.infoHash, 'abcdef0123456789abcdef0123456789abcdef01');
-  assert.deepEqual(stream.sources, ['tracker:udp://tracker.example:1337/announce']);
+  assert.deepEqual(stream.sources, ['dht:abcdef0123456789abcdef0123456789abcdef01', 'tracker:udp://tracker.example:1337/announce']);
   assert.equal(stream.behaviorHints.filename, 'Example.Release.1080p.WEB-DL.x265');
   assert.equal(stream.behaviorHints.videoSize, 2 * 1024 * 1024 * 1024);
   assert.match(stream.description, /WEB-DL/);

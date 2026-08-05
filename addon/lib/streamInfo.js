@@ -73,7 +73,8 @@ function buildSources(record) {
     .slice(0, 20)
     .map(tracker => `tracker:${tracker}`);
 
-  return trackers.length ? trackers : undefined;
+  const sources = [`dht:${record.infoHash}`, ...trackers];
+  return sources;
 }
 
 function getBingeGroup(record, quality) {
