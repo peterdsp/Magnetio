@@ -103,6 +103,7 @@ jobs:
       - name: Deploy with available storage
         env:
           DEPLOY_PATH: /home/peterdsp/magnetio-recovery
+          DEPLOY_MODE: native
         run: |
           set -euo pipefail
           "$DEPLOY_PATH/scripts/deploy-production.sh"

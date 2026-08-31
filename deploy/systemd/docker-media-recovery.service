@@ -1,0 +1,7 @@
+[Unit]
+Description=Retry Docker after the Magnetio media drive appears
+ConditionPathExists=/dev/disk/by-uuid/8d3ec5f0-5cbb-4a1e-838d-c69d41c8a319
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/systemctl --no-block start docker.service

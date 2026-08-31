@@ -517,6 +517,8 @@ The included workflow (`.github/workflows/deploy.yml`) handles automated deploym
 
 The workflow runs on a self-hosted GitHub Actions runner. Push to `main` triggers automatic deployment.
 
+The production workflow keeps Magnetio's Node.js services on the Raspberry Pi's SD card so the public addon remains available if USB media is slow or temporarily missing. Docker and its data can still live on `/mnt/media`; a systemd timer retries Docker automatically when that drive appears after boot. Set `DEPLOY_MODE=auto` or `DEPLOY_MODE=docker` when running `scripts/deploy-production.sh` manually to opt back into Compose deployment.
+
 ### Exposing to the Internet
 
 > **Don't want to self-host?** There's a public hosted instance at [magnetio.peterdsp.dev](https://magnetio.peterdsp.dev) (configure and install at [magnetio.peterdsp.dev/configure](https://magnetio.peterdsp.dev/configure)). Your Debrid keys still stay between your browser and your Debrid provider, the manifest URL just points at the hosted addon. The rest of this section is only relevant if you're running your own instance on a VPS or home server.

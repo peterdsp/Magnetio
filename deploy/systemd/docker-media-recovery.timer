@@ -1,0 +1,11 @@
+[Unit]
+Description=Periodically recover Docker after delayed USB disk enumeration
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=2min
+Persistent=true
+Unit=docker-media-recovery.service
+
+[Install]
+WantedBy=timers.target

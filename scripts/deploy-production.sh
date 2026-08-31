@@ -3,6 +3,7 @@ set -euo pipefail
 
 DEPLOY_PATH="${DEPLOY_PATH:-/home/peterdsp/magnetio-recovery}"
 MEDIA_MOUNT="${MEDIA_MOUNT:-/mnt/media}"
+DEPLOY_MODE="${DEPLOY_MODE:-auto}"
 
 if [ "$DEPLOY_PATH" != "/home/peterdsp/magnetio-recovery" ]; then
   echo "Refusing unexpected deployment path: $DEPLOY_PATH" >&2
@@ -11,6 +12,14 @@ fi
 
 cd "$DEPLOY_PATH"
 
+case "$DEPLOY_MODE" in
+  auto|native|docker) ;;
+  *)
+    echo "Invalid DEPLOY_MODE: $DEPLOY_MODE (expected auto, native, or docker)" >&2
+    exit 1
+    ;;
+esac
+
 if [ ! -f .env ]; then
   cp .env.example .env
   sed -i 's#https://your-domain.example#https://magnetio.peterdsp.dev#' .env
@@ -18,7 +27,9 @@ if [ ! -f .env ]; then
 fi
 
 docker_ready=false
-if command -v findmnt >/dev/null 2>&1 && command -v docker >/dev/null 2>&1; then
+if [ "$DEPLOY_MODE" != "native" ] \
+  && command -v findmnt >/dev/null 2>&1 \
+  && command -v docker >/dev/null 2>&1; then
   configured_source="$(findmnt --fstab -rn -T "$MEDIA_MOUNT" -o SOURCE 2>/dev/null || true)"
   source_present=false
   case "$configured_source" in
@@ -42,6 +53,11 @@ if command -v findmnt >/dev/null 2>&1 && command -v docker >/dev/null 2>&1; then
   fi
 fi
 
+if [ "$DEPLOY_MODE" = "docker" ] && [ "$docker_ready" != true ]; then
+  echo "Docker deployment was requested, but persistent media storage is unavailable." >&2
+  exit 1
+fi
+
 if [ "$docker_ready" = true ]; then
   echo "Persistent media storage is available; deploying with Docker Compose."
   sudo systemctl stop magnetio-addon.service magnetio-scraper.service 2>/dev/null || true
@@ -52,7 +68,7 @@ if [ "$docker_ready" = true ]; then
   sudo systemctl disable magnetio-addon.service magnetio-scraper.service 2>/dev/null || true
   docker compose ps
 else
-  echo "Persistent media storage is unavailable; deploying native fallback on the SD card."
+  echo "Deploying Magnetio natively on the SD card (mode: $DEPLOY_MODE)."
 
   npm --prefix scraper ci --omit=dev
   # The addon lock carries overrides for legacy torrent-stream transitive
@@ -61,7 +77,10 @@ else
 
   sudo install -m 0644 deploy/systemd/magnetio-scraper.service /etc/systemd/system/magnetio-scraper.service
   sudo install -m 0644 deploy/systemd/magnetio-addon.service /etc/systemd/system/magnetio-addon.service
+  sudo install -m 0644 deploy/systemd/docker-media-recovery.service /etc/systemd/system/docker-media-recovery.service
+  sudo install -m 0644 deploy/systemd/docker-media-recovery.timer /etc/systemd/system/docker-media-recovery.timer
   sudo systemctl daemon-reload
+  sudo systemctl enable --now docker-media-recovery.timer
   sudo systemctl enable --now magnetio-scraper.service
   sudo systemctl enable --now magnetio-addon.service
 fi
