@@ -225,8 +225,9 @@ async function getAuthToken() {
   return authState.inflight;
 }
 
-function getBaseHeaders() {
+export function getBaseHeaders() {
   return {
+    Accept: 'application/json',
     'Api-Key': process.env.OPENSUBTITLES_API_KEY,
     'Content-Type': 'application/json',
     'User-Agent': process.env.OPENSUBTITLES_USER_AGENT || 'Magnetio v1.0.0',

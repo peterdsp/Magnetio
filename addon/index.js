@@ -8,7 +8,8 @@ import { logger } from './lib/logger.js';
 const app = express();
 
 app.use(express.json());
-app.set('trust proxy', true);
+// Cloudflare Tunnel is the single reverse-proxy hop in production.
+app.set('trust proxy', 1);
 
 // Prometheus metrics endpoint protected by basic auth
 app.use(swaggerStats.getMiddleware({

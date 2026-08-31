@@ -1,0 +1,21 @@
+[Unit]
+Description=Magnetio scraper (native fallback)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=peterdsp
+Group=peterdsp
+WorkingDirectory=/home/peterdsp/magnetio-recovery/scraper
+EnvironmentFile=-/home/peterdsp/magnetio-recovery/scraper/.env
+Environment=NODE_ENV=production
+Environment=PORT=8080
+ExecStart=/usr/bin/node index.js
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

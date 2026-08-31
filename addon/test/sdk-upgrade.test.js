@@ -4,12 +4,13 @@ import assert from 'node:assert/strict';
 import { parseConfiguration } from '../lib/configuration.js';
 import { manifest, dummyManifest } from '../lib/manifest.js';
 import { landingTemplate } from '../lib/landingTemplate.js';
-import { buildSubtitleSearchParams, resolveSubtitleLanguages } from '../lib/subtitles.js';
+import { buildSubtitleSearchParams, getBaseHeaders, resolveSubtitleLanguages } from '../lib/subtitles.js';
 import { applyFilters } from '../lib/filter.js';
 import { toSubtitleLanguageCode } from '../lib/languages.js';
 import { toStreamInfo } from '../lib/streamInfo.js';
 import { computeOpenSubtitlesHashFromBuffers, createStreamSubtitleProxies } from '../lib/subtitleProxy.js';
-import { pickPrewarmCandidates } from '../moch/moch.js';
+import { pickPrewarmCandidates, selectMochResults } from '../moch/moch.js';
+import { buildCacheCheckBody, buildTorrentForm, parseCachedHashes } from '../moch/torbox.js';
 import { applyFinalStreamLimit } from '../addon.js';
 
 test('configuration parser supports subtitle languages', () => {
@@ -31,6 +32,42 @@ test('configuration parser supports debrid prewarm controls', () => {
 
   assert.equal(config.prewarmDebrid, false);
   assert.equal(config.prewarmLimit, 5);
+});
+
+test('P2P fallback is strict by default and can be explicitly enabled', () => {
+  assert.equal(parseConfiguration('').p2pFallback, false);
+  assert.equal(parseConfiguration('p2pFallback=1').p2pFallback, true);
+});
+
+test('debrid selection preserves direct-only mode and optional P2P fallback', () => {
+  const direct = [{ url: 'https://debrid.example/video' }];
+  const raw = [{ infoHash: 'abcdef' }];
+
+  assert.deepEqual(selectMochResults(direct, raw), direct);
+  assert.deepEqual(selectMochResults([], raw), []);
+  assert.deepEqual(selectMochResults(direct, raw, true), [...direct, ...raw]);
+  assert.deepEqual(selectMochResults([], raw, true), raw);
+});
+
+test('TorBox cache checks use the documented batch request and response shape', () => {
+  const streams = [
+    { infoHash: 'ABCDEF' },
+    { infoHash: 'abcdef' },
+    { infoHash: '123456' },
+  ];
+
+  assert.deepEqual(buildCacheCheckBody(streams), { hashes: ['abcdef', '123456'] });
+  assert.deepEqual(
+    [...parseCachedHashes({ abcdef: { hash: 'ABCDEF' }, 123456: { name: 'cached' } }).keys()].sort(),
+    ['123456', 'abcdef'],
+  );
+});
+
+test('TorBox torrent creation uses multipart fields and supports cached-only resolution', () => {
+  const form = buildTorrentForm('abcdef', { cachedOnly: true });
+
+  assert.equal(form.get('magnet'), 'magnet:?xt=urn:btih:abcdef');
+  assert.equal(form.get('add_only_if_cached'), 'true');
 });
 
 test('final stream limit caps visible streams after debrid enrichment', () => {
@@ -125,7 +162,7 @@ test('subtitle language code supports greek and albanian', () => {
   assert.equal(toSubtitleLanguageCode('sq'), 'sqi');
 });
 
-test('stream info exposes tracker sources and subtitle matching hints', () => {
+test('stream info uses the Stremio-compatible infoHash contract and subtitle matching hints', () => {
   const stream = toStreamInfo({
     infoHash: 'abcdef0123456789abcdef0123456789abcdef01',
     title: 'Example.Release.1080p.WEB-DL.x265',
@@ -138,10 +175,15 @@ test('stream info exposes tracker sources and subtitle matching hints', () => {
   }, {});
 
   assert.equal(stream.infoHash, 'abcdef0123456789abcdef0123456789abcdef01');
-  assert.deepEqual(stream.sources, ['dht:abcdef0123456789abcdef0123456789abcdef01', 'tracker:udp://tracker.example:1337/announce']);
+  assert.equal(stream.fileIdx, undefined);
+  assert.equal(stream.sources, undefined);
   assert.equal(stream.behaviorHints.filename, 'Example.Release.1080p.WEB-DL.x265');
   assert.equal(stream.behaviorHints.videoSize, 2 * 1024 * 1024 * 1024);
   assert.match(stream.description, /WEB-DL/);
+});
+
+test('OpenSubtitles API requests explicitly accept JSON responses', () => {
+  assert.equal(getBaseHeaders().Accept, 'application/json');
 });
 
 test('opensubtitles hash helper uses file size and both edge chunks', () => {

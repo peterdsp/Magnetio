@@ -1,5 +1,4 @@
 import { getLanguageFlag, toSubtitleLanguageCode } from './languages.js';
-import { getBestTrackers } from './magnetHelper.js';
 import { extractQuality } from './sort.js';
 
 const ADDON_PREFIX = '⚡ Magnetio';
@@ -54,7 +53,6 @@ export function toStreamInfo(record, config) {
   } else {
     stream.infoHash = record.infoHash;
     stream.fileIdx = fileIdx;
-    stream.sources = buildSources(record);
   }
 
   if (record.subtitles?.length) {
@@ -65,17 +63,6 @@ export function toStreamInfo(record, config) {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function buildSources(record) {
-  const trackers = [...new Set([...(record.trackers ?? []), ...getBestTrackers()])]
-    .filter(Boolean)
-    .filter(tracker => tracker.startsWith('udp://') || tracker.startsWith('http://') || tracker.startsWith('https://'))
-    .slice(0, 20)
-    .map(tracker => `tracker:${tracker}`);
-
-  const sources = [`dht:${record.infoHash}`, ...trackers];
-  return sources;
-}
 
 function getBingeGroup(record, quality) {
   if (record.fileIdx != null) {

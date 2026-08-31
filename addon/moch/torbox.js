@@ -13,14 +13,14 @@ export async function getCachedStreams(streams, apiKey) {
   if (!hashes.length) return new Map();
 
   try {
-    const { data } = await tbPost(`${TB_BASE}/torrents/checkcached`, apiKey, { hash: hashes });
+    const { data } = await tbPost(
+      `${TB_BASE}/torrents/checkcached`,
+      apiKey,
+      buildCacheCheckBody(streams),
+      { format: 'object', list_files: true },
+    );
     if (!data.success) return new Map();
-
-    const result = new Map();
-    for (const [hash, isCached] of Object.entries(data.data ?? {})) {
-      if (isCached) result.set(hash.toLowerCase(), true);
-    }
-    return result;
+    return parseCachedHashes(data.data);
   } catch (err) {
     handleTbError(err, apiKey);
     return new Map();
@@ -38,9 +38,11 @@ export async function prewarm(stream, apiKey) {
   if (!isValidToken(apiKey)) return false;
 
   try {
-    const { data } = await tbPost(`${TB_BASE}/torrents/createtorrent`, apiKey, {
-      magnet: `magnet:?xt=urn:btih:${stream.infoHash}`,
-    });
+    const { data } = await tbPostForm(
+      `${TB_BASE}/torrents/createtorrent`,
+      apiKey,
+      buildTorrentForm(stream.infoHash),
+    );
 
     return !!(data.success && data.data?.torrent_id);
   } catch (err) {
@@ -73,9 +75,11 @@ export async function getCatalog(apiKey, type, skip = 0) {
 async function _resolve(stream, apiKey) {
   try {
     // Create or locate the torrent
-    const { data: addData } = await tbPost(`${TB_BASE}/torrents/createtorrent`, apiKey, {
-      magnet: `magnet:?xt=urn:btih:${stream.infoHash}`,
-    });
+    const { data: addData } = await tbPostForm(
+      `${TB_BASE}/torrents/createtorrent`,
+      apiKey,
+      buildTorrentForm(stream.infoHash, { cachedOnly: true }),
+    );
 
     if (!addData.success) return null;
 
@@ -132,11 +136,44 @@ function tbGet(url, apiKey, params = {}) {
   });
 }
 
-function tbPost(url, apiKey, data = {}) {
+function tbPost(url, apiKey, data = {}, params = {}) {
   return axios.post(url, data, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+    params,
+    timeout: 15_000,
+  });
+}
+
+function tbPostForm(url, apiKey, data) {
+  return axios.postForm(url, data, {
     headers: { Authorization: `Bearer ${apiKey}` },
     timeout: 15_000,
   });
+}
+
+export function buildCacheCheckBody(streams) {
+  return {
+    hashes: [...new Set(streams.map(stream => stream.infoHash?.toLowerCase()).filter(Boolean))],
+  };
+}
+
+export function buildTorrentForm(infoHash, { cachedOnly = false } = {}) {
+  const data = new FormData();
+  data.append('magnet', `magnet:?xt=urn:btih:${infoHash}`);
+  if (cachedOnly) data.append('add_only_if_cached', 'true');
+  return data;
+}
+
+export function parseCachedHashes(payload) {
+  const entries = Array.isArray(payload)
+    ? payload.map(item => [item?.hash, item])
+    : Object.entries(payload ?? {}).map(([key, item]) => [item?.hash ?? key, item]);
+
+  return new Map(
+    entries
+      .filter(([hash, item]) => hash && item)
+      .map(([hash]) => [String(hash).toLowerCase(), true]),
+  );
 }
 
 function handleTbError(err, apiKey) {

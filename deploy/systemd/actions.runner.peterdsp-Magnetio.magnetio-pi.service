@@ -1,0 +1,18 @@
+[Unit]
+Description=GitHub Actions Runner (peterdsp-Magnetio.magnetio-pi)
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+ExecStart=/home/peterdsp/actions-runner-recovery/run.sh
+User=peterdsp
+WorkingDirectory=/home/peterdsp/actions-runner-recovery
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=5min
+Restart=always
+RestartSec=15
+
+[Install]
+WantedBy=multi-user.target

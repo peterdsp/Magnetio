@@ -1,0 +1,23 @@
+[Unit]
+Description=Magnetio Stremio addon (native fallback)
+Wants=network-online.target magnetio-scraper.service
+After=network-online.target magnetio-scraper.service
+
+[Service]
+Type=simple
+User=peterdsp
+Group=peterdsp
+WorkingDirectory=/home/peterdsp/magnetio-recovery/addon
+EnvironmentFile=-/home/peterdsp/magnetio-recovery/addon/.env
+Environment=NODE_ENV=production
+Environment=PORT=7000
+Environment=SCRAPER_URL=http://127.0.0.1:8080
+Environment=ADDON_PUBLIC_URL=https://magnetio.peterdsp.dev
+ExecStart=/usr/bin/node index.js
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

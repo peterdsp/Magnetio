@@ -15,7 +15,7 @@ const PORT = process.env.PORT || 8080;
 const TTL_STREAMS = parseInt(process.env.CACHE_TTL_STREAMS ?? '3600', 10);
 
 app.use(express.json());
-app.set('trust proxy', true);
+app.set('trust proxy', 1);
 
 // ─── Health ───────────────────────────────────────────────────────────────────
 

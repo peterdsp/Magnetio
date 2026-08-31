@@ -261,6 +261,7 @@ https://your-server:7000/providers=yts,eztv,1337x|sort=qualityseeders|limit=10|R
 | `torznabKey` | API key | - | Torznab API key |
 | `prewarm` | `1`, `0`, `true`, `false` | `1` | Background-add top uncached torrents to debrid |
 | `prewarmLimit` | `0` to `10` | `3` | How many uncached results to prewarm per service |
+| `p2pFallback` | `1`, `0`, `true`, `false` | `0` | Include P2P streams when a configured debrid service has no direct result |
 | `debridCatalogs` | `1`, `0`, `true`, `false` | `1` | Expose debrid cloud catalogs (Movies/Series) when a key is set |
 | `excludeSizes` | Size thresholds like `1GB,2GB` | None | Exclude streams below these sizes |
 | `maxSize` | Bytes | None | Maximum file size |

@@ -31,18 +31,24 @@ function markHealthy(domain) {
 function classifyError(status) {
   if (status === 429) return 'ratelimited';
   if (status === 403) return 'blocked';
+  if (status === 404 || status === 410) return 'notfound';
   if (!status) return 'network';
   if (status >= 500) return 'server';
   return null;
 }
 
-export async function tryDomains(domains, requestFn, providerName) {
+export async function tryDomains(domains, requestFn, providerName, { validate } = {}) {
   const healthy = domains.filter(isHealthy);
   const candidates = healthy.length > 0 ? healthy : domains;
 
   for (const domain of candidates) {
     try {
       const result = await requestFn(domain);
+      if (validate && !validate(result)) {
+        markFailed(domain, 'invalid-response');
+        logger.debug(`[${providerName}] domain ${domain} returned an invalid response, trying next`);
+        continue;
+      }
       markHealthy(domain);
       return result;
     } catch (err) {
@@ -90,6 +96,7 @@ export const PROVIDER_DOMAINS = {
     `https://torrentgalaxy.${UNBLOCKIT}`,
   ],
   yts: [
+    'https://yts.gg',
     'https://yts.do',
     'https://yts.mx',
     `https://yts.${UNBLOCKIT}`,

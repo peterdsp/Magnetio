@@ -37,7 +37,7 @@ const resolveLimit = pLimit(4);
  * For each enabled service:
  *   1. Check which infoHashes are instantly available (cached).
  *   2. Re-emit cached streams as direct-download streams.
- *   3. Return direct streams only. Users without debrid keys get raw P2P torrents instead.
+ *   3. Return direct streams, with P2P fallback only when explicitly enabled.
  *
  * @param {StreamObject[]} streams         Raw stream objects from repository
  * @param {object}         config          Addon configuration
@@ -94,12 +94,22 @@ export async function applyMochs(streams, config, requestContext) {
     })
   );
 
-  if (directStreams.length) {
-    return directStreams;
-  }
+  const results = selectMochResults(directStreams, streams, config?.p2pFallback);
+  if (directStreams.length) return results;
 
-  logger.warn(`No debrid streams resolved, returning raw P2P (${streams.length} streams)`);
-  return streams;
+  if (config?.p2pFallback) {
+    logger.warn(`No debrid streams resolved, falling back to P2P (${streams.length} raw streams)`);
+  } else {
+    logger.warn('No debrid streams resolved and P2P fallback is disabled');
+  }
+  return results;
+}
+
+export function selectMochResults(directStreams, rawStreams, p2pFallback = false) {
+  if (directStreams.length) {
+    return p2pFallback ? [...directStreams, ...rawStreams] : directStreams;
+  }
+  return p2pFallback ? rawStreams : [];
 }
 
 async function withTimeout(promise, timeoutMs, message) {

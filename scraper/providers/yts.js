@@ -26,7 +26,7 @@ export async function scrape(meta) {
           sort_by: 'seeds',
         },
       });
-    }, 'YTS');
+    }, 'YTS', { validate: isValidYtsResponse });
 
     const movies = data?.data?.movies ?? [];
     return movies.flatMap(movie =>
@@ -36,6 +36,11 @@ export async function scrape(meta) {
     logger.warn(`[YTS] ${err.message}`);
     return [];
   }
+}
+
+export function isValidYtsResponse(response) {
+  const payload = response?.data;
+  return payload?.status === 'ok' && payload?.data && typeof payload.data === 'object';
 }
 
 function normalise(movie, t) {
