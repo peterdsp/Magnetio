@@ -13,11 +13,11 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@keyv/redis": "^5.1.6",
-    "axios": "^1.19.0",
+    "axios": "^1.20.0",
     "cron": "^4.4.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "express-rate-limit": "^8.6.1",
+    "express-rate-limit": "^8.7.0",
     "keyv": "^5.6.0",
     "magnet-uri": "^7.0.10",
     "node-fetch": "^3.3.2",
