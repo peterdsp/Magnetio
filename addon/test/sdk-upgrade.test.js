@@ -10,6 +10,8 @@ import { toSubtitleLanguageCode } from '../lib/languages.js';
 import { toStreamInfo } from '../lib/streamInfo.js';
 import { computeOpenSubtitlesHashFromBuffers, createStreamSubtitleProxies } from '../lib/subtitleProxy.js';
 import { pickPrewarmCandidates, selectMochResults } from '../moch/moch.js';
+import { buildOnDemandStream } from '../moch/mochHelper.js';
+import { MochOptions } from '../moch/options.js';
 import { buildCacheCheckBody, buildTorrentForm, parseCachedHashes } from '../moch/torbox.js';
 import { applyFinalStreamLimit } from '../addon.js';
 
@@ -47,6 +49,38 @@ test('debrid selection preserves direct-only mode and optional P2P fallback', ()
   assert.deepEqual(selectMochResults([], raw), []);
   assert.deepEqual(selectMochResults(direct, raw, true), [...direct, ...raw]);
   assert.deepEqual(selectMochResults([], raw, true), raw);
+});
+
+test('services without a bulk cache-check are flagged for on-demand resolution', () => {
+  const noCacheCheck = ['debridlink', 'offcloud', 'putio'];
+  const withCacheCheck = ['realdebrid', 'premiumize', 'alldebrid', 'torbox', 'easydebrid'];
+
+  for (const key of noCacheCheck) {
+    assert.equal(MochOptions[key].instantAvailability, false, `${key} should be on-demand`);
+  }
+  for (const key of withCacheCheck) {
+    assert.equal(MochOptions[key].instantAvailability, true, `${key} should be instant`);
+  }
+});
+
+test('on-demand stream is a visible, labelled redirect back into the addon', () => {
+  const base = {
+    name: '⚡ Magnetio\n1080P',
+    title: 'The Matrix (1999)\n👥 842 💾 2.1 GB',
+    behaviorHints: { bingeGroup: 'magnetio|1080p' },
+  };
+  const resolveUrl = 'https://host/CONFIG/resolve/pu/88594aaacbde40ef3e2510c47374ec0aa396c08e/0';
+
+  const stream = buildOnDemandStream(base, resolveUrl, 'Put.io');
+
+  assert.equal(stream.url, resolveUrl);
+  assert.match(stream.name, /\[Put\.io ⏳\]/);
+  assert.match(stream.title, /On-demand via Put\.io/);
+  assert.equal(stream.behaviorHints.notWebReady, true);
+  // preserves inherited hints
+  assert.equal(stream.behaviorHints.bingeGroup, 'magnetio|1080p');
+  // it is a direct-url stream, never a raw torrent
+  assert.equal(stream.infoHash, undefined);
 });
 
 test('TorBox cache checks use the documented batch request and response shape', () => {

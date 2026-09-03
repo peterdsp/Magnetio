@@ -82,6 +82,30 @@ export function buildDebridStream(baseStream, url, serviceName) {
   };
 }
 
+/**
+ * Build a visible "on-demand" stream for services without a bulk cache-check.
+ *
+ * The URL points back at the addon's own /resolve route, which performs the
+ * add + unrestrict when the user presses play and then 302-redirects to the
+ * real debrid link. This keeps such services visibly present in the stream
+ * list instead of silently contributing nothing.
+ */
+export function buildOnDemandStream(baseStream, resolveUrl, serviceName) {
+  const title = `${baseStream.title ?? ''}\n⏳ On-demand via ${serviceName} - press play to cache (no instant check)`.trim();
+
+  return {
+    url:   resolveUrl,
+    name:  `${baseStream.name ?? '⚡ Magnetio'}\n[${serviceName} ⏳]`,
+    title,
+    behaviorHints: {
+      ...(baseStream.behaviorHints ?? {}),
+      // The final target type is unknown until resolution, so force
+      // server-side handling rather than assuming a web-ready file.
+      notWebReady: true,
+    },
+  };
+}
+
 function isWebReadyUrl(url) {
   if (!/^https:\/\//i.test(url)) return false;
   return /\.(mp4|m4v)(?:$|[?#])/i.test(url);

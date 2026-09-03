@@ -5,6 +5,7 @@ import StremioAddonSdk from 'stremio-addon-sdk';
 import { dummyManifest } from './lib/manifest.js';
 import { getDefaultConfiguration, parseConfiguration } from './lib/configuration.js';
 import { getAddonInterface } from './addon.js';
+import { resolveOnDemandStream } from './moch/moch.js';
 import { landingTemplate } from './lib/landingTemplate.js';
 import { statsDashboard } from './lib/statsDashboard.js';
 import { logger } from './lib/logger.js';
@@ -192,6 +193,48 @@ router.get('/:configuration/configure', (req, res) => {
   }
 });
 
+// On-demand debrid resolution for services without a bulk cache-check.
+// The stream URL emitted by the moch layer points here; we add + unrestrict
+// the torrent now and 302-redirect to the real direct link.
+const onDemandResolveLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many resolve requests, try again later' },
+});
+
+router.get('/:configuration/resolve/:moch/:infoHash/:fileIdx', onDemandResolveLimiter, async (req, res) => {
+  const { configuration, moch, infoHash, fileIdx } = req.params;
+
+  if (!/^[a-f0-9]{40}$/i.test(infoHash)) {
+    return res.status(400).json({ error: 'Invalid infoHash' });
+  }
+
+  const clientIp = req.ip || req.connection?.remoteAddress;
+
+  runWithClientIp(clientIp, async () => {
+    try {
+      const config = parseConfiguration(configuration);
+      const url = await resolveOnDemandStream(
+        config,
+        moch,
+        infoHash.toLowerCase(),
+        parseInt(fileIdx, 10) || 0,
+      );
+
+      if (!url) {
+        return res.status(502).json({ error: 'Debrid could not cache this torrent in time' });
+      }
+
+      res.redirect(302, url);
+    } catch (err) {
+      logger.error(`On-demand resolve error: ${err.message}`);
+      if (!res.headersSent) res.status(500).json({ error: 'Resolve failed' });
+    }
+  });
+});
+
 router.use('/:configuration', globalLimiter, async (req, res, next) => {
   const clientIp = req.ip || req.connection?.remoteAddress;
 
@@ -230,6 +273,7 @@ async function getConfiguredAddonRouter(configString, publicBaseUrl) {
 
   const config = parseConfiguration(configString);
   config._publicBaseUrl = publicBaseUrl;
+  config._configString = configString;
   const addonInterface = await getAddonInterface(config);
   const addonRouter = getSdkRouter(addonInterface);
 

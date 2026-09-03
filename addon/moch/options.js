@@ -7,6 +7,12 @@
  *   shortName  – abbreviated name shown in the addon title
  *   name       – full display name
  *   hasCatalog – whether the service exposes a browsable catalog
+ *   instantAvailability – whether the service offers a bulk cache-check.
+ *                         When false, the moch layer cannot know ahead of
+ *                         time which torrents are cached, so instead of
+ *                         silently contributing nothing it emits visible
+ *                         on-demand entries that resolve when the user
+ *                         presses play.
  */
 export const MochOptions = {
   realdebrid: {
@@ -15,6 +21,7 @@ export const MochOptions = {
     shortName:  'RD',
     name:       'Real-Debrid',
     hasCatalog: true,
+    instantAvailability: true,
   },
   premiumize: {
     id:         'pm',
@@ -22,6 +29,7 @@ export const MochOptions = {
     shortName:  'PM',
     name:       'Premiumize',
     hasCatalog: true,
+    instantAvailability: true,
   },
   alldebrid: {
     id:         'ad',
@@ -29,6 +37,7 @@ export const MochOptions = {
     shortName:  'AD',
     name:       'AllDebrid',
     hasCatalog: false,
+    instantAvailability: true,
   },
   debridlink: {
     id:         'dl',
@@ -36,6 +45,7 @@ export const MochOptions = {
     shortName:  'DL',
     name:       'DebridLink',
     hasCatalog: true,
+    instantAvailability: false,
   },
   easydebrid: {
     id:         'ed',
@@ -43,6 +53,7 @@ export const MochOptions = {
     shortName:  'ED',
     name:       'EasyDebrid',
     hasCatalog: false,
+    instantAvailability: true,
   },
   offcloud: {
     id:         'oc',
@@ -50,6 +61,7 @@ export const MochOptions = {
     shortName:  'OC',
     name:       'Offcloud',
     hasCatalog: false,
+    instantAvailability: false,
   },
   torbox: {
     id:         'tb',
@@ -57,6 +69,7 @@ export const MochOptions = {
     shortName:  'TB',
     name:       'TorBox',
     hasCatalog: true,
+    instantAvailability: true,
   },
   putio: {
     id:         'pu',
@@ -64,6 +77,7 @@ export const MochOptions = {
     shortName:  'PU',
     name:       'Put.io',
     hasCatalog: true,
+    instantAvailability: false,
   },
 };
 
