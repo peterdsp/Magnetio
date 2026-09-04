@@ -4,6 +4,7 @@
  */
 import * as cheerio from 'cheerio';
 import { get } from '../lib/httpClient.js';
+import { resolveSafeTarget } from '../lib/ssrf.js';
 import { parseTitle, buildSearchQuery } from '../lib/titleHelper.js';
 import { logger } from '../lib/logger.js';
 
@@ -18,7 +19,10 @@ export async function scrape(meta) {
   const apiKey  = meta.torznabApiKey;
   if (!baseUrl) return [];
 
-  if (!isUrlSafe(baseUrl)) {
+  // Resolve + validate the user-supplied URL and pin the verified IP so the
+  // request connects to exactly that address (closes the DNS-rebinding window).
+  const target = await resolveSafeTarget(baseUrl);
+  if (!target) {
     logger.warn('[Torznab] Rejected unsafe or invalid URL');
     return [];
   }
@@ -30,6 +34,7 @@ export async function scrape(meta) {
       limiterKey: 'torznab',
       timeout: 15_000,
       params,
+      lookup: target.lookup,
     });
 
     const $ = cheerio.load(data, { xmlMode: true });
@@ -125,24 +130,6 @@ function extractInfoHash(item) {
 function attrValue(item, attrName) {
   const el = item.find(`torznab\\:attr[name="${attrName}"], attr[name="${attrName}"]`);
   return el.length ? el.attr('value') : null;
-}
-
-function isUrlSafe(urlStr) {
-  try {
-    const parsed = new URL(urlStr);
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
-    const host = parsed.hostname;
-    if (host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '0.0.0.0') return false;
-    if (host.startsWith('10.')) return false;
-    if (host.startsWith('192.168.')) return false;
-    if (host.startsWith('169.254.')) return false;
-    if (/^172\.(1[6-9]|2\d|3[01])\./.test(host)) return false;
-    if (host.endsWith('.local') || host.endsWith('.internal')) return false;
-    if (host.includes('metadata.google') || host.includes('metadata.aws')) return false;
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 function base32ToHex(base32) {
