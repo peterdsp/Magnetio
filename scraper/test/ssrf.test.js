@@ -124,6 +124,34 @@ test('resolveSafeTarget rejects private IP literals (no network)', async () => {
   }
 });
 
+test('resolveSafeTarget rejects encoded-integer IP hosts (decimal/hex/octal/short)', async () => {
+  // WHATWG new URL() canonicalises these numeric forms to dotted-decimal
+  // (127.0.0.1 / 192.168.0.1), which the range check then rejects. All are
+  // numeric hosts, so dns.lookup short-circuits and no network is touched.
+  for (const url of [
+    'http://2130706433/',   // decimal 127.0.0.1
+    'http://0x7f000001/',   // hex 127.0.0.1
+    'http://0177.0.0.1/',   // octal first octet -> 127.0.0.1
+    'http://127.1/',        // short form -> 127.0.0.1
+    'http://3232235521/',   // decimal 192.168.0.1
+    'http://0xC0A80001/',   // hex 192.168.0.1
+  ]) {
+    assert.equal(await resolveSafeTarget(url), null, url);
+  }
+});
+
+test('resolveSafeTarget fails closed when DNS resolution is too slow', async () => {
+  // Resolver that only answers after the timeout window. It still settles (so
+  // no promise leaks in the test runner), but resolveSafeTarget must give up
+  // first and return null.
+  const slow = () =>
+    new Promise((resolve) => setTimeout(() => resolve([{ address: '8.8.8.8', family: 4 }]), 60));
+  assert.equal(
+    await resolveSafeTarget('http://slow-resolver.example/', { dnsLookup: slow, dnsTimeoutMs: 20 }),
+    null,
+  );
+});
+
 test('resolveSafeTarget accepts a public IP literal and pins it', async () => {
   const target = await resolveSafeTarget('http://8.8.8.8:9117/api');
   assert.ok(target);

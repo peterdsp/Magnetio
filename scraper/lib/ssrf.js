@@ -17,6 +17,18 @@
 import net from 'node:net';
 import dns from 'node:dns';
 
+const DNS_TIMEOUT_MS = 5_000;
+
+/** Reject `promise` if it does not settle within `ms`, so DNS cannot stall us. */
+function withTimeout(promise, ms) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error('dns timeout')), ms);
+    timer.unref?.();
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 // ─── IPv4 helpers ───────────────────────────────────────────────────────────
 
 function ipv4ToInt(ip) {
@@ -178,6 +190,9 @@ export function pinnedLookup(address, family) {
  * @param {object} [opts]
  * @param {(host: string, options: object) => Promise<Array<{address: string, family: number}>>} [opts.dnsLookup]
  *        DNS resolver override (defaults to dns.promises.lookup); injectable for tests.
+ * @param {number} [opts.dnsTimeoutMs]
+ *        Hard cap on the DNS resolution (default 5000ms); a slow/hostile resolver
+ *        fails closed instead of stalling the request.
  */
 export async function resolveSafeTarget(urlStr, opts = {}) {
   let url;
@@ -208,10 +223,11 @@ export async function resolveSafeTarget(urlStr, opts = {}) {
   const host = hostname.replace(/^\[|\]$/g, '');
 
   const dnsLookup = opts.dnsLookup || ((h, o) => dns.promises.lookup(h, o));
+  const dnsTimeoutMs = opts.dnsTimeoutMs ?? DNS_TIMEOUT_MS;
 
   let addresses;
   try {
-    addresses = await dnsLookup(host, { all: true });
+    addresses = await withTimeout(dnsLookup(host, { all: true }), dnsTimeoutMs);
   } catch {
     return null;
   }
