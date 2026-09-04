@@ -26,6 +26,22 @@ if [ ! -f .env ]; then
   echo "Created .env from .env.example."
 fi
 
+# Host-level SMART monitoring for the 2 TB media drive. Independent of the deploy
+# mode, so install it regardless. Requires smartmontools (skipped if smartctl is
+# absent). The real GitHub token file is never overwritten once it exists.
+if command -v smartctl >/dev/null 2>&1; then
+  sudo install -m 0644 deploy/monitoring/smartd.conf /etc/smartd.conf
+  sudo install -m 0755 deploy/monitoring/smartd-notify /usr/local/sbin/smartd-notify
+  if [ ! -f /etc/smartd-github.env ]; then
+    sudo install -m 0600 deploy/monitoring/smartd-github.env.example /etc/smartd-github.env
+  fi
+  sudo systemctl enable smartmontools.service >/dev/null 2>&1 || true
+  sudo systemctl restart smartmontools.service || true
+  echo "Installed SMART drive monitoring (smartd)."
+else
+  echo "smartctl not found; skipping SMART drive monitoring install." >&2
+fi
+
 docker_ready=false
 if [ "$DEPLOY_MODE" != "native" ] \
   && command -v findmnt >/dev/null 2>&1 \

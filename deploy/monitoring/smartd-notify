@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# smartd notifier.
+#  - ALWAYS: log to syslog (daemon.crit) + wall broadcast (works with no network).
+#  - OPTIONAL: open a GitHub issue if /etc/smartd-github.env provides a token.
+# smartd runs this as root via `-M exec`. Manual test: `sudo smartd-notify --github-test`.
+set -u
+
+FAILTYPE="${SMARTD_FAILTYPE:-manual}"
+DEVICE="${SMARTD_DEVICE:-unknown}"
+MESSAGE="${SMARTD_MESSAGE:-(no message)}"
+HOST="$(hostname)"
+TS="$(date '+%Y-%m-%d %H:%M:%S %Z')"
+
+if [ "${1:-}" = "--github-test" ]; then
+  FAILTYPE="GHTEST"
+  MESSAGE="Manual GitHub wiring test from ${HOST} at ${TS}. Safe to close."
+fi
+
+line="smartd ALERT [${FAILTYPE}] on ${DEVICE}: ${MESSAGE}"
+logger -t smartd-notify -p daemon.crit -- "$line"
+echo "$line" | wall 2>/dev/null || true
+
+# ---------- optional GitHub issue ----------
+ENVF=/etc/smartd-github.env
+[ -r "$ENVF" ] || exit 0
+# shellcheck disable=SC1090
+. "$ENVF"
+TOKEN="${GITHUB_TOKEN:-}"
+REPO="${GH_REPO:-}"
+[ -n "$TOKEN" ] && [ -n "$REPO" ] || exit 0
+
+# de-dup: at most one issue per fail type per cooldown window (default 12h)
+COOLDOWN="${GH_COOLDOWN_SECS:-43200}"
+STATE_DIR=/var/lib/smartd-notify
+mkdir -p "$STATE_DIR"
+key="$(printf '%s' "$FAILTYPE" | tr -c 'A-Za-z0-9' '_')"
+stamp="$STATE_DIR/last_${key}"
+now="$(date +%s)"
+if [ "$FAILTYPE" != "GHTEST" ] && [ -f "$stamp" ]; then
+  last="$(cat "$stamp" 2>/dev/null || echo 0)"
+  if [ $(( now - last )) -lt "$COOLDOWN" ]; then
+    logger -t smartd-notify "GitHub issue suppressed (cooldown ${COOLDOWN}s) for ${FAILTYPE}"
+    exit 0
+  fi
+fi
+
+HEALTH="$(smartctl -H -A -d sat "$DEVICE" 2>/dev/null | sed -n '1,45p' || true)"
+TITLE="[smartd] ${FAILTYPE} on ${HOST}:${DEVICE##*/}"
+
+# Build JSON safely with jq; include labels only if GH_LABELS is set (avoids 422).
+if [ -n "${GH_LABELS:-}" ]; then
+  LABELS_JSON="$(printf '%s' "$GH_LABELS" | jq -R 'split(",") | map(gsub("^ +| +$";""))')"
+else
+  LABELS_JSON='[]'
+fi
+PAYLOAD="$(jq -n \
+  --arg title "$TITLE" \
+  --arg host "$HOST" --arg dev "$DEVICE" --arg ft "$FAILTYPE" \
+  --arg ts "$TS" --arg msg "$MESSAGE" --arg health "$HEALTH" \
+  --argjson labels "$LABELS_JSON" \
+  '{title:$title,
+    labels:$labels,
+    body:("**Host:** \($host)\n**Device:** \($dev)\n**Fail type:** \($ft)\n**Time:** \($ts)\n\n**smartd message:**\n```\n\($msg)\n```\n\n**smartctl -H -A:**\n```\n\($health)\n```\n\n_Filed automatically by smartd-notify._")}
+  | if (.labels|length)==0 then del(.labels) else . end')"
+
+RESP="$(mktemp)"
+CODE="$(curl -s -m 20 -o "$RESP" -w '%{http_code}' \
+  -X POST \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Accept: application/vnd.github+json" \
+  -H "X-GitHub-Api-Version: 2022-11-28" \
+  "https://api.github.com/repos/${REPO}/issues" \
+  -d "$PAYLOAD" 2>/dev/null || echo 000)"
+if [ "$CODE" = "201" ]; then
+  URL="$(jq -r '.html_url // empty' "$RESP" 2>/dev/null)"
+  logger -t smartd-notify "GitHub issue created: ${URL}"
+  echo "$now" > "$stamp"
+else
+  ERR="$(jq -r '.message // empty' "$RESP" 2>/dev/null)"
+  logger -t smartd-notify -p daemon.err "GitHub issue FAILED (HTTP ${CODE}) ${ERR}"
+fi
+rm -f "$RESP"
+exit 0
