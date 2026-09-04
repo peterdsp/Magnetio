@@ -97,8 +97,13 @@ else
   sudo install -m 0644 deploy/systemd/docker-media-recovery.timer /etc/systemd/system/docker-media-recovery.timer
   sudo systemctl daemon-reload
   sudo systemctl enable --now docker-media-recovery.timer
-  sudo systemctl enable --now magnetio-scraper.service
-  sudo systemctl enable --now magnetio-addon.service
+  # `enable --now` only STARTS a stopped service; on an already-running service
+  # it is a no-op, so the freshly rsynced code would never load. Enable, then
+  # restart explicitly so each deploy actually picks up the new code. Scraper
+  # first (the addon depends on it via After=magnetio-scraper.service).
+  sudo systemctl enable magnetio-scraper.service magnetio-addon.service
+  sudo systemctl restart magnetio-scraper.service
+  sudo systemctl restart magnetio-addon.service
 fi
 
 curl --fail --retry 12 --retry-delay 5 --retry-connrefused http://127.0.0.1:8080/health
