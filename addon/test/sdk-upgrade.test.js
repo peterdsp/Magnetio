@@ -10,6 +10,8 @@ import { toSubtitleLanguageCode } from '../lib/languages.js';
 import { toStreamInfo } from '../lib/streamInfo.js';
 import { computeOpenSubtitlesHashFromBuffers, createStreamSubtitleProxies } from '../lib/subtitleProxy.js';
 import { pickPrewarmCandidates, selectMochResults } from '../moch/moch.js';
+import { buildOnDemandStream, raceTimeout } from '../moch/mochHelper.js';
+import { MochOptions } from '../moch/options.js';
 import { buildCacheCheckBody, buildTorrentForm, parseCachedHashes } from '../moch/torbox.js';
 import { applyFinalStreamLimit } from '../addon.js';
 
@@ -39,6 +41,12 @@ test('P2P fallback is strict by default and can be explicitly enabled', () => {
   assert.equal(parseConfiguration('p2pFallback=1').p2pFallback, true);
 });
 
+test('on-demand streams are on by default and can be disabled', () => {
+  assert.equal(parseConfiguration('').onDemand, true);
+  assert.equal(parseConfiguration('onDemand=0').onDemand, false);
+  assert.equal(parseConfiguration('onDemand=1').onDemand, true);
+});
+
 test('debrid selection preserves direct-only mode and optional P2P fallback', () => {
   const direct = [{ url: 'https://debrid.example/video' }];
   const raw = [{ infoHash: 'abcdef' }];
@@ -47,6 +55,46 @@ test('debrid selection preserves direct-only mode and optional P2P fallback', ()
   assert.deepEqual(selectMochResults([], raw), []);
   assert.deepEqual(selectMochResults(direct, raw, true), [...direct, ...raw]);
   assert.deepEqual(selectMochResults([], raw, true), raw);
+});
+
+test('services without a bulk cache-check are flagged for on-demand resolution', () => {
+  const noCacheCheck = ['debridlink', 'offcloud', 'putio'];
+  const withCacheCheck = ['realdebrid', 'premiumize', 'alldebrid', 'torbox', 'easydebrid'];
+
+  for (const key of noCacheCheck) {
+    assert.equal(MochOptions[key].instantAvailability, false, `${key} should be on-demand`);
+  }
+  for (const key of withCacheCheck) {
+    assert.equal(MochOptions[key].instantAvailability, true, `${key} should be instant`);
+  }
+});
+
+test('on-demand resolve ceiling returns null on timeout and value when fast', async () => {
+  const slow = () => new Promise(resolve => setTimeout(() => resolve('late'), 50));
+  const fast = () => Promise.resolve('https://debrid.example/video');
+
+  assert.equal(await raceTimeout(slow, 10), null);
+  assert.equal(await raceTimeout(fast, 1000), 'https://debrid.example/video');
+});
+
+test('on-demand stream is a visible, labelled redirect back into the addon', () => {
+  const base = {
+    name: '⚡ Magnetio\n1080P',
+    title: 'The Matrix (1999)\n👥 842 💾 2.1 GB',
+    behaviorHints: { bingeGroup: 'magnetio|1080p' },
+  };
+  const resolveUrl = 'https://host/CONFIG/resolve/pu/88594aaacbde40ef3e2510c47374ec0aa396c08e/0';
+
+  const stream = buildOnDemandStream(base, resolveUrl, 'Put.io');
+
+  assert.equal(stream.url, resolveUrl);
+  assert.match(stream.name, /\[Put\.io ⏳\]/);
+  assert.match(stream.title, /On-demand via Put\.io/);
+  assert.equal(stream.behaviorHints.notWebReady, true);
+  // preserves inherited hints
+  assert.equal(stream.behaviorHints.bingeGroup, 'magnetio|1080p');
+  // it is a direct-url stream, never a raw torrent
+  assert.equal(stream.infoHash, undefined);
 });
 
 test('TorBox cache checks use the documented batch request and response shape', () => {
@@ -176,10 +224,17 @@ test('stream info uses the Stremio-compatible infoHash contract and subtitle mat
 
   assert.equal(stream.infoHash, 'abcdef0123456789abcdef0123456789abcdef01');
   assert.equal(stream.fileIdx, undefined);
-  assert.equal(stream.sources, undefined);
   assert.equal(stream.behaviorHints.filename, 'Example.Release.1080p.WEB-DL.x265');
   assert.equal(stream.behaviorHints.videoSize, 2 * 1024 * 1024 * 1024);
-  assert.match(stream.description, /WEB-DL/);
+  // Descriptive text lives in `title`; `description` must NOT be emitted, or
+  // several Stremio clients drop the whole stream list (issue #111 / PR #126).
+  assert.match(stream.title, /WEB-DL/);
+  assert.equal(stream.description, undefined);
+  // P2P streams carry peer-discovery sources: dht first, then trackers
+  // (regression fix for PR #124 which removed buildSources()).
+  assert.ok(Array.isArray(stream.sources) && stream.sources.length >= 2);
+  assert.equal(stream.sources[0], 'dht:abcdef0123456789abcdef0123456789abcdef01');
+  assert.ok(stream.sources.includes('tracker:udp://tracker.example:1337/announce'));
 });
 
 test('OpenSubtitles API requests explicitly accept JSON responses', () => {

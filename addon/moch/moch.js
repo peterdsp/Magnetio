@@ -1,5 +1,5 @@
 import { MochOptions, MIN_API_KEY_LENGTH } from './options.js';
-import { isValidToken, buildDebridStream } from './mochHelper.js';
+import { isValidToken, buildDebridStream, buildOnDemandStream, raceTimeout } from './mochHelper.js';
 import { createStreamSubtitleProxies } from '../lib/subtitleProxy.js';
 import { cacheGet, cacheSet } from '../lib/cache.js';
 import NamedQueue from '../lib/namedQueue.js';
@@ -31,6 +31,19 @@ const PREWARM_QUEUE = new NamedQueue(4);
 const RESOLVE_TIMEOUT_MS = 8_000;
 const resolveLimit = pLimit(4);
 
+// How many visible on-demand entries to emit per service that lacks a bulk
+// cache-check. Kept low so the stream list stays clean and the user is not
+// tempted to add many torrents to their debrid account at once.
+const ON_DEMAND_LIMIT = 5;
+
+// Hard ceiling for an on-demand /resolve call. Provider resolvers poll for the
+// torrent to become ready (roughly 20-36s worst case); this bounds the whole
+// request so the addon returns a clean error instead of hanging. On timeout the
+// in-flight resolve keeps running and warms resolveWithCache, so a retry can hit
+// the now-cached link. Override with ON_DEMAND_RESOLVE_TIMEOUT_MS.
+const ON_DEMAND_RESOLVE_TIMEOUT_MS =
+  parseInt(process.env.ON_DEMAND_RESOLVE_TIMEOUT_MS, 10) || 40_000;
+
 /**
  * Enhance a list of streams using all configured debrid services.
  *
@@ -48,7 +61,8 @@ export async function applyMochs(streams, config, requestContext) {
   const enabled = getEnabledMochs(config);
   if (!enabled.length) return streams;
 
-  const directStreams = [];
+  const directStreams = [];    // instantly-cached, resolved to a direct link
+  const onDemandStreams = [];   // visible fallbacks for services without cache-check
 
   await Promise.allSettled(
     enabled.map(async ({ key, moch, module }) => {
@@ -88,14 +102,37 @@ export async function applyMochs(streams, config, requestContext) {
           }
           directStreams.push(debridStream);
         }
+
+        // Services without a bulk cache-check produce an empty cachedMap, so
+        // the loop above yields nothing and they would vanish from the list.
+        // Emit visible on-demand entries instead, resolved on play. Opt-out
+        // via `onDemand=0` in the config.
+        if (config?.onDemand !== false && moch.instantAvailability === false && typeof module.resolve === 'function') {
+          const onDemand = buildOnDemandStreams(streams, cachedMap, moch, config);
+          if (onDemand.length) {
+            logger.info(
+              `Moch on-demand [${moch.name}]: no bulk cache-check, ` +
+              `emitting ${onDemand.length} on-demand stream(s)`
+            );
+            onDemandStreams.push(...onDemand);
+          } else {
+            logger.warn(
+              `Moch on-demand [${moch.name}]: no bulk cache-check and no resolvable ` +
+              `candidates (missing public base URL or config context)`
+            );
+          }
+        }
       } catch (err) {
         logger.error(`Moch error [${moch.name}]: ${err.message}`);
       }
     })
   );
 
-  const results = selectMochResults(directStreams, streams, config?.p2pFallback);
-  if (directStreams.length) return results;
+  // Instant (cached) streams first, on-demand fallbacks after, so on-demand
+  // entries only surface when few or no cached streams filled the list.
+  const resolved = [...directStreams, ...onDemandStreams];
+  const results = selectMochResults(resolved, streams, config?.p2pFallback);
+  if (resolved.length) return results;
 
   if (config?.p2pFallback) {
     logger.warn(`No debrid streams resolved, falling back to P2P (${streams.length} raw streams)`);
@@ -103,6 +140,64 @@ export async function applyMochs(streams, config, requestContext) {
     logger.warn('No debrid streams resolved and P2P fallback is disabled');
   }
   return results;
+}
+
+/**
+ * Build visible on-demand entries for a service without a bulk cache-check.
+ * Each entry's URL points back at the addon's own /resolve route, which does
+ * the add + unrestrict on play and 302-redirects to the real link.
+ */
+function buildOnDemandStreams(streams, cachedMap, moch, config) {
+  const base = config?._publicBaseUrl;
+  const configString = config?._configString;
+  // Without an absolute base and the raw config segment we cannot build a
+  // resolve URL the app can call back into. Skip rather than emit dead links.
+  if (!base || !configString) return [];
+
+  const picked = [];
+  const seen = new Set();
+
+  for (const stream of streams) {
+    const infoHash = stream.infoHash?.toLowerCase();
+    if (!infoHash) continue;
+    if (cachedMap.has(infoHash)) continue; // already emitted as a direct stream
+
+    const fileIdx = stream.fileIdx ?? 0;
+    const key = `${infoHash}:${fileIdx}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    const resolveUrl = `${base}/${configString}/resolve/${moch.id}/${infoHash}/${fileIdx}`;
+    picked.push(buildOnDemandStream(stream, resolveUrl, moch.name));
+
+    if (picked.length >= ON_DEMAND_LIMIT) break;
+  }
+
+  return picked;
+}
+
+/**
+ * Resolve a single torrent on demand for a given service (used by the addon's
+ * /resolve route). Returns a direct URL or null.
+ */
+export async function resolveOnDemandStream(config, mochId, infoHash, fileIdx) {
+  const entry = findMochByShortId(mochId);
+  if (!entry) return null;
+
+  const { moch, module } = entry;
+  const apiKey = config?.[moch.configKey];
+
+  if (!isValidToken(apiKey, MIN_API_KEY_LENGTH) || typeof module.resolve !== 'function') {
+    return null;
+  }
+
+  // Bound the whole resolve so the /resolve route never hangs indefinitely.
+  // raceTimeout resolves to null on timeout (the underlying resolve continues
+  // in the background and warms the cache for a retry).
+  return raceTimeout(
+    () => module.resolve({ infoHash, fileIdx }, apiKey),
+    ON_DEMAND_RESOLVE_TIMEOUT_MS,
+  );
 }
 
 export function selectMochResults(directStreams, rawStreams, p2pFallback = false) {

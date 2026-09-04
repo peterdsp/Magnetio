@@ -13,15 +13,15 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@keyv/redis": "^5.1.6",
-    "axios": "^1.19.0",
+    "axios": "^1.20.0",
     "cron": "^4.4.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "express-rate-limit": "^8.6.1",
+    "express-rate-limit": "^8.7.0",
     "keyv": "^5.6.0",
     "magnet-uri": "^7.0.10",
     "node-fetch": "^3.3.2",
-    "p-limit": "^7.3.1",
+    "p-limit": "^7.3.2",
     "p-queue": "^9.3.3",
     "prom-client": "^15.1.3",
     "redis": "^6.2.1",
@@ -34,7 +34,9 @@
   "devDependencies": {
     "nodemon": "^3.0.2"
   },
+  "//ip-advisory": "ip is force-pinned to 2.0.1 below via the torrent-stream override. GHSA-2p57-rm9w-gvfp (ip <=2.0.1, no upstream fix) is not exploitable here: the vulnerable isPublic/isPrivate/isLoopback classifiers are never called in our dependency tree (torrent-stream's peer-blocklist feature is unused), so the resolver only ever uses ip.toLong/cidrSubnet. Do not remove the pin without re-checking reachability.",
   "overrides": {
+    "qs": "6.16.0",
     "swagger-stats": {
       "prom-client": "$prom-client",
       "send": "0.19.0",

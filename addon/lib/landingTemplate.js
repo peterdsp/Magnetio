@@ -65,6 +65,7 @@ export function landingTemplate(manifest, initialConfig = {}) {
     prewarmDebrid: initialConfig.prewarmDebrid ?? true,
     prewarmLimit: initialConfig.prewarmLimit ?? 3,
     p2pFallback: initialConfig.p2pFallback ?? false,
+    onDemand: initialConfig.onDemand ?? true,
     debridCatalogs: initialConfig.debridCatalogs ?? true,
     tmdbApiKey: initialConfig.tmdbApiKey ?? '',
     torznabUrl: initialConfig.torznabUrl ?? '',
@@ -1175,6 +1176,13 @@ export function landingTemplate(manifest, initialConfig = {}) {
           </select>
         </label>
         <label>
+          On-demand streams for services without a cache check
+          <select id="onDemand" title="DebridLink, Offcloud and Put.io have no instant cache check. When enabled, they show on-demand entries that download to your Debrid account when you press play; when disabled, they contribute only catalogs and prewarm">
+            <option value="1">Enabled</option>
+            <option value="0">Disabled</option>
+          </select>
+        </label>
+        <label>
           Add Debrid cloud catalogs
           <select id="debridCatalogs" title="When a Debrid API key is set, also expose your cloud catalog (Movies/Series) in Stremio">
             <option value="1">Enabled</option>
@@ -1294,6 +1302,7 @@ export function landingTemplate(manifest, initialConfig = {}) {
       document.getElementById('prewarm').value = initialConfig.prewarmDebrid === false ? '0' : '1';
       document.getElementById('prewarmLimit').value = String(initialConfig.prewarmLimit || 3);
       document.getElementById('p2pFallback').value = initialConfig.p2pFallback ? '1' : '0';
+      document.getElementById('onDemand').value = initialConfig.onDemand === false ? '0' : '1';
       document.getElementById('debridCatalogs').value = initialConfig.debridCatalogs === false ? '0' : '1';
       document.getElementById('proxyStreams').value = initialConfig.proxyStreams ? '1' : '0';
       document.getElementById('proxyUrl').value = initialConfig.proxyUrl || '';
@@ -1324,6 +1333,7 @@ export function landingTemplate(manifest, initialConfig = {}) {
       parts.push('prewarm=' + document.getElementById('prewarm').value);
       parts.push('prewarmLimit=' + document.getElementById('prewarmLimit').value);
       if (document.getElementById('p2pFallback').value === '1') parts.push('p2pFallback=1');
+      if (document.getElementById('onDemand').value === '0') parts.push('onDemand=0');
       var debridCatalogsValue = document.getElementById('debridCatalogs').value;
       if (debridCatalogsValue === '0') parts.push('debridCatalogs=0');
       var proxyValue = document.getElementById('proxyStreams').value;
