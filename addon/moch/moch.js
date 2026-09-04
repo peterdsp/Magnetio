@@ -1,5 +1,5 @@
 import { MochOptions, MIN_API_KEY_LENGTH } from './options.js';
-import { isValidToken, buildDebridStream, buildOnDemandStream } from './mochHelper.js';
+import { isValidToken, buildDebridStream, buildOnDemandStream, raceTimeout } from './mochHelper.js';
 import { createStreamSubtitleProxies } from '../lib/subtitleProxy.js';
 import { cacheGet, cacheSet } from '../lib/cache.js';
 import NamedQueue from '../lib/namedQueue.js';
@@ -35,6 +35,14 @@ const resolveLimit = pLimit(4);
 // cache-check. Kept low so the stream list stays clean and the user is not
 // tempted to add many torrents to their debrid account at once.
 const ON_DEMAND_LIMIT = 5;
+
+// Hard ceiling for an on-demand /resolve call. Provider resolvers poll for the
+// torrent to become ready (roughly 20-36s worst case); this bounds the whole
+// request so the addon returns a clean error instead of hanging. On timeout the
+// in-flight resolve keeps running and warms resolveWithCache, so a retry can hit
+// the now-cached link. Override with ON_DEMAND_RESOLVE_TIMEOUT_MS.
+const ON_DEMAND_RESOLVE_TIMEOUT_MS =
+  parseInt(process.env.ON_DEMAND_RESOLVE_TIMEOUT_MS, 10) || 40_000;
 
 /**
  * Enhance a list of streams using all configured debrid services.
@@ -97,8 +105,9 @@ export async function applyMochs(streams, config, requestContext) {
 
         // Services without a bulk cache-check produce an empty cachedMap, so
         // the loop above yields nothing and they would vanish from the list.
-        // Emit visible on-demand entries instead, resolved on play.
-        if (moch.instantAvailability === false && typeof module.resolve === 'function') {
+        // Emit visible on-demand entries instead, resolved on play. Opt-out
+        // via `onDemand=0` in the config.
+        if (config?.onDemand !== false && moch.instantAvailability === false && typeof module.resolve === 'function') {
           const onDemand = buildOnDemandStreams(streams, cachedMap, moch, config);
           if (onDemand.length) {
             logger.info(
@@ -182,7 +191,13 @@ export async function resolveOnDemandStream(config, mochId, infoHash, fileIdx) {
     return null;
   }
 
-  return module.resolve({ infoHash, fileIdx }, apiKey);
+  // Bound the whole resolve so the /resolve route never hangs indefinitely.
+  // raceTimeout resolves to null on timeout (the underlying resolve continues
+  // in the background and warms the cache for a retry).
+  return raceTimeout(
+    () => module.resolve({ infoHash, fileIdx }, apiKey),
+    ON_DEMAND_RESOLVE_TIMEOUT_MS,
+  );
 }
 
 export function selectMochResults(directStreams, rawStreams, p2pFallback = false) {

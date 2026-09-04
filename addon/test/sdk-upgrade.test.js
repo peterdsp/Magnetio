@@ -10,7 +10,7 @@ import { toSubtitleLanguageCode } from '../lib/languages.js';
 import { toStreamInfo } from '../lib/streamInfo.js';
 import { computeOpenSubtitlesHashFromBuffers, createStreamSubtitleProxies } from '../lib/subtitleProxy.js';
 import { pickPrewarmCandidates, selectMochResults } from '../moch/moch.js';
-import { buildOnDemandStream } from '../moch/mochHelper.js';
+import { buildOnDemandStream, raceTimeout } from '../moch/mochHelper.js';
 import { MochOptions } from '../moch/options.js';
 import { buildCacheCheckBody, buildTorrentForm, parseCachedHashes } from '../moch/torbox.js';
 import { applyFinalStreamLimit } from '../addon.js';
@@ -41,6 +41,12 @@ test('P2P fallback is strict by default and can be explicitly enabled', () => {
   assert.equal(parseConfiguration('p2pFallback=1').p2pFallback, true);
 });
 
+test('on-demand streams are on by default and can be disabled', () => {
+  assert.equal(parseConfiguration('').onDemand, true);
+  assert.equal(parseConfiguration('onDemand=0').onDemand, false);
+  assert.equal(parseConfiguration('onDemand=1').onDemand, true);
+});
+
 test('debrid selection preserves direct-only mode and optional P2P fallback', () => {
   const direct = [{ url: 'https://debrid.example/video' }];
   const raw = [{ infoHash: 'abcdef' }];
@@ -61,6 +67,14 @@ test('services without a bulk cache-check are flagged for on-demand resolution',
   for (const key of withCacheCheck) {
     assert.equal(MochOptions[key].instantAvailability, true, `${key} should be instant`);
   }
+});
+
+test('on-demand resolve ceiling returns null on timeout and value when fast', async () => {
+  const slow = () => new Promise(resolve => setTimeout(() => resolve('late'), 50));
+  const fast = () => Promise.resolve('https://debrid.example/video');
+
+  assert.equal(await raceTimeout(slow, 10), null);
+  assert.equal(await raceTimeout(fast, 1000), 'https://debrid.example/video');
 });
 
 test('on-demand stream is a visible, labelled redirect back into the addon', () => {

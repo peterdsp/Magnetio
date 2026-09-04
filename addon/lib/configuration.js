@@ -113,6 +113,9 @@ export function parseConfiguration(configString) {
       case 'p2pfallback':
         config.p2pFallback = parseBoolean(value, config.p2pFallback);
         break;
+      case 'ondemand':
+        config.onDemand = parseBoolean(value, config.onDemand);
+        break;
       case 'excludesizes':
         config.excludeSizes = value.toUpperCase().split(',').filter(Boolean);
         break;
@@ -200,6 +203,7 @@ export function getDefaultConfiguration() {
     prewarmDebrid:      true,         // warm a few top uncached results in debrid
     prewarmLimit:       3,
     p2pFallback:        false,        // debrid configs stay direct-only unless explicitly enabled
+    onDemand:           true,         // show on-demand entries for debrid services lacking a cache-check
     debridCatalogs:     true,         // expose debrid cloud catalogs when a key is set
     excludeSizes:       [],
     maxSize:            null,
