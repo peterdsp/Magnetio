@@ -224,10 +224,17 @@ test('stream info uses the Stremio-compatible infoHash contract and subtitle mat
 
   assert.equal(stream.infoHash, 'abcdef0123456789abcdef0123456789abcdef01');
   assert.equal(stream.fileIdx, undefined);
-  assert.equal(stream.sources, undefined);
   assert.equal(stream.behaviorHints.filename, 'Example.Release.1080p.WEB-DL.x265');
   assert.equal(stream.behaviorHints.videoSize, 2 * 1024 * 1024 * 1024);
-  assert.match(stream.description, /WEB-DL/);
+  // Descriptive text lives in `title`; `description` must NOT be emitted, or
+  // several Stremio clients drop the whole stream list (issue #111 / PR #126).
+  assert.match(stream.title, /WEB-DL/);
+  assert.equal(stream.description, undefined);
+  // P2P streams carry peer-discovery sources: dht first, then trackers
+  // (regression fix for PR #124 which removed buildSources()).
+  assert.ok(Array.isArray(stream.sources) && stream.sources.length >= 2);
+  assert.equal(stream.sources[0], 'dht:abcdef0123456789abcdef0123456789abcdef01');
+  assert.ok(stream.sources.includes('tracker:udp://tracker.example:1337/announce'));
 });
 
 test('OpenSubtitles API requests explicitly accept JSON responses', () => {
