@@ -34,6 +34,7 @@
   "devDependencies": {
     "nodemon": "^3.0.2"
   },
+  "//ip-advisory": "ip is force-pinned to 2.0.1 below via the torrent-stream override. GHSA-2p57-rm9w-gvfp (ip <=2.0.1, no upstream fix) is not exploitable here: the vulnerable isPublic/isPrivate/isLoopback classifiers are never called in our dependency tree (torrent-stream's peer-blocklist feature is unused), so the resolver only ever uses ip.toLong/cidrSubnet. Do not remove the pin without re-checking reachability.",
   "overrides": {
     "qs": "6.16.0",
     "swagger-stats": {
