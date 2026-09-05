@@ -147,7 +147,7 @@ router.get('/proxy/stream/:infoHash/:fileIdx', proxyStreamLimiter, async (req, r
 });
 
 router.get('/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'Magnetio', version: '1.1.5' });
+  res.json({ status: 'ok', service: 'Magnetio', version: '1.2.0' });
 });
 
 router.get('/stats', (req, res, next) => {

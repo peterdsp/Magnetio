@@ -2,7 +2,7 @@ import { getManifestOverride } from './configuration.js';
 import { MochOptions } from '../moch/options.js';
 
 const ADDON_ID      = 'com.magnetio.addon';
-const ADDON_VERSION = '1.1.5';
+const ADDON_VERSION = '1.2.0';
 const ADDON_NAME    = 'Magnetio';
 const ASSET_BASE_URL = `${(process.env.ADDON_PUBLIC_URL || 'https://magnetio.peterdsp.dev').replace(/\/$/, '')}/static`;
 const ADDON_LOGO = `${ASSET_BASE_URL}/magnetio-logo.svg`;
