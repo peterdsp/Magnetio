@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Magnetio-v1.1.5-10b981?style=for-the-badge&labelColor=1a1a2e" alt="Magnetio Version" />
+  <img src="https://img.shields.io/badge/Magnetio-v1.2.0-10b981?style=for-the-badge&labelColor=1a1a2e" alt="Magnetio Version" />
   <img src="https://img.shields.io/badge/license-Apache--2.0-blue?style=for-the-badge&labelColor=1a1a2e" alt="License" />
   <img src="https://img.shields.io/badge/node-%3E%3D18-brightgreen?style=for-the-badge&logo=node.js&labelColor=1a1a2e" alt="Node.js" />
   <img src="https://img.shields.io/badge/docker-ready-2496ed?style=for-the-badge&logo=docker&labelColor=1a1a2e" alt="Docker" />
