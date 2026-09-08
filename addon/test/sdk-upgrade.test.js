@@ -229,6 +229,8 @@ test('stream info uses the Stremio-compatible infoHash contract and subtitle mat
   // Descriptive text lives in `title`; `description` must NOT be emitted, or
   // several Stremio clients drop the whole stream list (issue #111 / PR #126).
   assert.match(stream.title, /WEB-DL/);
+  // Each result is labelled with the scraper it came from (issue #111 request).
+  assert.match(stream.title, /⚙️ YTS/);
   assert.equal(stream.description, undefined);
   // P2P streams carry peer-discovery sources: dht first, then trackers
   // (regression fix for PR #124 which removed buildSources()).
