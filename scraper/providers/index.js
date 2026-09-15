@@ -52,6 +52,20 @@ const ALL_PROVIDERS = [
   torznab,
 ];
 
+// Providers disabled on this host via env (comma-separated provider ids), e.g.
+// SCRAPER_DISABLED_PROVIDERS=glotorrents,kickasstorrents,1337x
+// Disabled providers are skipped even when a client explicitly requests them.
+const DISABLED_PROVIDERS = new Set(
+  (process.env.SCRAPER_DISABLED_PROVIDERS ?? "")
+    .split(",")
+    .map(s => s.trim().toLowerCase())
+    .filter(Boolean)
+);
+const ACTIVE_PROVIDERS = ALL_PROVIDERS.filter(p => !DISABLED_PROVIDERS.has(p.id));
+if (DISABLED_PROVIDERS.size) {
+  logger.info(`Disabled providers: ${[...DISABLED_PROVIDERS].join(", ")}`);
+}
+
 const limit = pLimit(Math.max(1, parseInt(process.env.SCRAPER_CONCURRENCY ?? '12', 10) || 12));
 const PROVIDER_TIMEOUT_MS = parseInt(process.env.SCRAPER_PROVIDER_TIMEOUT_MS ?? '15000', 10);
 const HARD_TIMEOUT_MS     = parseInt(process.env.SCRAPER_HARD_TIMEOUT_MS     ?? String(PROVIDER_TIMEOUT_MS + 2000), 10);
@@ -70,7 +84,7 @@ const MIN_EARLY_RESULTS   = parseInt(process.env.SCRAPER_MIN_EARLY_RESULTS   ?? 
  * @returns {Promise<TorrentRecord[]>}
  */
 export async function scrapeAll(type, meta, providerIds = null, context = {}) {
-  const providers = ALL_PROVIDERS.filter(p =>
+  const providers = ACTIVE_PROVIDERS.filter(p =>
     !providerIds || providerIds.includes(p.id)
   );
 
@@ -241,5 +255,5 @@ function normalizeTitle(str) {
  * List all available provider IDs.
  */
 export function listProviders() {
-  return ALL_PROVIDERS.map(p => ({ id: p.id, name: p.name }));
+  return ACTIVE_PROVIDERS.map(p => ({ id: p.id, name: p.name }));
 }
