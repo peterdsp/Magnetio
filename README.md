@@ -607,7 +607,7 @@ Combined with the HTTPS step above, that's enough to install Magnetio on an Orac
 | `SCRAPER_PROVIDER_TIMEOUT_MS` | `25000` | Per-provider timeout (raise if slow providers keep firing `timed out`) |
 | `SCRAPER_HARD_TIMEOUT_MS` | `provider + 2000` | Overall scrape budget |
 | `SCRAPER_EARLY_RETURN_MS` | `6000` | Return early once enough results land |
-| `SCRAPER_MIN_EARLY_RESULTS` | `10` | Minimum results before early return kicks in |
+| `SCRAPER_MIN_EARLY_RESULTS` | `10` | Minimum matching results (after the content filter) before early return kicks in |
 | `SCRAPER_DOMAIN_COOLDOWN_MS` | `300000` | Cooldown when a domain returns 403/5xx/timeout |
 | `SCRAPER_RATELIMIT_COOLDOWN_MS` | `600000` | Longer cooldown when a domain returns 429 |
 | `LOG_LEVEL` | `info` | Winston log level |
