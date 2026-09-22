@@ -1,19 +1,42 @@
+import crypto from 'crypto';
 import { cacheWrap } from '../lib/cache.js';
 import { logger } from '../lib/logger.js';
 
 // Token blacklist: keys that have previously returned auth-failure errors
 const _blacklist = new Set();
 
+const NO_RESULT = Symbol('no-result');
+
+/**
+ * Short, non-reversible id for an API key, used to scope cache keys per user.
+ * Debrid links belong to the account that created them, so a link resolved
+ * with one user's key must never be served to another user.
+ */
+export function tokenScope(apiKey) {
+  return crypto.createHash('sha256').update(String(apiKey)).digest('hex').slice(0, 16);
+}
+
 /**
  * Wrap a debrid resolution call in a timeout + cache layer.
+ * Only successful resolutions are cached: a null (failure or timeout) would
+ * otherwise block that stream for the whole TTL.
  *
- * @param {string}   cacheKey
+ * @param {string}   cacheKey   Must include tokenScope(apiKey)
  * @param {Function} resolver   async () => url | null
  * @param {number}   ttl        cache TTL in seconds
  * @param {number}   timeoutMs
  */
 export async function resolveWithCache(cacheKey, resolver, ttl = 3600, timeoutMs = 120_000) {
-  return cacheWrap(cacheKey, () => raceTimeout(resolver, timeoutMs), ttl);
+  try {
+    return await cacheWrap(cacheKey, async () => {
+      const url = await raceTimeout(resolver, timeoutMs);
+      if (url == null) throw NO_RESULT;
+      return url;
+    }, ttl);
+  } catch (err) {
+    if (err === NO_RESULT) return null;
+    throw err;
+  }
 }
 
 /**
@@ -21,10 +44,16 @@ export async function resolveWithCache(cacheKey, resolver, ttl = 3600, timeoutMs
  * Returns null on timeout instead of throwing.
  */
 export async function raceTimeout(fn, ms = 120_000) {
-  return Promise.race([
-    fn(),
-    new Promise(resolve => setTimeout(() => resolve(null), ms)),
-  ]);
+  let timer;
+  try {
+    return await Promise.race([
+      fn(),
+      new Promise(resolve => { timer = setTimeout(() => resolve(null), ms); }),
+    ]);
+  } finally {
+    // Don't leave the timer (and its closure) pending after fn() settles
+    clearTimeout(timer);
+  }
 }
 
 /** Mark an API key as invalid so we skip it for future requests. */
