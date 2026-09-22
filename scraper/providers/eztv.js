@@ -9,6 +9,11 @@ import { logger } from '../lib/logger.js';
 
 const DOMAINS = PROVIDER_DOMAINS.eztv;
 
+// The API caps limit at 100 per page and lists newest uploads first. Long
+// shows run to thousands of torrents, so cap the pages fetched per lookup.
+const PAGE_SIZE = 100;
+const MAX_PAGES = 10;
+
 export const id   = 'eztv';
 export const name = 'EZTV';
 
@@ -19,24 +24,17 @@ export async function scrape(meta) {
   if (!imdbNumeric) return [];
 
   try {
-    let page = 1;
-    const results = [];
+    const first   = await fetchPage(imdbNumeric, 1);
+    const results = (first?.torrents ?? []).map(normalise);
 
-    while (true) {
-      const { data } = await tryDomains(DOMAINS, async (base) => {
-        return get(`${base}/api/get-torrents`, {
-          limiterKey: 'eztv',
-          responseType: 'json',
-          params: { imdb_id: imdbNumeric, limit: 100, page },
-        });
-      }, 'EZTV');
+    // torrents_count gives the page count up front, so the remaining pages
+    // are fetched concurrently (the 'eztv' limiter still caps parallelism).
+    const total = Math.min(Math.ceil((first?.torrents_count ?? 0) / PAGE_SIZE), MAX_PAGES);
+    const rest  = [];
+    for (let page = 2; page <= total; page++) rest.push(fetchPage(imdbNumeric, page));
 
-      const torrents = data?.torrents ?? [];
-      results.push(...torrents.map(normalise));
-
-      if (torrents.length < 100) break;
-      page++;
-      if (page > 5) break;
+    for (const r of await Promise.allSettled(rest)) {
+      if (r.status === 'fulfilled') results.push(...(r.value?.torrents ?? []).map(normalise));
     }
 
     return filterBySeason(results, meta.season, meta.episode);
@@ -44,6 +42,17 @@ export async function scrape(meta) {
     logger.warn(`[EZTV] ${err.message}`);
     return [];
   }
+}
+
+async function fetchPage(imdbNumeric, page) {
+  const { data } = await tryDomains(DOMAINS, async (base) => {
+    return get(`${base}/api/get-torrents`, {
+      limiterKey: 'eztv',
+      responseType: 'json',
+      params: { imdb_id: imdbNumeric, limit: PAGE_SIZE, page },
+    });
+  }, 'EZTV');
+  return data;
 }
 
 function normalise(t) {

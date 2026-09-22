@@ -69,8 +69,8 @@ if (DISABLED_PROVIDERS.size) {
 const limit = pLimit(Math.max(1, parseInt(process.env.SCRAPER_CONCURRENCY ?? '12', 10) || 12));
 const PROVIDER_TIMEOUT_MS = parseInt(process.env.SCRAPER_PROVIDER_TIMEOUT_MS ?? '15000', 10);
 const HARD_TIMEOUT_MS     = parseInt(process.env.SCRAPER_HARD_TIMEOUT_MS     ?? String(PROVIDER_TIMEOUT_MS + 2000), 10);
-const EARLY_RETURN_MS     = parseInt(process.env.SCRAPER_EARLY_RETURN_MS     ?? '3000', 10);
-const MIN_EARLY_RESULTS   = parseInt(process.env.SCRAPER_MIN_EARLY_RESULTS   ?? '3', 10);
+const EARLY_RETURN_MS     = parseInt(process.env.SCRAPER_EARLY_RETURN_MS     ?? '6000', 10);
+const MIN_EARLY_RESULTS   = parseInt(process.env.SCRAPER_MIN_EARLY_RESULTS   ?? '10', 10);
 
 /**
  * Scrape all (or a subset of) providers for a given content item.
@@ -89,7 +89,9 @@ export async function scrapeAll(type, meta, providerIds = null, context = {}) {
   );
 
   const collected = [];
+  let matchedCount = 0;
   let resolved = false;
+  const startedAt = Date.now();
   let completedCount = 0;
 
   return new Promise((resolve) => {
@@ -108,10 +110,12 @@ export async function scrapeAll(type, meta, providerIds = null, context = {}) {
       resolve(matched);
     };
 
-    // Early return: after EARLY_RETURN_MS, return if we have enough results
+    // Early return: after EARLY_RETURN_MS, return if we have enough results.
+    // Counts only results that pass the content filter, so a provider that
+    // dumps an unrelated feed can't trigger an early return that ends empty.
     const earlyTimer = setTimeout(() => {
-      if (!resolved && collected.length >= MIN_EARLY_RESULTS) {
-        logger.info(`Early return: ${collected.length} results from ${completedCount}/${providers.length} providers after ${EARLY_RETURN_MS}ms`);
+      if (!resolved && matchedCount >= MIN_EARLY_RESULTS) {
+        logger.info(`Early return: ${matchedCount} matching results from ${completedCount}/${providers.length} providers after ${EARLY_RETURN_MS}ms`);
         finalize();
       }
     }, EARLY_RETURN_MS);
@@ -137,12 +141,18 @@ export async function scrapeAll(type, meta, providerIds = null, context = {}) {
           );
           logger.info(`[${p.name}] ${results.length} results in ${Date.now() - start}ms`);
           collected.push(...results);
+          matchedCount += filterByContent(results, meta).length;
         } catch (err) {
           logger.warn(`[${p.name}] ${err.message} (${Date.now() - start}ms)`);
         } finally {
           completedCount++;
           // If all providers finished, return immediately
           if (completedCount >= providers.length) finalize();
+          // Past the early-return window: return as soon as enough results land
+          else if (Date.now() - startedAt >= EARLY_RETURN_MS && matchedCount >= MIN_EARLY_RESULTS) {
+            logger.info(`Early return: ${matchedCount} matching results from ${completedCount}/${providers.length} providers after ${Date.now() - startedAt}ms`);
+            finalize();
+          }
         }
       })
     );
