@@ -478,7 +478,8 @@ The scraper validates that returned torrents actually match the requested conten
 Redis-backed, best-effort usage tracking:
 
 - Daily request counts and per-type breakdowns (stream, catalog, subtitle, page views)
-- Unique users via HyperLogLog (privacy-preserving, no PII stored)
+- Unique users counted by client IP: each IP (IPv6 reduced to its /64) is salted and hashed, and only the hash goes into a HyperLogLog, so no IPs or other PII are stored
+- Distinct addon configurations counted separately (`uniqueConfigs` in the JSON)
 - 7-day rolling history
 - Available at `/stats`
 
@@ -580,8 +581,9 @@ Combined with the HTTPS step above, that's enough to install Magnetio on an Orac
 | `REDIS_URI` | In-memory | Redis connection string |
 | `SCRAPER_URL` | `http://localhost:8080` | Internal scraper service URL |
 | `ADDON_PUBLIC_URL` | Auto-detected | Public URL for manifest and subtitle links |
-| `METRICS_USER` | `admin` | Username for `/swagger` metrics |
-| `METRICS_PASSWORD` | `magnetio` | Password for `/swagger` metrics |
+| `METRICS_USER` | `admin` | Username for `/swagger` metrics and `/stats` |
+| `METRICS_PASSWORD` | `magnetio` | Password for `/swagger` metrics and `/stats` (change it on public instances) |
+| `STATS_SALT` | Generated, stored in Redis | Secret used to hash client IPs for unique-user counts |
 | `OPENSUBTITLES_API_KEY` | - | Enables subtitle resource |
 | `OPENSUBTITLES_USERNAME` | - | OpenSubtitles account (for downloads) |
 | `OPENSUBTITLES_PASSWORD` | - | OpenSubtitles account password |
