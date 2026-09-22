@@ -243,7 +243,7 @@ router.use('/:configuration', globalLimiter, async (req, res, next) => {
       const configHash = hashConfiguration(req.params.configuration);
       const pathAfterConfig = req.path.replace(/^\/[^/]+/, '');
       const type = pathAfterConfig.match(/^\/(stream|catalog|subtitle|meta)\b/)?.[1] || 'page';
-      trackRequest(type, configHash).catch(() => {});
+      trackRequest(type, configHash, clientIp).catch(() => {});
 
       const addonRouter = await getConfiguredAddonRouter(
         req.params.configuration,
