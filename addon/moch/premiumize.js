@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { isValidToken, blacklistToken, selectVideoFile, resolveWithCache } from './mochHelper.js';
+import { isValidToken, blacklistToken, selectVideoFile, resolveWithCache, tokenScope } from './mochHelper.js';
 import { logger } from '../lib/logger.js';
 
 const PM_BASE = 'https://www.premiumize.me/api';
@@ -44,7 +44,7 @@ export async function getCachedStreams(streams, apiKey) {
 export async function resolve(stream, apiKey) {
   if (!isValidToken(apiKey)) return null;
 
-  const cacheKey = `pm:resolve:${stream.infoHash}:${stream.fileIdx ?? 0}`;
+  const cacheKey = `pm:resolve:${tokenScope(apiKey)}:${stream.infoHash}:${stream.fileIdx ?? 0}`;
   return resolveWithCache(cacheKey, () => _resolve(stream, apiKey));
 }
 

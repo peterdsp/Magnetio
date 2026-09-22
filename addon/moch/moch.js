@@ -1,5 +1,5 @@
 import { MochOptions, MIN_API_KEY_LENGTH } from './options.js';
-import { isValidToken, buildDebridStream, buildOnDemandStream, raceTimeout } from './mochHelper.js';
+import { isValidToken, buildDebridStream, buildOnDemandStream, raceTimeout, tokenScope } from './mochHelper.js';
 import { createStreamSubtitleProxies } from '../lib/subtitleProxy.js';
 import { cacheGet, cacheSet } from '../lib/cache.js';
 import NamedQueue from '../lib/namedQueue.js';
@@ -277,10 +277,11 @@ function schedulePrewarm(streams, cachedMap, apiKey, moch, module, config) {
 
   const candidates = pickPrewarmCandidates(streams, cachedMap, limit);
   for (const stream of candidates) {
-    const queueId = `prewarm:${moch.id}:${stream.infoHash}:${stream.fileIdx ?? 0}`;
+    // Per-account: warming a torrent in one user's debrid account does nothing for another's
+    const queueId = `prewarm:${moch.id}:${tokenScope(apiKey)}:${stream.infoHash}:${stream.fileIdx ?? 0}`;
     setTimeout(() => {
       PREWARM_QUEUE.wrap({ id: queueId }, async () => {
-        const cacheKey = `prewarm:${moch.id}:${stream.infoHash}:${stream.fileIdx ?? 0}`;
+        const cacheKey = queueId;
         if (await cacheGet(cacheKey)) return true;
 
         const warmed = await module.prewarm(stream, apiKey);

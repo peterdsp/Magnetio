@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { isValidToken, blacklistToken, selectVideoFile, resolveWithCache } from './mochHelper.js';
+import { isValidToken, blacklistToken, selectVideoFile, resolveWithCache, tokenScope } from './mochHelper.js';
 import { logger } from '../lib/logger.js';
 
 const OC_BASE = 'https://offcloud.com/api';
@@ -15,7 +15,7 @@ export async function getCachedStreams(streams, apiKey) {
 export async function resolve(stream, apiKey) {
   if (!isValidToken(apiKey)) return null;
 
-  const cacheKey = `oc:resolve:${stream.infoHash}`;
+  const cacheKey = `oc:resolve:${tokenScope(apiKey)}:${stream.infoHash}`;
   return resolveWithCache(cacheKey, () => _resolve(stream, apiKey));
 }
 

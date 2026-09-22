@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { isValidToken, blacklistToken, resolveWithCache } from './mochHelper.js';
+import { isValidToken, blacklistToken, resolveWithCache, tokenScope } from './mochHelper.js';
 import { logger } from '../lib/logger.js';
 
 const ED_BASE = 'https://easydebrid.com/api/v1';
@@ -33,7 +33,7 @@ export async function getCachedStreams(streams, apiKey) {
 export async function resolve(stream, apiKey) {
   if (!isValidToken(apiKey)) return null;
 
-  const cacheKey = `ed:resolve:${stream.infoHash}`;
+  const cacheKey = `ed:resolve:${tokenScope(apiKey)}:${stream.infoHash}`;
   return resolveWithCache(cacheKey, () => _resolve(stream, apiKey));
 }
 
