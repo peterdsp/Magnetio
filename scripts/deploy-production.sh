@@ -96,7 +96,13 @@ else
   sudo install -m 0644 deploy/systemd/docker-media-recovery.service /etc/systemd/system/docker-media-recovery.service
   sudo install -m 0644 deploy/systemd/docker-media-recovery.timer /etc/systemd/system/docker-media-recovery.timer
   sudo systemctl daemon-reload
-  sudo systemctl enable --now docker-media-recovery.timer
+  # Docker is masked on purpose on hosts that can't spare the RAM; the recovery
+  # timer would only fail every 2 minutes there, so leave it off.
+  if [ "$(systemctl is-enabled docker.service 2>/dev/null || true)" = "masked" ]; then
+    sudo systemctl disable --now docker-media-recovery.timer 2>/dev/null || true
+  else
+    sudo systemctl enable --now docker-media-recovery.timer
+  fi
   # `enable --now` only STARTS a stopped service; on an already-running service
   # it is a no-op, so the freshly rsynced code would never load. Enable, then
   # restart explicitly so each deploy actually picks up the new code. Scraper

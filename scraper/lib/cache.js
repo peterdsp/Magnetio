@@ -29,7 +29,9 @@ export async function cacheWrap(key, loader, ttlSeconds = 3600) {
   const hit = await store.get(key);
   if (hit !== undefined) return { value: hit, cached: true };
   const value = await loader();
-  const isEmpty = Array.isArray(value) && value.length === 0;
+  // Don't cache misses: a transient failure (e.g. a DNS blip during a Cinemeta
+  // lookup) would otherwise hide a title for the whole TTL.
+  const isEmpty = value == null || (Array.isArray(value) && value.length === 0);
   if (!isEmpty) {
     await store.set(key, value, ttlSeconds * 1000);
   }

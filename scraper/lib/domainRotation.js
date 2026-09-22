@@ -75,9 +75,12 @@ export const PROVIDER_DOMAINS = {
     'https://1337x.gd',
     `https://1337x.${UNBLOCKIT}`,
   ],
+  // eztv.re now only 301s to eztvx.to; the others are EZTV's own mirrors.
   eztv: [
-    'https://eztv.re',
     'https://eztvx.to',
+    'https://eztv.wf',
+    'https://eztv.tf',
+    'https://eztv.yt',
     `https://eztv.${UNBLOCKIT}`,
   ],
   limetorrents: [
@@ -90,10 +93,11 @@ export const PROVIDER_DOMAINS = {
     'https://kickasstorrents.to',
     `https://kickasstorrents.${UNBLOCKIT}`,
   ],
+  // torrentgalaxy.to no longer resolves and the unblockit proxy answers 429;
+  // .one and .info both serve the current /get-posts/ search.
   torrentgalaxy: [
     'https://torrentgalaxy.one',
-    'https://torrentgalaxy.to',
-    `https://torrentgalaxy.${UNBLOCKIT}`,
+    'https://torrentgalaxy.info',
   ],
   yts: [
     'https://yts.gg',
@@ -101,21 +105,28 @@ export const PROVIDER_DOMAINS = {
     'https://yts.mx',
     `https://yts.${UNBLOCKIT}`,
   ],
+  // Only apibay.org serves the q.php JSON API. thepiratebay.org redirects
+  // q.php to its HTML front end and the unblockit proxy returns HTML too.
   thepiratebay: [
     'https://apibay.org',
-    'https://thepiratebay.org',
-    `https://thepiratebay.${UNBLOCKIT}`,
   ],
   glotorrents: [
     'https://glodls.to',
     'https://gtso.cc',
   ],
+  // Bare torlock.com has a broken TLS certificate and torlock2.com only
+  // redirects; both sites serve search results on the www host.
   torlock: [
-    'https://torlock2.com',
-    'https://torlock.com',
+    'https://www.torlock2.com',
+    'https://www.torlock.com',
   ],
+  rutor: [
+    'http://rutor.info',
+    'http://rutor.is',
+  ],
+  // Only torrentdownload.info exposes info hashes in its search results.
+  // torrentdownloads.pro uses a different layout whose rows link to numeric ids.
   torrentdownloads: [
-    'https://torrentdownload.info',
-    'https://torrentdownloads.pro',
+    'https://www.torrentdownload.info',
   ],
 };
