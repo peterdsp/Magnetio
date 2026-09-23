@@ -1,5 +1,6 @@
 import zlib from 'zlib';
 import { logger } from './logger.js';
+import { toLanguageCode } from './languages.js';
 
 // Legacy single-byte code pages that subtitle uploaders still use for
 // languages that do not fit in Latin-1. Keyed by two-letter language code.
@@ -85,7 +86,7 @@ export function decodeSubtitleText(buffer, languageHint = null) {
 }
 
 export function codepageForLanguage(languageHint) {
-  const code = String(languageHint || '').trim().toLowerCase().slice(0, 2);
+  const code = toLanguageCode(languageHint);
   return LANGUAGE_CODEPAGES[code] || DEFAULT_CODEPAGE;
 }
 

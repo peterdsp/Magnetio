@@ -273,20 +273,19 @@ export function findEpisodeId(html, season, episode) {
 export function parseEpisodeSubtitles(html) {
   const subs = [];
   const seen = new Set();
-  const regex = /href="\/?subtitle-(\d+)\.html"([\s\S]{0,600}?)images\/flags\/([a-z]{2})\.gif/gi;
+  const regex = /href="\/?subtitle-(\d+)\.html"[\s\S]{0,600}?images\/flags\/([a-z]{2})\.gif/gi;
 
   let match;
   while ((match = regex.exec(html)) !== null) {
     const id = match[1];
     if (seen.has(id)) continue;
 
-    const flagCode = match[3].toLowerCase();
+    const flagCode = match[2].toLowerCase();
     const language = FLAG_TO_LANGUAGE_CODE[flagCode];
     if (!language) continue;
 
     seen.add(id);
-    const releaseMatch = match[2].match(/<p[^>]*title="([^"]+)"/i) || match[2].match(/<b>([^<]{4,120})<\/b>/i);
-    subs.push({ id, language, release: releaseMatch ? decodeHtmlEntities(releaseMatch[1].trim()) : null });
+    subs.push({ id, language });
   }
 
   return subs;
@@ -309,7 +308,7 @@ function pickCandidates(candidates, languages, baseUrl) {
       id: `tvsubs-${candidate.id}`,
       lang: toSubtitleLanguageCode(candidate.language),
       url: `${baseUrl}/proxy/tvsubs/${proxyId}.srt`,
-      _meta: { source: 'tvsubs', release: candidate.release || null },
+      _meta: { source: 'tvsubs' },
     });
     perLanguage.set(candidate.language, count + 1);
     if (picked.length >= MAX_TOTAL) break;
@@ -328,8 +327,15 @@ async function downloadAndExtract(zipUrl, languageHint = null) {
       ...HTTP_HEADERS,
       Referer: `${BASE_URL}/`,
     },
-    validateStatus: status => status >= 200 && status < 400,
+    // 4xx means the file is gone or refused: treat as "not available" so it
+    // is negatively cached instead of retried on every player request.
+    validateStatus: status => status >= 200 && status < 500,
   });
+
+  if (response.status >= 400) {
+    logger.debug(`Subtitle download refused [${response.status}] ${zipUrl}`);
+    return null;
+  }
 
   const buffer = Buffer.from(response.data);
   if (!buffer.length || buffer.length > MAX_ZIP_BYTES) return null;

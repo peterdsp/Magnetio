@@ -24,6 +24,14 @@ const TRANSLATION_SEPARATOR = '\n\n@@~~@@\n\n';
 const SOURCE_LANGUAGE = 'en';
 const MAX_TRANSLATIONS = 2;
 const prewarmEnabled = () => String(process.env.TRANSLATION_PREWARM ?? '1') !== '0';
+// Background pre-warms run through a small global gate so a burst of
+// subtitle listings cannot start dozens of translations at once. Anything
+// beyond the queue cap is simply not pre-warmed; the player request still
+// translates on demand.
+const PREWARM_CONCURRENCY = Math.max(1, parseInt(process.env.TRANSLATION_PREWARM_CONCURRENCY, 10) || 2);
+const PREWARM_MAX_QUEUE = 8;
+const prewarmGate = pLimit(PREWARM_CONCURRENCY);
+const prewarmQueued = new Set();
 
 // Translations in progress, keyed by proxy id, so a background pre-warm and a
 // player request for the same file share one translation run.
@@ -93,33 +101,49 @@ export function attachTranslatedSubtitles(subtitles, config) {
     });
   }
 
-  // Start translating the best English source now so the file is ready by
-  // the time the viewer picks it. Skipped when a native subtitle in the
-  // target language already exists, since that will be preferred anyway.
-  const hasNative = subtitles.some(sub => sub?.lang === targetSubtitleCode);
-  if (additions.length && !hasNative) {
-    prewarmTranslatedSubtitle(additions[0].url);
-  }
-
   return [...subtitles, ...additions];
 }
 
-export function prewarmTranslatedSubtitle(url) {
+/**
+ * Start translating the best English source in the background so the file
+ * is ready by the time the viewer picks it. Only the first translated entry
+ * is warmed, and only when no native subtitle in its language exists, since
+ * a native file ranks above the machine translation anyway.
+ */
+export function prewarmTranslatedSubtitles(subtitles) {
   if (!prewarmEnabled()) return;
+
+  const first = subtitles.find(sub => /\/proxy\/translated\//.test(String(sub?.url || '')));
+  if (!first) return;
+
+  const hasNative = subtitles.some(sub => sub !== first
+    && sub?.lang === first.lang
+    && !/\/proxy\/translated\//.test(String(sub?.url || '')));
+  if (hasNative) return;
+
   let parsed;
   try {
-    parsed = new URL(url);
+    parsed = new URL(first.url);
   } catch {
     return;
   }
   const match = parsed.pathname.match(/\/proxy\/translated\/([A-Za-z0-9_-]+)\.srt$/);
   if (!match) return;
 
-  loadTranslatedSubtitle(match[1], { requestHost: parsed.host })
+  const proxyId = match[1];
+  if (prewarmQueued.has(proxyId) || inflightTranslations.has(proxyId)) return;
+  if (prewarmQueued.size >= PREWARM_MAX_QUEUE) {
+    logger.debug('Translation pre-warm queue full, skipping');
+    return;
+  }
+
+  prewarmQueued.add(proxyId);
+  prewarmGate(() => loadTranslatedSubtitle(proxyId, { requestHost: parsed.host }))
     .then(result => {
       if (!result.content) logger.debug(`Translation pre-warm skipped: ${result.error}`);
     })
-    .catch(err => logger.debug(`Translation pre-warm failed: ${err.message}`));
+    .catch(err => logger.debug(`Translation pre-warm failed: ${err.message}`))
+    .finally(() => prewarmQueued.delete(proxyId));
 }
 
 export async function handleTranslatedSubtitleProxy(req, res) {

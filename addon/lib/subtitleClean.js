@@ -5,7 +5,7 @@ import { parseSrt, serializeSrt, parseTimestampRange, formatTimestampRange } fro
 const STRONG_JUNK_PATTERNS = [
   /https?:\/\//i,
   /\bwww\./i,
-  /\.(?:com|net|org|io|tv|me|info)\b(?!\S)/i,
+  /\b[a-z0-9-]+\.(?:com|net|org|io|tv|me|info)\b(?!\S)/i,
   /opensubtitles/i,
   /subscene|addic7ed|podnapisi|tvsubtitles|subsource|yifysubtitles|osdb\b/i,
   /advertise your product/i,
@@ -38,8 +38,8 @@ const MAX_CUE_DURATION_MS = 20_000;
 const MIN_CUE_DURATION_MS = 200;
 
 const HTML_ENTITIES = {
-  amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', hellip: '…',
-  ndash: '–', mdash: '—', lsquo: '‘', rsquo: '’', ldquo: '“', rdquo: '”',
+  amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', hellip: '\u2026',
+  ndash: '\u2013', mdash: '\u2014', lsquo: '\u2018', rsquo: '\u2019', ldquo: '\u201c', rdquo: '\u201d',
 };
 
 /**
@@ -89,7 +89,7 @@ export function cleanCueText(text) {
     .replace(/\{\\[^}]*\}/g, '')
     .replace(/&(#\d+|#x[0-9a-f]+|[a-z]+);/gi, decodeEntity)
     .replace(/<\s*br\s*\/?>/gi, '\n')
-    .replace(/ /g, ' ')
+    .replace(/\u00a0/g, ' ')
     .split('\n')
     .map(line => line.replace(/[ \t]+/g, ' ').trim())
     .filter(Boolean)

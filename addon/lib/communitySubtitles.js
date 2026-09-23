@@ -330,8 +330,15 @@ async function downloadAndExtract(payload) {
     maxContentLength: MAX_ZIP_BYTES,
     maxBodyLength: MAX_ZIP_BYTES,
     headers: HTTP_HEADERS,
-    validateStatus: status => status >= 200 && status < 400,
+    // 4xx means the file is gone or refused: treat as "not available" so it
+    // is negatively cached instead of retried on every player request.
+    validateStatus: status => status >= 200 && status < 500,
   });
+
+  if (response.status >= 400) {
+    logger.debug(`Subtitle download refused [${response.status}] ${downloadUrl}`);
+    return null;
+  }
 
   const buffer = Buffer.from(response.data);
   if (!buffer.length || buffer.length > MAX_ZIP_BYTES) return null;

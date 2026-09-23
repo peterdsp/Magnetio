@@ -75,10 +75,15 @@ export function tokenizeRelease(value) {
   return tokens;
 }
 
+// Trailing tokens that follow a hyphen but are not release groups.
+const NOT_A_GROUP = new Set(['dl', 'rip', 'hd', 'sd', 'ray', 'x264', 'x265', 'hevc', 'h264', 'h265']);
+
 export function releaseGroup(value) {
   const text = String(value || '').replace(/\.(mkv|mp4|avi|srt|zip)$/i, '');
   const match = text.match(/-([a-z0-9]{2,20})(?:\[[^\]]*\])?$/i);
-  return match ? match[1].toLowerCase() : null;
+  if (!match) return null;
+  const group = match[1].toLowerCase();
+  return NOT_A_GROUP.has(group) ? null : group;
 }
 
 function normalizeToken(token) {

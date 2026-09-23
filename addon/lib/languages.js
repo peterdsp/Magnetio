@@ -127,6 +127,21 @@ export function toSubtitleLanguageCode(code) {
   return ISO_639_2[normalized] || normalized;
 }
 
+const ISO_639_2_TO_1 = Object.fromEntries(
+  Object.entries(ISO_639_2).map(([two, three]) => [three, two]),
+);
+
+/**
+ * Normalize a two-letter, three-letter (ISO 639-2) or BCP 47 style code
+ * such as "pt-BR" to the two-letter code used internally.
+ */
+export function toLanguageCode(code) {
+  const normalized = String(code || '').trim().toLowerCase().split(/[-_]/)[0];
+  if (!normalized) return '';
+  if (normalized.length === 2) return normalized;
+  return ISO_639_2_TO_1[normalized] || normalized;
+}
+
 /**
  * Extract language codes from a torrent record.
  * For anime content, Japanese is excluded by default (audio is usually

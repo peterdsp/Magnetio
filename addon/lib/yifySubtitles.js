@@ -234,8 +234,15 @@ async function downloadAndExtract(zipUrl) {
       Accept: 'application/zip,application/octet-stream,*/*;q=0.8',
       Referer: subtitlePageUrl(zipUrl),
     },
-    validateStatus: status => status >= 200 && status < 400,
+    // 4xx means the file is gone or refused: treat as "not available" so it
+    // is negatively cached instead of retried on every player request.
+    validateStatus: status => status >= 200 && status < 500,
   });
+
+  if (response.status >= 400) {
+    logger.debug(`Subtitle download refused [${response.status}] ${zipUrl}`);
+    return null;
+  }
 
   const buffer = Buffer.from(response.data);
   if (!buffer.length || buffer.length > MAX_ZIP_BYTES) return null;

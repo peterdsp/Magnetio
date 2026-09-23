@@ -68,8 +68,9 @@ async function storeValue(store, key, value, ttlMs, nullTtlMs) {
 
   if (value == null && nullTtlMs != null) {
     if (nullTtlMs === 0) return;
-    // Negative entries expire at exactly nullTtl: no stale-while-revalidate window.
-    await store.set(key, { data: value, createdAt: Date.now() - nullTtlMs }, nullTtlMs);
+    // Negative entries are evicted by the store at nullTtl, so they never
+    // reach the stale-while-revalidate window.
+    await store.set(key, { data: value, createdAt: Date.now() }, nullTtlMs);
     return;
   }
 

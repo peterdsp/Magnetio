@@ -101,8 +101,8 @@ test('series episode subtitles match download id to language flag', () => {
   `;
   const subs = parseEpisodeSubtitles(html);
   assert.deepEqual(subs, [
-    { id: '9001', language: 'en', release: null },
-    { id: '9002', language: 'el', release: null },
+    { id: '9001', language: 'en' },
+    { id: '9002', language: 'el' },
   ]);
 });
 

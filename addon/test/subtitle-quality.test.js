@@ -6,7 +6,9 @@ process.env.TRANSLATION_PREWARM = '0';
 import { cleanSrt, isJunkCue, cleanCueText } from '../lib/subtitleClean.js';
 import { parseSrt, parseTimestampRange, formatTimestampRange } from '../lib/srt.js';
 import { rankSubtitles, stripSubtitleMeta, tokenizeRelease, releaseGroup } from '../lib/subtitleRank.js';
-import { attachTranslatedSubtitles } from '../lib/translatedSubtitles.js';
+import { attachTranslatedSubtitles, prewarmTranslatedSubtitles } from '../lib/translatedSubtitles.js';
+import { toLanguageCode } from '../lib/languages.js';
+import { codepageForLanguage } from '../lib/subtitleZip.js';
 
 function cue(index, start, end, text) {
   return `${index}\n${start} --> ${end}\n${text}\n`;
@@ -111,4 +113,32 @@ test('translated entries follow the best ranked English source', () => {
   });
   const translated = result.filter(sub => sub.lang === 'ell');
   assert.deepEqual(translated.map(sub => sub.id), ['translated-el-en-best', 'translated-el-en-second']);
+});
+
+test('junk detection keeps dialogue with an ellipsis before a short word', () => {
+  assert.equal(isJunkCue('Come with...me', 200, 1000), false);
+  assert.equal(isJunkCue('Leave it to...tv people', 200, 1000), false);
+  assert.equal(isJunkCue('Visit example.com for more', 200, 1000), true);
+  assert.equal(isJunkCue('Get it at sub-site.net', 200, 1000), true);
+});
+
+test('language hints accept two-letter, three-letter and region codes', () => {
+  assert.equal(toLanguageCode('tur'), 'tr');
+  assert.equal(toLanguageCode('ell'), 'el');
+  assert.equal(toLanguageCode('pt-BR'), 'pt');
+  assert.equal(toLanguageCode('EL'), 'el');
+  assert.equal(codepageForLanguage('tur'), 'windows-1254');
+  assert.equal(codepageForLanguage('pol'), 'windows-1250');
+});
+
+test('release group ignores WEB-DL style suffixes', () => {
+  assert.equal(releaseGroup('Show.S01E01.1080p.WEB-DL.mkv'), null);
+  assert.equal(releaseGroup('Show.S01E01.1080p.WEB-DL.x264-NTb.mkv'), 'ntb');
+});
+
+test('pre-warm is a no-op when disabled and never throws on odd input', () => {
+  process.env.TRANSLATION_PREWARM = '0';
+  assert.doesNotThrow(() => prewarmTranslatedSubtitles([{ lang: 'ell', url: 'https://x/proxy/translated/abc.srt' }]));
+  assert.doesNotThrow(() => prewarmTranslatedSubtitles([]));
+  assert.doesNotThrow(() => prewarmTranslatedSubtitles([null, { url: 'not a url' }]));
 });
