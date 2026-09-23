@@ -1,17 +1,39 @@
 import axios from 'axios';
+import pLimit from 'p-limit';
 import { cacheWrap } from './cache.js';
 import { logger } from './logger.js';
 import { toSubtitleLanguageCode } from './languages.js';
 import { resolveSubtitleLanguages } from './subtitles.js';
 import { translateText } from './translationProviders.js';
+import { decodeSubtitleText } from './subtitleZip.js';
+import { sendSubtitle, sendSubtitleError } from './subtitleResponse.js';
+import { loadYifySubtitle } from './yifySubtitles.js';
+import { loadTvSubtitle } from './tvSubtitles.js';
+import { loadCommunitySubtitle } from './communitySubtitles.js';
+import { loadSyncedSubtitle } from './subtitleProxy.js';
 
 const REQUEST_TIMEOUT = 20_000;
 const FILE_CACHE_TTL = 60 * 60 * 24 * 30;
+const FILE_NEGATIVE_TTL = 60 * 5;
 const MAX_INPUT_BYTES = 768 * 1024;
 const MAX_BATCH_CHARS = 4000;
+const TRANSLATION_CONCURRENCY = Math.max(1, parseInt(process.env.TRANSLATION_CONCURRENCY, 10) || 3);
 const TRANSLATION_SEPARATOR = '\n\n@@~~@@\n\n';
 const SOURCE_LANGUAGE = 'en';
 const MAX_TRANSLATIONS = 2;
+
+// Source subtitles that already live behind one of our own proxy routes are
+// resolved in-process instead of fetching our public URL from ourselves.
+// That skips a network round trip through the reverse proxy, keeps the
+// request out of the subtitle rate limiter, and works even when the box
+// cannot resolve its own public hostname.
+const INTERNAL_PROXY_LOADERS = {
+  yify: loadYifySubtitle,
+  tvsubs: loadTvSubtitle,
+  community: loadCommunitySubtitle,
+  subtitle: loadSyncedSubtitle,
+};
+const INTERNAL_PROXY_PATH = /^\/proxy\/(yify|tvsubs|community|subtitle)\/([A-Za-z0-9_-]+)\.srt$/;
 
 const BLOCKED_HOSTNAMES = new Set([
   'localhost', '127.0.0.1', '::1', '0.0.0.0',
@@ -66,81 +88,124 @@ export function attachTranslatedSubtitles(subtitles, config) {
 }
 
 export async function handleTranslatedSubtitleProxy(req, res) {
+  const result = await loadTranslatedSubtitle(req.params.id, {
+    requestHost: req.get('host'),
+  });
+  if (result.content) {
+    sendSubtitle(res, result.content, { maxAge: 2592000, staleSeconds: 604800 });
+    return;
+  }
+  sendSubtitleError(res, result.status, result.error);
+}
+
+export async function loadTranslatedSubtitle(rawId, { requestHost = null } = {}) {
+  const proxyId = String(rawId || '').trim();
+  if (!proxyId) return { status: 400, error: 'Missing subtitle id' };
+
+  let payload;
   try {
-    const proxyId = String(req.params.id || '').trim();
-    if (!proxyId) {
-      res.status(400).json({ error: 'Missing subtitle id' });
-      return;
-    }
+    payload = JSON.parse(Buffer.from(proxyId, 'base64url').toString('utf8'));
+  } catch {
+    return { status: 400, error: 'Invalid subtitle id' };
+  }
 
-    let payload;
-    try {
-      payload = JSON.parse(Buffer.from(proxyId, 'base64url').toString('utf8'));
-    } catch {
-      res.status(400).json({ error: 'Invalid subtitle id' });
-      return;
-    }
+  if (!payload?.url || !payload?.from || !payload?.to) {
+    return { status: 400, error: 'Invalid subtitle payload' };
+  }
 
-    if (!payload?.url || !payload?.from || !payload?.to) {
-      res.status(400).json({ error: 'Invalid subtitle payload' });
-      return;
-    }
+  // Our own proxy URLs are resolved in-process (no outbound request), so the
+  // SSRF host check only applies to genuinely external sources.
+  if (!resolveInternalProxy(payload.url, requestHost) && !isHttpUrlSafe(payload.url)) {
+    return { status: 400, error: 'Invalid subtitle host' };
+  }
 
-    if (!isHttpUrlSafe(payload.url)) {
-      res.status(400).json({ error: 'Invalid subtitle host' });
-      return;
-    }
-
+  try {
     const cacheKey = `translated-subs:${proxyId}`;
     const content = await cacheWrap(
       cacheKey,
-      () => downloadAndTranslate(payload),
+      () => downloadAndTranslate(payload, requestHost),
       FILE_CACHE_TTL,
+      { nullTtl: FILE_NEGATIVE_TTL },
     );
-
-    if (!content) {
-      res.status(404).json({ error: 'Subtitle not available' });
-      return;
-    }
-
-    res.setHeader('content-type', 'application/x-subrip; charset=utf-8');
-    res.setHeader(
-      'cache-control',
-      'public, max-age=2592000, stale-while-revalidate=604800, stale-if-error=604800',
-    );
-    res.send(content);
+    if (!content) return { status: 404, error: 'Subtitle translation not available' };
+    return { status: 200, content };
   } catch (err) {
     logger.warn(`Translated subtitle proxy error: ${err.message}`);
-    res.status(500).json({ error: 'Subtitle translation failed' });
+    return { status: 502, error: 'Subtitle translation failed' };
   }
 }
 
-async function downloadAndTranslate(payload) {
-  const srt = await fetchSourceSubtitle(payload.url);
+async function downloadAndTranslate(payload, requestHost) {
+  const srt = await fetchSourceSubtitle(payload.url, requestHost);
   if (!srt) return null;
   return translateSrt(srt, payload.from, payload.to);
 }
 
-async function fetchSourceSubtitle(url) {
+/**
+ * Identify a source URL that points at one of our own subtitle proxies.
+ * Returns { kind, id } when the path matches and the host is ours, else null.
+ */
+export function resolveInternalProxy(url, requestHost = null) {
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return null;
+  }
+
+  const match = parsed.pathname.match(INTERNAL_PROXY_PATH);
+  if (!match) return null;
+
+  const ownHosts = new Set();
+  for (const candidate of [process.env.ADDON_PUBLIC_URL, process.env.PUBLIC_URL]) {
+    if (!candidate) continue;
+    try {
+      ownHosts.add(new URL(candidate).host.toLowerCase());
+    } catch {
+      // ignore malformed env values
+    }
+  }
+  if (requestHost) ownHosts.add(String(requestHost).toLowerCase());
+
+  if (!ownHosts.has(parsed.host.toLowerCase())) return null;
+  return { kind: match[1], id: match[2] };
+}
+
+async function fetchSourceSubtitle(url, requestHost) {
+  const internal = resolveInternalProxy(url, requestHost);
+  if (internal) {
+    const result = await INTERNAL_PROXY_LOADERS[internal.kind](internal.id);
+    if (!result?.content) {
+      logger.warn(`Translated subtitle source unavailable [${internal.kind}]: ${result?.error || 'empty'}`);
+      return null;
+    }
+    return normalizeSourceText(result.content);
+  }
+
   try {
     const response = await axios.get(url, {
-      responseType: 'text',
+      responseType: 'arraybuffer',
       timeout: REQUEST_TIMEOUT,
       maxContentLength: MAX_INPUT_BYTES,
       maxBodyLength: MAX_INPUT_BYTES,
       headers: HTTP_HEADERS,
       validateStatus: status => status >= 200 && status < 400,
-      transformResponse: [value => value],
     });
 
-    const text = typeof response.data === 'string' ? response.data : String(response.data ?? '');
-    if (!text.trim()) return null;
-    if (Buffer.byteLength(text, 'utf8') > MAX_INPUT_BYTES) return null;
-    return text.replace(/\r\n/g, '\n');
+    const buffer = Buffer.from(response.data ?? []);
+    if (buffer.length > MAX_INPUT_BYTES) return null;
+    return normalizeSourceText(decodeSubtitleText(buffer, SOURCE_LANGUAGE));
   } catch (err) {
     logger.warn(`Translated subtitle source fetch failed: ${err.message}`);
     return null;
   }
+}
+
+function normalizeSourceText(text) {
+  const value = typeof text === 'string' ? text : String(text ?? '');
+  if (!value.trim()) return null;
+  if (Buffer.byteLength(value, 'utf8') > MAX_INPUT_BYTES) return null;
+  return value.replace(/\r\n/g, '\n');
 }
 
 export async function translateSrt(srtText, from, to) {
@@ -149,16 +214,29 @@ export async function translateSrt(srtText, from, to) {
 
   const texts = blocks.map(block => block.text);
   const batches = batchTexts(texts, MAX_BATCH_CHARS);
-  const translations = [];
+  const limit = pLimit(TRANSLATION_CONCURRENCY);
 
-  for (const batch of batches) {
-    const translated = await translateBatch(batch, from, to);
+  // Batches are independent, so run a few at once. A full-length film is
+  // 15 to 30 batches; sequential calls made the first request take minutes.
+  const results = await Promise.all(
+    batches.map(batch => limit(() => translateBatch(batch, from, to))),
+  );
+
+  const translations = [];
+  let translatedBatches = 0;
+  batches.forEach((batch, index) => {
+    const translated = results[index];
     if (!translated || translated.length !== batch.length) {
-      for (const original of batch) translations.push(original);
-      continue;
+      translations.push(...batch);
+      return;
     }
+    translatedBatches++;
     translations.push(...translated);
-  }
+  });
+
+  // If nothing at all could be translated, do not serve (and cache) the
+  // English text under a Greek/other label. Let the caller report failure.
+  if (!translatedBatches) return null;
 
   for (let i = 0; i < blocks.length; i++) {
     blocks[i].text = translations[i] ?? blocks[i].text;

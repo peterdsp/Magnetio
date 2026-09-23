@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { cacheWrap } from './cache.js';
 import { logger } from './logger.js';
+import { sendSubtitle, sendSubtitleError } from './subtitleResponse.js';
 import { toSubtitleLanguageCode } from './languages.js';
 import { parseStremioVideoId, resolveSubtitleLanguages } from './subtitles.js';
 import { extractSrtFromZip } from './subtitleZip.js';
@@ -10,6 +11,7 @@ const YIFY_HOST_ALLOWLIST = /^https:\/\/yifysubtitles\.(ch|org|me)\//i;
 const YIFY_TIMEOUT = 12_000;
 const YIFY_LISTING_CACHE_TTL = 60 * 60 * 6;
 const YIFY_FILE_CACHE_TTL = 60 * 60 * 24 * 7;
+const YIFY_FILE_NEGATIVE_TTL = 60 * 5;
 const MAX_PER_LANGUAGE = 2;
 const MAX_TOTAL = 8;
 const MAX_ZIP_BYTES = 4 * 1024 * 1024;
@@ -106,47 +108,46 @@ export async function getYifySubtitles(args, config) {
 }
 
 export async function handleYifySubtitleProxy(req, res) {
+  const result = await loadYifySubtitle(req.params.id);
+  if (result.content) {
+    sendSubtitle(res, result.content, { maxAge: 604800 });
+    return;
+  }
+  sendSubtitleError(res, result.status, result.error);
+}
+
+/**
+ * Resolve a /proxy/yify/:id.srt id to subtitle text without going through
+ * HTTP. Returns { status, content } on success or { status, error } otherwise.
+ */
+export async function loadYifySubtitle(rawId) {
+  const proxyId = String(rawId || '').trim();
+  if (!proxyId) return { status: 400, error: 'Missing subtitle id' };
+
+  let zipUrl;
   try {
-    const proxyId = String(req.params.id || '').trim();
-    if (!proxyId) {
-      res.status(400).json({ error: 'Missing subtitle id' });
-      return;
-    }
+    zipUrl = Buffer.from(proxyId, 'base64url').toString('utf8');
+  } catch {
+    return { status: 400, error: 'Invalid subtitle id' };
+  }
 
-    let zipUrl;
-    try {
-      zipUrl = Buffer.from(proxyId, 'base64url').toString('utf8');
-    } catch {
-      res.status(400).json({ error: 'Invalid subtitle id' });
-      return;
-    }
+  if (!YIFY_HOST_ALLOWLIST.test(zipUrl)) {
+    return { status: 400, error: 'Invalid subtitle host' };
+  }
 
-    if (!YIFY_HOST_ALLOWLIST.test(zipUrl)) {
-      res.status(400).json({ error: 'Invalid subtitle host' });
-      return;
-    }
-
+  try {
     const cacheKey = `yify-subs:srt:${proxyId}`;
     const content = await cacheWrap(
       cacheKey,
       () => downloadAndExtract(zipUrl),
       YIFY_FILE_CACHE_TTL,
+      { nullTtl: YIFY_FILE_NEGATIVE_TTL },
     );
-
-    if (!content) {
-      res.status(404).json({ error: 'Subtitle not available' });
-      return;
-    }
-
-    res.setHeader('content-type', 'application/x-subrip; charset=utf-8');
-    res.setHeader(
-      'cache-control',
-      'public, max-age=604800, stale-while-revalidate=604800, stale-if-error=604800',
-    );
-    res.send(content);
+    if (!content) return { status: 404, error: 'Subtitle not available' };
+    return { status: 200, content };
   } catch (err) {
     logger.warn(`YIFY subtitle proxy error: ${err.message}`);
-    res.status(500).json({ error: 'Subtitle proxy failed' });
+    return { status: 502, error: 'Subtitle proxy failed' };
   }
 }
 
@@ -219,18 +220,40 @@ function pickCandidates(candidates, languages, baseUrl) {
 }
 
 async function downloadAndExtract(zipUrl) {
+  // The zip endpoint answers 403 unless the request carries a same-site
+  // Referer, as if the user clicked the download button on the subtitle page.
   const response = await axios.get(zipUrl, {
     responseType: 'arraybuffer',
     timeout: YIFY_TIMEOUT,
     maxContentLength: MAX_ZIP_BYTES,
     maxBodyLength: MAX_ZIP_BYTES,
-    headers: HTTP_HEADERS,
+    headers: {
+      ...HTTP_HEADERS,
+      Accept: 'application/zip,application/octet-stream,*/*;q=0.8',
+      Referer: subtitlePageUrl(zipUrl),
+    },
     validateStatus: status => status >= 200 && status < 400,
   });
 
   const buffer = Buffer.from(response.data);
   if (!buffer.length || buffer.length > MAX_ZIP_BYTES) return null;
-  return extractSrtFromZip(buffer);
+  return extractSrtFromZip(buffer, languageFromZipUrl(zipUrl));
+}
+
+function subtitlePageUrl(zipUrl) {
+  const slug = String(zipUrl || '').split('/').pop()?.replace(/\.zip$/i, '') || '';
+  return slug ? `${YIFY_BASE_URL}/subtitles/${slug}` : `${YIFY_BASE_URL}/`;
+}
+
+// YIFY zip slugs embed the language name, e.g. ".../subtitle/movie-greek-yify-123.zip".
+export function languageFromZipUrl(zipUrl) {
+  const slug = String(zipUrl || '').split('/').pop()?.replace(/\.zip$/i, '') || '';
+  const tokens = slug.toLowerCase().split('-');
+  for (let i = tokens.length - 1; i >= 0; i--) {
+    const code = LANGUAGE_NAME_TO_CODE[tokens[i]];
+    if (code) return code;
+  }
+  return null;
 }
 
 export { extractSrtFromZip } from './subtitleZip.js';

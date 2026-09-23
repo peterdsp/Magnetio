@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { cacheWrap } from './cache.js';
 import { logger } from './logger.js';
+import { sendSubtitle, sendSubtitleError } from './subtitleResponse.js';
 import { toSubtitleLanguageCode } from './languages.js';
 import { parseStremioVideoId, resolveSubtitleLanguages } from './subtitles.js';
 import { extractSrtFromZip } from './subtitleZip.js';
@@ -12,6 +13,7 @@ const REQUEST_TIMEOUT = 12_000;
 const LISTING_CACHE_TTL = 60 * 60 * 6;
 const SHOW_MAPPING_TTL = 60 * 60 * 24 * 30;
 const FILE_CACHE_TTL = 60 * 60 * 24 * 7;
+const FILE_NEGATIVE_TTL = 60 * 5;
 const MAX_PER_LANGUAGE = 2;
 const MAX_TOTAL = 8;
 const MAX_ZIP_BYTES = 4 * 1024 * 1024;
@@ -96,48 +98,64 @@ export async function getTvSubtitles(args, config) {
 }
 
 export async function handleTvSubtitlesProxy(req, res) {
+  const result = await loadTvSubtitle(req.params.id);
+  if (result.content) {
+    sendSubtitle(res, result.content, { maxAge: 604800 });
+    return;
+  }
+  sendSubtitleError(res, result.status, result.error);
+}
+
+/**
+ * Resolve a /proxy/tvsubs/:id.srt id to subtitle text without going through
+ * HTTP. Accepts both the JSON payload form and the legacy bare-URL form.
+ */
+export async function loadTvSubtitle(rawId) {
+  const proxyId = String(rawId || '').trim();
+  if (!proxyId) return { status: 400, error: 'Missing subtitle id' };
+
+  const payload = decodeProxyId(proxyId);
+  if (!payload) return { status: 400, error: 'Invalid subtitle id' };
+
+  if (!HOST_ALLOWLIST.test(payload.url)) {
+    return { status: 400, error: 'Invalid subtitle host' };
+  }
+
   try {
-    const proxyId = String(req.params.id || '').trim();
-    if (!proxyId) {
-      res.status(400).json({ error: 'Missing subtitle id' });
-      return;
-    }
-
-    let zipUrl;
-    try {
-      zipUrl = Buffer.from(proxyId, 'base64url').toString('utf8');
-    } catch {
-      res.status(400).json({ error: 'Invalid subtitle id' });
-      return;
-    }
-
-    if (!HOST_ALLOWLIST.test(zipUrl)) {
-      res.status(400).json({ error: 'Invalid subtitle host' });
-      return;
-    }
-
     const cacheKey = `tvsubs:srt:${proxyId}`;
     const content = await cacheWrap(
       cacheKey,
-      () => downloadAndExtract(zipUrl),
+      () => downloadAndExtract(payload.url, payload.lang),
       FILE_CACHE_TTL,
+      { nullTtl: FILE_NEGATIVE_TTL },
     );
-
-    if (!content) {
-      res.status(404).json({ error: 'Subtitle not available' });
-      return;
-    }
-
-    res.setHeader('content-type', 'application/x-subrip; charset=utf-8');
-    res.setHeader(
-      'cache-control',
-      'public, max-age=604800, stale-while-revalidate=604800, stale-if-error=604800',
-    );
-    res.send(content);
+    if (!content) return { status: 404, error: 'Subtitle not available' };
+    return { status: 200, content };
   } catch (err) {
     logger.warn(`tvsubtitles proxy error: ${err.message}`);
-    res.status(500).json({ error: 'Subtitle proxy failed' });
+    return { status: 502, error: 'Subtitle proxy failed' };
   }
+}
+
+export function decodeProxyId(proxyId) {
+  let decoded;
+  try {
+    decoded = Buffer.from(proxyId, 'base64url').toString('utf8');
+  } catch {
+    return null;
+  }
+
+  if (decoded.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(decoded);
+      if (!parsed?.url) return null;
+      return { url: String(parsed.url), lang: parsed.lang ? String(parsed.lang) : null };
+    } catch {
+      return null;
+    }
+  }
+
+  return { url: decoded, lang: null };
 }
 
 async function resolveShowId(imdbId) {
@@ -283,7 +301,7 @@ function pickCandidates(candidates, languages, baseUrl) {
     if (count >= MAX_PER_LANGUAGE) continue;
 
     const zipUrl = `${BASE_URL}/download-${candidate.id}.html`;
-    const proxyId = Buffer.from(zipUrl).toString('base64url');
+    const proxyId = Buffer.from(JSON.stringify({ url: zipUrl, lang: candidate.language })).toString('base64url');
 
     picked.push({
       id: `tvsubs-${candidate.id}`,
@@ -297,7 +315,7 @@ function pickCandidates(candidates, languages, baseUrl) {
   return picked;
 }
 
-async function downloadAndExtract(zipUrl) {
+async function downloadAndExtract(zipUrl, languageHint = null) {
   const response = await axios.get(zipUrl, {
     responseType: 'arraybuffer',
     timeout: REQUEST_TIMEOUT,
@@ -312,7 +330,7 @@ async function downloadAndExtract(zipUrl) {
 
   const buffer = Buffer.from(response.data);
   if (!buffer.length || buffer.length > MAX_ZIP_BYTES) return null;
-  return extractSrtFromZip(buffer);
+  return extractSrtFromZip(buffer, languageHint);
 }
 
 async function fetchHtml(url) {

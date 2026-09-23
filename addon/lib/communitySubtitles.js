@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { cacheWrap } from './cache.js';
 import { logger } from './logger.js';
+import { sendSubtitle, sendSubtitleError } from './subtitleResponse.js';
 import { toSubtitleLanguageCode } from './languages.js';
 import { parseStremioVideoId, resolveSubtitleLanguages } from './subtitles.js';
 import { extractSrtFromZip } from './subtitleZip.js';
@@ -12,6 +13,7 @@ const REQUEST_TIMEOUT = 15_000;
 const LISTING_CACHE_TTL = 60 * 60 * 6;
 const MAPPING_CACHE_TTL = 60 * 60 * 24 * 30;
 const FILE_CACHE_TTL = 60 * 60 * 24 * 7;
+const FILE_NEGATIVE_TTL = 60 * 5;
 const MAX_PER_LANGUAGE = 3;
 const MAX_TOTAL = 10;
 const MAX_ZIP_BYTES = 4 * 1024 * 1024;
@@ -124,47 +126,46 @@ export async function getCommunitySubtitles(args, config) {
 }
 
 export async function handleCommunitySubtitlesProxy(req, res) {
+  const result = await loadCommunitySubtitle(req.params.id);
+  if (result.content) {
+    sendSubtitle(res, result.content, { maxAge: 604800 });
+    return;
+  }
+  sendSubtitleError(res, result.status, result.error);
+}
+
+/**
+ * Resolve a /proxy/community/:id.srt id to subtitle text without going
+ * through HTTP.
+ */
+export async function loadCommunitySubtitle(rawId) {
+  const proxyId = String(rawId || '').trim();
+  if (!proxyId) return { status: 400, error: 'Missing subtitle id' };
+
+  let payload;
   try {
-    const proxyId = String(req.params.id || '').trim();
-    if (!proxyId) {
-      res.status(400).json({ error: 'Missing subtitle id' });
-      return;
-    }
+    payload = JSON.parse(Buffer.from(proxyId, 'base64url').toString('utf8'));
+  } catch {
+    return { status: 400, error: 'Invalid subtitle id' };
+  }
 
-    let payload;
-    try {
-      payload = JSON.parse(Buffer.from(proxyId, 'base64url').toString('utf8'));
-    } catch {
-      res.status(400).json({ error: 'Invalid subtitle id' });
-      return;
-    }
+  if (!payload || (!payload.id && !payload.fullLink)) {
+    return { status: 400, error: 'Invalid subtitle payload' };
+  }
 
-    if (!payload || (!payload.id && !payload.fullLink)) {
-      res.status(400).json({ error: 'Invalid subtitle payload' });
-      return;
-    }
-
+  try {
     const cacheKey = `community-subs:srt:${proxyId}`;
     const content = await cacheWrap(
       cacheKey,
       () => downloadAndExtract(payload),
       FILE_CACHE_TTL,
+      { nullTtl: FILE_NEGATIVE_TTL },
     );
-
-    if (!content) {
-      res.status(404).json({ error: 'Subtitle not available' });
-      return;
-    }
-
-    res.setHeader('content-type', 'application/x-subrip; charset=utf-8');
-    res.setHeader(
-      'cache-control',
-      'public, max-age=604800, stale-while-revalidate=604800, stale-if-error=604800',
-    );
-    res.send(content);
+    if (!content) return { status: 404, error: 'Subtitle not available' };
+    return { status: 200, content };
   } catch (err) {
     logger.warn(`Community subtitle proxy error: ${err.message}`);
-    res.status(500).json({ error: 'Subtitle proxy failed' });
+    return { status: 502, error: 'Subtitle proxy failed' };
   }
 }
 
@@ -327,7 +328,8 @@ async function downloadAndExtract(payload) {
 
   const buffer = Buffer.from(response.data);
   if (!buffer.length || buffer.length > MAX_ZIP_BYTES) return null;
-  return extractSrtFromZip(buffer);
+  const languageHint = NAME_TO_CODE[String(payload.lang || '').toLowerCase().trim()] || null;
+  return extractSrtFromZip(buffer, languageHint);
 }
 
 async function fetchDownloadToken(payload) {
