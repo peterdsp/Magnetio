@@ -6,6 +6,8 @@ import { toSubtitleLanguageCode } from './languages.js';
 import { resolveSubtitleLanguages } from './subtitles.js';
 import { translateText } from './translationProviders.js';
 import { decodeSubtitleText } from './subtitleZip.js';
+import { cleanSrt } from './subtitleClean.js';
+import { parseSrt, serializeSrt } from './srt.js';
 import { sendSubtitle, sendSubtitleError } from './subtitleResponse.js';
 import { loadYifySubtitle } from './yifySubtitles.js';
 import { loadTvSubtitle } from './tvSubtitles.js';
@@ -21,6 +23,13 @@ const TRANSLATION_CONCURRENCY = Math.max(1, parseInt(process.env.TRANSLATION_CON
 const TRANSLATION_SEPARATOR = '\n\n@@~~@@\n\n';
 const SOURCE_LANGUAGE = 'en';
 const MAX_TRANSLATIONS = 2;
+const prewarmEnabled = () => String(process.env.TRANSLATION_PREWARM ?? '1') !== '0';
+
+// Translations in progress, keyed by proxy id, so a background pre-warm and a
+// player request for the same file share one translation run.
+const inflightTranslations = new Map();
+
+export { parseSrt, serializeSrt };
 
 // Source subtitles that already live behind one of our own proxy routes are
 // resolved in-process instead of fetching our public URL from ourselves.
@@ -84,7 +93,33 @@ export function attachTranslatedSubtitles(subtitles, config) {
     });
   }
 
+  // Start translating the best English source now so the file is ready by
+  // the time the viewer picks it. Skipped when a native subtitle in the
+  // target language already exists, since that will be preferred anyway.
+  const hasNative = subtitles.some(sub => sub?.lang === targetSubtitleCode);
+  if (additions.length && !hasNative) {
+    prewarmTranslatedSubtitle(additions[0].url);
+  }
+
   return [...subtitles, ...additions];
+}
+
+export function prewarmTranslatedSubtitle(url) {
+  if (!prewarmEnabled()) return;
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return;
+  }
+  const match = parsed.pathname.match(/\/proxy\/translated\/([A-Za-z0-9_-]+)\.srt$/);
+  if (!match) return;
+
+  loadTranslatedSubtitle(match[1], { requestHost: parsed.host })
+    .then(result => {
+      if (!result.content) logger.debug(`Translation pre-warm skipped: ${result.error}`);
+    })
+    .catch(err => logger.debug(`Translation pre-warm failed: ${err.message}`));
 }
 
 export async function handleTranslatedSubtitleProxy(req, res) {
@@ -121,12 +156,17 @@ export async function loadTranslatedSubtitle(rawId, { requestHost = null } = {})
 
   try {
     const cacheKey = `translated-subs:${proxyId}`;
-    const content = await cacheWrap(
-      cacheKey,
-      () => downloadAndTranslate(payload, requestHost),
-      FILE_CACHE_TTL,
-      { nullTtl: FILE_NEGATIVE_TTL },
-    );
+    let pending = inflightTranslations.get(proxyId);
+    if (!pending) {
+      pending = cacheWrap(
+        cacheKey,
+        () => downloadAndTranslate(payload, requestHost),
+        FILE_CACHE_TTL,
+        { nullTtl: FILE_NEGATIVE_TTL },
+      ).finally(() => inflightTranslations.delete(proxyId));
+      inflightTranslations.set(proxyId, pending);
+    }
+    const content = await pending;
     if (!content) return { status: 404, error: 'Subtitle translation not available' };
     return { status: 200, content };
   } catch (err) {
@@ -205,7 +245,9 @@ function normalizeSourceText(text) {
   const value = typeof text === 'string' ? text : String(text ?? '');
   if (!value.trim()) return null;
   if (Buffer.byteLength(value, 'utf8') > MAX_INPUT_BYTES) return null;
-  return value.replace(/\r\n/g, '\n');
+  // Strip credits and ads before translating: fewer cues, and no
+  // "Subtitles by ..." lines rendered in the target language.
+  return cleanSrt(value.replace(/\r\n/g, '\n'));
 }
 
 export async function translateSrt(srtText, from, to) {
@@ -297,52 +339,6 @@ export function batchTexts(texts, maxChars) {
 
   if (current.length) batches.push(current);
   return batches;
-}
-
-export function parseSrt(text) {
-  const blocks = [];
-  const lines = String(text || '').replace(/\r\n/g, '\n').split('\n');
-  let i = 0;
-
-  while (i < lines.length) {
-    while (i < lines.length && !lines[i].trim()) i++;
-    if (i >= lines.length) break;
-
-    let indexValue = null;
-    const indexCandidate = lines[i].trim();
-    if (/^\d+$/.test(indexCandidate)) {
-      indexValue = Number(indexCandidate);
-      i++;
-    }
-
-    if (i >= lines.length) break;
-    const timestamp = lines[i];
-    if (!timestamp.includes('-->')) {
-      i++;
-      continue;
-    }
-    i++;
-
-    const textLines = [];
-    while (i < lines.length && lines[i].trim()) {
-      textLines.push(lines[i]);
-      i++;
-    }
-
-    blocks.push({
-      index: indexValue ?? blocks.length + 1,
-      timestamp: timestamp.trim(),
-      text: textLines.join('\n'),
-    });
-  }
-
-  return blocks;
-}
-
-export function serializeSrt(blocks) {
-  return blocks
-    .map((block, idx) => `${idx + 1}\n${block.timestamp}\n${block.text}\n`)
-    .join('\n');
 }
 
 function isEnglishCode(value) {

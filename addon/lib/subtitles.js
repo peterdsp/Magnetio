@@ -149,10 +149,20 @@ async function resolveSubtitleCandidate(item, token) {
 
   if (!url) return null;
 
+  const attrs = item.attributes || {};
   return {
     id: String(item.id ?? file.file_id),
     lang: toSubtitleLanguageCode(language),
     url,
+    _meta: {
+      source: 'opensubtitles',
+      release: String(attrs.release || '') || null,
+      hashMatch: Boolean(attrs.moviehash_match),
+      hearingImpaired: Boolean(attrs.hearing_impaired),
+      machineTranslated: Boolean(attrs.machine_translated || attrs.ai_translated),
+      rating: Number(attrs.ratings ?? 0) || 0,
+      downloads: Number(attrs.download_count ?? 0) || 0,
+    },
   };
 }
 

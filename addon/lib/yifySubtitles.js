@@ -5,6 +5,7 @@ import { sendSubtitle, sendSubtitleError } from './subtitleResponse.js';
 import { toSubtitleLanguageCode } from './languages.js';
 import { parseStremioVideoId, resolveSubtitleLanguages } from './subtitles.js';
 import { extractSrtFromZip } from './subtitleZip.js';
+import { cleanSrt } from './subtitleClean.js';
 
 const YIFY_BASE_URL = (process.env.YIFY_SUBTITLES_BASE_URL || 'https://yifysubtitles.ch').replace(/\/$/, '');
 const YIFY_HOST_ALLOWLIST = /^https:\/\/yifysubtitles\.(ch|org|me)\//i;
@@ -211,6 +212,7 @@ function pickCandidates(candidates, languages, baseUrl) {
       id: `yify-${candidate.slug}`,
       lang: toSubtitleLanguageCode(candidate.language),
       url: `${baseUrl}/proxy/yify/${proxyId}.srt`,
+      _meta: { source: 'yify', rating: candidate.rating, release: candidate.slug },
     });
     perLanguage.set(candidate.language, count + 1);
     if (picked.length >= MAX_TOTAL) break;
@@ -237,7 +239,8 @@ async function downloadAndExtract(zipUrl) {
 
   const buffer = Buffer.from(response.data);
   if (!buffer.length || buffer.length > MAX_ZIP_BYTES) return null;
-  return extractSrtFromZip(buffer, languageFromZipUrl(zipUrl));
+  const srt = extractSrtFromZip(buffer, languageFromZipUrl(zipUrl));
+  return srt ? cleanSrt(srt) : null;
 }
 
 function subtitlePageUrl(zipUrl) {

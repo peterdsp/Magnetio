@@ -8,6 +8,7 @@ import { logger } from './logger.js';
 import { getSubtitles, resolveSubtitleLanguages } from './subtitles.js';
 import { toSubtitleLanguageCode } from './languages.js';
 import { decodeSubtitleText } from './subtitleZip.js';
+import { cleanSrt } from './subtitleClean.js';
 import { sendSubtitle, sendSubtitleError } from './subtitleResponse.js';
 
 const BLOCKED_HOSTNAMES = new Set([
@@ -331,7 +332,7 @@ async function downloadSubtitleText(url, languageHint = null) {
     }
 
     const text = decodeSubtitleText(Buffer.from(await response.arrayBuffer()), languageHint);
-    return text.trim() ? text : null;
+    return text.trim() ? cleanSrt(text) : null;
   } catch (err) {
     logger.warn(`Subtitle download failed: ${err.message}`);
     return null;

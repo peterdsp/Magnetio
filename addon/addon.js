@@ -10,6 +10,7 @@ import { getYifySubtitles } from './lib/yifySubtitles.js';
 import { getTvSubtitles } from './lib/tvSubtitles.js';
 import { getCommunitySubtitles } from './lib/communitySubtitles.js';
 import { attachTranslatedSubtitles } from './lib/translatedSubtitles.js';
+import { rankSubtitles, stripSubtitleMeta } from './lib/subtitleRank.js';
 import { toStaticStream } from './moch/static.js';
 import { getSimilarContent } from './lib/similar.js';
 import NamedQueue from './lib/namedQueue.js';
@@ -146,8 +147,12 @@ export async function getAddonInterface(config) {
         }),
       ]);
 
-      const merged = mergeSubtitles(opensubtitles, yify, tvsubs, community);
-      const subtitles = attachTranslatedSubtitles(merged, config);
+      const ranked = rankSubtitles(
+        [opensubtitles, yify, tvsubs, community].flat(),
+        { config, filename: extra.filename },
+      );
+      const merged = mergeSubtitles(ranked);
+      const subtitles = stripSubtitleMeta(attachTranslatedSubtitles(merged, config));
       const cacheAge = subtitles.length ? CACHE_TTL_OK : CACHE_TTL_EMPTY;
       return {
         subtitles,

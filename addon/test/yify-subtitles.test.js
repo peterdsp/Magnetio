@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import zlib from 'node:zlib';
 
+process.env.TRANSLATION_PREWARM = '0';
+
 import { parseListing } from '../lib/yifySubtitles.js';
 import { extractSrtFromZip } from '../lib/subtitleZip.js';
 import { mergeSubtitles } from '../addon.js';
@@ -99,8 +101,8 @@ test('series episode subtitles match download id to language flag', () => {
   `;
   const subs = parseEpisodeSubtitles(html);
   assert.deepEqual(subs, [
-    { id: '9001', language: 'en' },
-    { id: '9002', language: 'el' },
+    { id: '9001', language: 'en', release: null },
+    { id: '9002', language: 'el', release: null },
   ]);
 });
 

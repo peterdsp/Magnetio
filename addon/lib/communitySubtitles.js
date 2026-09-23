@@ -5,6 +5,7 @@ import { sendSubtitle, sendSubtitleError } from './subtitleResponse.js';
 import { toSubtitleLanguageCode } from './languages.js';
 import { parseStremioVideoId, resolveSubtitleLanguages } from './subtitles.js';
 import { extractSrtFromZip } from './subtitleZip.js';
+import { cleanSrt } from './subtitleClean.js';
 
 const API_BASE_URL = (process.env.COMMUNITY_SUBS_API_URL || 'https://api.subsource.net/api').replace(/\/$/, '');
 const HOST_ALLOWLIST = /^https:\/\/(?:[a-z0-9-]+\.)?subsource\.net\//i;
@@ -302,6 +303,12 @@ function pickSubtitles(subs, languages, moviePath, baseUrl) {
       id: `community-${subId || hashString(fullLink || '')}`,
       lang: toSubtitleLanguageCode(code),
       url: `${baseUrl}/proxy/community/${proxyId}.srt`,
+      _meta: {
+        source: 'community',
+        release: String(sub.releaseName || sub.ri || sub.release || '') || null,
+        hearingImpaired: Boolean(sub.hi || sub.hearingImpaired),
+        rating: Number(sub.rating ?? sub.rate ?? 0) || 0,
+      },
     });
     perLanguage.set(code, count + 1);
     if (picked.length >= MAX_TOTAL) break;
@@ -329,7 +336,8 @@ async function downloadAndExtract(payload) {
   const buffer = Buffer.from(response.data);
   if (!buffer.length || buffer.length > MAX_ZIP_BYTES) return null;
   const languageHint = NAME_TO_CODE[String(payload.lang || '').toLowerCase().trim()] || null;
-  return extractSrtFromZip(buffer, languageHint);
+  const srt = extractSrtFromZip(buffer, languageHint);
+  return srt ? cleanSrt(srt) : null;
 }
 
 async function fetchDownloadToken(payload) {

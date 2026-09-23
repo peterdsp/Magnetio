@@ -5,6 +5,7 @@ import { sendSubtitle, sendSubtitleError } from './subtitleResponse.js';
 import { toSubtitleLanguageCode } from './languages.js';
 import { parseStremioVideoId, resolveSubtitleLanguages } from './subtitles.js';
 import { extractSrtFromZip } from './subtitleZip.js';
+import { cleanSrt } from './subtitleClean.js';
 
 const BASE_URL = (process.env.TVSUBTITLES_BASE_URL || 'https://www.tvsubtitles.net').replace(/\/$/, '');
 const HOST_ALLOWLIST = /^https?:\/\/(?:www\.|gr\.)?tvsubtitles\.net\//i;
@@ -272,19 +273,20 @@ export function findEpisodeId(html, season, episode) {
 export function parseEpisodeSubtitles(html) {
   const subs = [];
   const seen = new Set();
-  const regex = /href="\/?subtitle-(\d+)\.html"[\s\S]{0,600}?images\/flags\/([a-z]{2})\.gif/gi;
+  const regex = /href="\/?subtitle-(\d+)\.html"([\s\S]{0,600}?)images\/flags\/([a-z]{2})\.gif/gi;
 
   let match;
   while ((match = regex.exec(html)) !== null) {
     const id = match[1];
     if (seen.has(id)) continue;
 
-    const flagCode = match[2].toLowerCase();
+    const flagCode = match[3].toLowerCase();
     const language = FLAG_TO_LANGUAGE_CODE[flagCode];
     if (!language) continue;
 
     seen.add(id);
-    subs.push({ id, language });
+    const releaseMatch = match[2].match(/<p[^>]*title="([^"]+)"/i) || match[2].match(/<b>([^<]{4,120})<\/b>/i);
+    subs.push({ id, language, release: releaseMatch ? decodeHtmlEntities(releaseMatch[1].trim()) : null });
   }
 
   return subs;
@@ -307,6 +309,7 @@ function pickCandidates(candidates, languages, baseUrl) {
       id: `tvsubs-${candidate.id}`,
       lang: toSubtitleLanguageCode(candidate.language),
       url: `${baseUrl}/proxy/tvsubs/${proxyId}.srt`,
+      _meta: { source: 'tvsubs', release: candidate.release || null },
     });
     perLanguage.set(candidate.language, count + 1);
     if (picked.length >= MAX_TOTAL) break;
@@ -330,7 +333,8 @@ async function downloadAndExtract(zipUrl, languageHint = null) {
 
   const buffer = Buffer.from(response.data);
   if (!buffer.length || buffer.length > MAX_ZIP_BYTES) return null;
-  return extractSrtFromZip(buffer, languageHint);
+  const srt = extractSrtFromZip(buffer, languageHint);
+  return srt ? cleanSrt(srt) : null;
 }
 
 async function fetchHtml(url) {
