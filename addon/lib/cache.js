@@ -31,10 +31,16 @@ const _inflight = new Map();
  * - Miss: block on loader.
  *
  * Stored format: { data, createdAt }
+ *
+ * Options:
+ * - nullTtl: seconds to keep a null/undefined loader result. Defaults to the
+ *   normal TTL. Pass a small number so transient upstream failures are retried
+ *   soon, or 0 to never cache a null result.
  */
-export async function cacheWrap(key, loader, ttl = 3600) {
+export async function cacheWrap(key, loader, ttl = 3600, options = {}) {
   const store = getStore();
   const ttlMs = ttl * 1000;
+  const nullTtlMs = options.nullTtl != null ? Math.max(0, options.nullTtl) * 1000 : null;
   const entry = await store.get(key);
 
   if (entry?.data !== undefined && entry.createdAt) {
@@ -43,12 +49,7 @@ export async function cacheWrap(key, loader, ttl = 3600) {
 
     if (!_inflight.has(key)) {
       const refresh = loader()
-        .then(value => {
-          const isEmpty = Array.isArray(value) && value.length === 0;
-          if (!isEmpty) {
-            return store.set(key, { data: value, createdAt: Date.now() }, ttlMs * 2);
-          }
-        })
+        .then(value => storeValue(store, key, value, ttlMs, nullTtlMs))
         .catch(err => logger.warn(`SWR refresh failed [${key}]: ${err.message}`))
         .finally(() => _inflight.delete(key));
       _inflight.set(key, refresh);
@@ -57,11 +58,23 @@ export async function cacheWrap(key, loader, ttl = 3600) {
   }
 
   const value = await loader();
-  const isEmpty = Array.isArray(value) && value.length === 0;
-  if (!isEmpty) {
-    await store.set(key, { data: value, createdAt: Date.now() }, ttlMs * 2);
-  }
+  await storeValue(store, key, value, ttlMs, nullTtlMs);
   return value;
+}
+
+async function storeValue(store, key, value, ttlMs, nullTtlMs) {
+  const isEmpty = Array.isArray(value) && value.length === 0;
+  if (isEmpty) return;
+
+  if (value == null && nullTtlMs != null) {
+    if (nullTtlMs === 0) return;
+    // Negative entries are evicted by the store at nullTtl, so they never
+    // reach the stale-while-revalidate window.
+    await store.set(key, { data: value, createdAt: Date.now() }, nullTtlMs);
+    return;
+  }
+
+  await store.set(key, { data: value, createdAt: Date.now() }, ttlMs * 2);
 }
 
 export async function cacheGet(key) {

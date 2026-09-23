@@ -14,6 +14,7 @@ import { handleYifySubtitleProxy } from './lib/yifySubtitles.js';
 import { handleTvSubtitlesProxy } from './lib/tvSubtitles.js';
 import { handleCommunitySubtitlesProxy } from './lib/communitySubtitles.js';
 import { handleTranslatedSubtitleProxy } from './lib/translatedSubtitles.js';
+import { subtitleRateLimitHandler } from './lib/subtitleResponse.js';
 import { trackRequest, getStats } from './lib/analytics.js';
 import { runWithClientIp } from './lib/requestContext.js';
 import { streamTorrent } from './lib/torrentProxy.js';
@@ -102,12 +103,15 @@ const globalLimiter = rateLimit({
   message: { error: 'Too many requests, try again later' },
 });
 
+// Subtitle routes must never answer with JSON (see lib/subtitleResponse.js):
+// Stremio's streaming server crashes on a JSON body from a subtitle URL.
 const subtitleProxyLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Too many subtitle requests, try again later' },
+  message: 'Too many subtitle requests, try again later',
+  handler: subtitleRateLimitHandler,
 });
 
 router.get('/proxy/subtitle/:id.srt', subtitleProxyLimiter, handleSubtitleProxyRequest);

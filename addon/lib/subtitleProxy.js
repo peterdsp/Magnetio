@@ -7,6 +7,9 @@ import { cacheGet, cacheSet, cacheWrap } from './cache.js';
 import { logger } from './logger.js';
 import { getSubtitles, resolveSubtitleLanguages } from './subtitles.js';
 import { toSubtitleLanguageCode } from './languages.js';
+import { decodeSubtitleText } from './subtitleZip.js';
+import { cleanSrt } from './subtitleClean.js';
+import { sendSubtitle, sendSubtitleError } from './subtitleResponse.js';
 
 const BLOCKED_HOSTNAMES = new Set([
   'localhost', '127.0.0.1', '::1', '0.0.0.0',
@@ -32,6 +35,7 @@ function isUrlSafe(url) {
 
 const PROXY_PAYLOAD_TTL = 60 * 60 * 12;
 const PROXY_RESULT_TTL = 60 * 60 * 24;
+const PROXY_RESULT_NEGATIVE_TTL = 60 * 5;
 const OPENSUBTITLES_HASH_CHUNK_SIZE = 64 * 1024;
 const MAX_STREAM_SUBTITLE_LANGUAGES = 3;
 const SYNC_TIMEOUT_MS = 1000 * 60 * 4;
@@ -69,27 +73,38 @@ export async function createStreamSubtitleProxies(requestContext, stream, config
 }
 
 export async function handleSubtitleProxyRequest(req, res) {
-  const payload = await cacheGet(`subtitle-proxy:${req.params.id}`);
-  if (!payload) {
-    res.status(404).json({ error: 'Subtitle proxy payload not found or expired' });
+  const result = await loadSyncedSubtitle(req.params.id);
+  if (result.content) {
+    sendSubtitle(res, result.content, { maxAge: 86400 });
     return;
   }
+  sendSubtitleError(res, result.status, result.error);
+}
+
+/**
+ * Resolve a /proxy/subtitle/:id.srt id to subtitle text without going
+ * through HTTP.
+ */
+export async function loadSyncedSubtitle(rawId) {
+  const proxyId = String(rawId || '').trim();
+  if (!proxyId) return { status: 400, error: 'Missing subtitle id' };
+
+  const payload = await cacheGet(`subtitle-proxy:${proxyId}`);
+  if (!payload) return { status: 404, error: 'Subtitle proxy payload not found or expired' };
 
   try {
     const cacheKey = `subtitle-proxy:result:${hashValue(payload)}`;
-    const content = await cacheWrap(cacheKey, () => buildSyncedSubtitle(payload), PROXY_RESULT_TTL);
-
-    if (!content) {
-      res.status(404).json({ error: 'No subtitles available for this stream' });
-      return;
-    }
-
-    res.setHeader('content-type', 'application/x-subrip; charset=utf-8');
-    res.setHeader('cache-control', 'public, max-age=86400, stale-while-revalidate=604800, stale-if-error=604800');
-    res.send(content);
+    const content = await cacheWrap(
+      cacheKey,
+      () => buildSyncedSubtitle(payload),
+      PROXY_RESULT_TTL,
+      { nullTtl: PROXY_RESULT_NEGATIVE_TTL },
+    );
+    if (!content) return { status: 404, error: 'No subtitles available for this stream' };
+    return { status: 200, content };
   } catch (err) {
-    logger.error(`Subtitle proxy error [${req.params.id}]: ${err.message}`);
-    res.status(500).json({ error: 'Subtitle proxy failed' });
+    logger.error(`Subtitle proxy error [${proxyId}]: ${err.message}`);
+    return { status: 502, error: 'Subtitle proxy failed' };
   }
 }
 
@@ -113,7 +128,7 @@ export async function buildSyncedSubtitle(payload) {
   if (!subtitles.length) return null;
 
   for (const subtitle of subtitles) {
-    const raw = await downloadSubtitleText(subtitle.url);
+    const raw = await downloadSubtitleText(subtitle.url, payload.language);
     if (!raw) continue;
 
     const synced = await syncSubtitleToMedia(raw, payload.mediaUrl);
@@ -306,7 +321,7 @@ function runCommand(command, args, { timeoutMs = SYNC_TIMEOUT_MS } = {}) {
   });
 }
 
-async function downloadSubtitleText(url) {
+async function downloadSubtitleText(url, languageHint = null) {
   try {
     const response = await fetch(url, {
       headers: { 'User-Agent': process.env.OPENSUBTITLES_USER_AGENT || 'Magnetio v1.0.0' },
@@ -316,7 +331,8 @@ async function downloadSubtitleText(url) {
       throw new Error(`HTTP ${response.status}`);
     }
 
-    return response.text();
+    const text = decodeSubtitleText(Buffer.from(await response.arrayBuffer()), languageHint);
+    return text.trim() ? cleanSrt(text) : null;
   } catch (err) {
     logger.warn(`Subtitle download failed: ${err.message}`);
     return null;
