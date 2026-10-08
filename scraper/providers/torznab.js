@@ -39,10 +39,13 @@ export async function scrape(meta) {
 
     const $ = cheerio.load(data, { xmlMode: true });
     const results = [];
+    // An imdbid query is matched by the indexer, so results are tied to the
+    // title even when their names are localized (see filterByContent).
+    const matchedById = Boolean(params.imdbid);
 
     $('item').each((_, el) => {
       const item = $(el);
-      const record = normalise(item, meta);
+      const record = normalise(item, meta, matchedById);
       if (record) results.push(record);
     });
 
@@ -76,7 +79,7 @@ function buildParams(meta, apiKey) {
   return params;
 }
 
-function normalise(item, meta) {
+function normalise(item, meta, matchedById) {
   const title = item.find('title').text().trim();
   if (!title) return null;
 
@@ -102,6 +105,7 @@ function normalise(item, meta) {
     size:     Number.isFinite(parsedSize) ? parsedSize : 0,
     provider: 'Torznab',
     imdbId:   meta.imdbId || null,
+    matchedById,
     ...parsed,
   };
 }

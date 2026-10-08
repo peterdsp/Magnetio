@@ -194,8 +194,12 @@ function deduplicate(records) {
  * Filter out torrents whose title does not match the requested content.
  * For series: title must contain a season/episode marker matching the request.
  * For movies: title must contain at least part of the movie name.
+ * Torznab records matched by IMDb ID skip the name check, and only fail the
+ * series check on an explicit marker for another season or episode: the
+ * indexer already got the ID (plus season and episode), and their titles are
+ * often localized.
  */
-function filterByContent(records, meta) {
+export function filterByContent(records, meta) {
   if (!meta?.name) return records;
 
   const nameWords = normalizeTitle(meta.name).split(/\s+/).filter(w => w.length > 1);
@@ -208,7 +212,9 @@ function filterByContent(records, meta) {
     if (!r.title) return false;
     const norm = normalizeTitle(r.title);
 
-    if (nameWords.length <= 2) {
+    if (r.matchedById) {
+      // Matched by ID upstream; skip the name check.
+    } else if (nameWords.length <= 2) {
       const match = phraseRegex.exec(norm);
       if (!match) return false;
       const after = norm.slice(match.index + match[0].length).trim();
@@ -237,11 +243,26 @@ function filterByContent(records, meta) {
         `\\bseason\\s*0*${s}\\b|\\bcomplete\\b.*\\bs0*${s}\\b`,
         'i'
       ).test(r.title);
-      if (!hasSeasonEp && !hasLooseEp && !hasSeasonPack) return false;
+      if (!hasSeasonEp && !hasLooseEp && !hasSeasonPack) {
+        // ID matches only fail on a marker for another season or episode.
+        if (!r.matchedById || hasAnySeasonMarker(r.title, e != null)) return false;
+      }
     }
 
     return true;
   });
+}
+
+/**
+ * Same markers as the series check above, for any season or episode number.
+ */
+function hasAnySeasonMarker(title, withEpisode) {
+  return new RegExp(
+    withEpisode
+      ? `s\\d+\\s*e\\d+\\b|\\b\\d{1,2}x\\d{1,3}\\b|\\bseason\\s*\\d+\\b|\\bcomplete\\b.*\\bs\\d+\\b`
+      : `s\\d+(e\\d|\\b)|\\bseason\\s*\\d+\\b|\\bcomplete\\b.*\\bs\\d+\\b`,
+    'i'
+  ).test(title);
 }
 
 function isTorrentMetadata(word) {
