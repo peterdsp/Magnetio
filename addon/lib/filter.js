@@ -1,4 +1,4 @@
-import { extractQuality } from './sort.js';
+import { extractQuality, MULTI_AUDIO } from './sort.js';
 import { Quality } from './types.js';
 
 const SIZE_LIMITS = {
@@ -37,11 +37,16 @@ export function applyFilters(streams, config) {
     });
   }
 
-  // 2. Language whitelist
+  // 2. Language whitelist.
+  // A multi-audio release passes any whitelist: its name says several tracks are
+  // bundled without naming them, and dropping it would hide releases that do
+  // carry the wanted audio. Sorting ranks it below an explicit match.
   if (config.languages?.length) {
-    result = result.filter(s =>
-      (s.languages ?? []).some(l => config.languages.includes(l))
-    );
+    result = result.filter(s => {
+      const langs = s.languages ?? [];
+      return langs.includes(MULTI_AUDIO)
+        || langs.some(l => config.languages.includes(l));
+    });
   }
 
   // 3. Excluded size buckets (e.g. ['1GB', '2GB'])
