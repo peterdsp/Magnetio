@@ -15,7 +15,7 @@
     "@keyv/redis": "^6.1.0",
     "axios": "^1.20.0",
     "cron": "^4.4.0",
-    "dotenv": "^18.0.7",
+    "dotenv": "^18.0.8",
     "express": "^5.3.0",
     "express-rate-limit": "^8.7.1",
     "keyv": "^6.1.0",
