@@ -24,6 +24,10 @@ export const TorrentProvider = {
   GLOTORRENTS: 'glotorrents',
   TORLOCK: 'torlock',
   TORRENTDOWNLOADS: 'torrentdownloads',
+  THERARBG: 'therarbg',
+  SUBSPLEASE: 'subsplease',
+  ANIMETOSHO: 'animetosho',
+  NEKOBT: 'nekobt',
   TORZNAB: 'torznab',
 };
 

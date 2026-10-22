@@ -29,13 +29,26 @@ export async function getStreams(type, id, config) {
   const torznabSuffix = config.torznabUrl
     ? `:tz-${simpleHash(config.torznabUrl + (config.torznabApiKey || ''))}`
     : '';
-  const cacheKey = `streams:${type}:${id}:${providerKey}${torznabSuffix}`;
+  // Audio languages reach the scraper, where a non-English one adds a localized
+  // title and a scene-tag search pass, so they change the result set and have to
+  // be part of the key. The TMDB key only decides whether localized titles are
+  // available, so its presence is keyed but never the secret itself.
+  const languages = config.languages?.length ? [...config.languages].sort() : [];
+  const languageSuffix = languages.length ? `:lang-${languages.join('+')}` : '';
+  const aliasSuffix    = languages.length && config.tmdbApiKey ? ':loc' : '';
+  const cacheKey = `streams:${type}:${id}:${providerKey}${torznabSuffix}${languageSuffix}${aliasSuffix}`;
 
   return cacheWrap(cacheKey, async () => {
     const params = { providers: config.providers?.join(',') };
     if (config.torznabUrl) {
       params.torznabUrl = config.torznabUrl;
       params.torznabApiKey = config.torznabApiKey || '';
+    }
+    if (languages.length) {
+      params.languages = languages.join(',');
+      // Optional: without a key the scraper falls back to its own TMDB_API_KEY,
+      // and without either it just skips the localized-title lookup.
+      if (config.tmdbApiKey) params.tmdbApiKey = config.tmdbApiKey;
     }
 
     const fetchOnce = async () => {

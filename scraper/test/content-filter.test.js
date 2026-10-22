@@ -60,3 +60,69 @@ test('series without an ID match still need the name and season', () => {
     'Game of Thrones Season 2 Complete',
   ]);
 });
+
+// ─── Localized titles ─────────────────────────────────────────────────────────
+
+const GODFATHER = { name: 'The Godfather', type: 'movie', imdbId: 'tt0068646', year: 1972 };
+const GOMORRA = { name: 'Gomorrah', type: 'series', imdbId: 'tt3281796', season: 1, episode: 2 };
+
+test('a release named after the localized title is kept when it is an alias', () => {
+  const records = [
+    record('Il.Padrino.1972.iTALiAN.AC3.BDRip.XviD'),
+    record('The.Godfather.1972.1080p.BluRay.x264'),
+  ];
+  // Without the alias only the English release survives, which is the whole
+  // reason Italian users saw almost nothing.
+  assert.deepEqual(titles(records, GODFATHER), ['The.Godfather.1972.1080p.BluRay.x264']);
+  assert.deepEqual(
+    titles(records, { ...GODFATHER, aliases: ['Il Padrino'] }),
+    ['Il.Padrino.1972.iTALiAN.AC3.BDRip.XviD', 'The.Godfather.1972.1080p.BluRay.x264']
+  );
+});
+
+test('an alias does not widen the filter to unrelated content', () => {
+  const records = [
+    record('Il.Padrino.1972.iTALiAN.BDRip'),
+    record('Il.Postino.1994.iTALiAN.BDRip'),
+    record('Padre.Padrone.1977.iTALiAN.BDRip'),
+  ];
+  assert.deepEqual(
+    titles(records, { ...GODFATHER, aliases: ['Il Padrino'] }),
+    ['Il.Padrino.1972.iTALiAN.BDRip']
+  );
+});
+
+test('an alias still has to satisfy the season and episode check', () => {
+  const records = [
+    record('Gomorra.La.Serie.S01E02.iTALiAN.1080p'),
+    record('Gomorra.La.Serie.S02E02.iTALiAN.1080p'),
+    record('Gomorra.La.Serie.1x02.iTALiAN.1080p'),
+  ];
+  assert.deepEqual(
+    titles(records, { ...GOMORRA, aliases: ['Gomorra - La serie'] }),
+    ['Gomorra.La.Serie.S01E02.iTALiAN.1080p', 'Gomorra.La.Serie.1x02.iTALiAN.1080p']
+  );
+});
+
+test('accents in a localized title match the unaccented release name', () => {
+  const PARADISO = {
+    name: 'Cinema Paradiso', type: 'movie', imdbId: 'tt0095765', year: 1988,
+    aliases: ['Nuovo Cinema Paradiso'],
+  };
+  const records = [record('Nuovo.Cinema.Paradiso.1988.iTA.1080p.BluRay')];
+  assert.deepEqual(titles(records, PARADISO), ['Nuovo.Cinema.Paradiso.1988.iTA.1080p.BluRay']);
+
+  // ...and the other way round: an accented release name, unaccented alias.
+  const AMELIE = { name: 'Amelie', type: 'movie', imdbId: 'tt0211915', year: 2001 };
+  assert.deepEqual(
+    titles([record('Amélie.2001.MULTi.1080p.BluRay')], AMELIE),
+    ['Amélie.2001.MULTi.1080p.BluRay']
+  );
+});
+
+test('an empty or non-Latin alias list leaves the filter unchanged', () => {
+  const records = [record('The.Godfather.1972.1080p'), record('Il.Padrino.1972.iTALiAN')];
+  for (const aliases of [[], undefined, ['Крёстный отец']]) {
+    assert.deepEqual(titles(records, { ...GODFATHER, aliases }), ['The.Godfather.1972.1080p']);
+  }
+});

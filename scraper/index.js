@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import express from 'express';
 import { scrapeAll, listProviders } from './providers/index.js';
 import { getMetadata } from './lib/cinemeta.js';
+import { getLocalizedTitles, releaseTagsFor } from './lib/localizedTitles.js';
 import { cacheWrap } from './lib/cache.js';
 import { startCronJobs } from './lib/cron.js';
 import { runPrewarm, getPrewarmStatus } from './lib/prewarm.js';
@@ -45,7 +46,13 @@ app.get('/providers', (_req, res) => {
 //          = kitsu:12345    (kitsu anime ID — treated as series)
 //
 // Query params:
-//   providers  = comma-separated provider IDs (optional)
+//   providers   = comma-separated provider IDs (optional)
+//   languages   = comma-separated audio language codes the user asked for.
+//                 Non-English codes add a localized-title and a scene-tag
+//                 search pass, so Italian releases of "The Godfather" are found
+//                 under "Il Padrino" and "The Godfather ITA".
+//   tmdbApiKey  = TMDB key used for the localized-title lookup (optional;
+//                 falls back to the server's TMDB_API_KEY)
 
 app.get('/streams/:type/:id', async (req, res) => {
   const { type, id } = req.params;
@@ -57,6 +64,13 @@ app.get('/streams/:type/:id', async (req, res) => {
   const torznabApiKey = req.query.torznabApiKey || null;
   const context = { torznabUrl, torznabApiKey };
 
+  // String() guards against a repeated query param, which Express hands over
+  // as an array: this runs before the try block, so a throw here is a 500.
+  const languages = req.query.languages
+    ? String(req.query.languages).split(',').map(l => l.trim().toLowerCase()).filter(Boolean)
+    : [];
+  const tmdbApiKey = req.query.tmdbApiKey ? String(req.query.tmdbApiKey) : (process.env.TMDB_API_KEY || null);
+
   if (!['movie', 'series', 'anime'].includes(type)) {
     return res.status(400).json({ error: 'Invalid type. Use movie, series, or anime.' });
   }
@@ -64,7 +78,12 @@ app.get('/streams/:type/:id', async (req, res) => {
   const torznabSuffix = torznabUrl
     ? `:tz-${crypto.createHash('sha256').update(torznabUrl + (torznabApiKey || '')).digest('hex').slice(0, 12)}`
     : '';
-  const cacheKey = `streams:${type}:${id}:${providerIds?.join(',') ?? 'all'}${torznabSuffix}`;
+  // Requested languages change which searches run, so they belong in the key.
+  // The TMDB key itself must not: it is a secret, and only its presence (which
+  // decides whether localized titles are available) affects the result.
+  const languageSuffix = languages.length ? `:lang-${[...languages].sort().join('+')}` : '';
+  const aliasSuffix    = languages.length && tmdbApiKey ? ':loc' : '';
+  const cacheKey = `streams:${type}:${id}:${providerIds?.join(',') ?? 'all'}${torznabSuffix}${languageSuffix}${aliasSuffix}`;
 
   try {
     const { value: streams, cached } = await cacheWrap(cacheKey, async () => {
@@ -78,8 +97,17 @@ app.get('/streams/:type/:id', async (req, res) => {
       const label = meta.year ? `"${meta.name}" (${meta.year})` : `"${meta.name}"`;
       logger.info(`Scraping ${label} [${type}] from ${providerIds?.join(',') ?? 'all providers'}`);
 
-      // 2. Scrape all providers in parallel
-      return scrapeAll(type, meta, providerIds, context);
+      // 2. For non-English audio, resolve the titles the content is released
+      //    under locally and the scene tags for those languages. Both are empty
+      //    for an English-only request, which keeps the default path unchanged.
+      const enriched = {
+        ...meta,
+        aliases:    await getLocalizedTitles(meta, languages, tmdbApiKey),
+        searchTags: releaseTagsFor(languages),
+      };
+
+      // 3. Scrape all providers in parallel
+      return scrapeAll(type, enriched, providerIds, context);
     }, TTL_STREAMS);
 
     res.json({ streams, cached });

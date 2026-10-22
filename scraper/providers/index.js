@@ -72,6 +72,12 @@ const HARD_TIMEOUT_MS     = parseInt(process.env.SCRAPER_HARD_TIMEOUT_MS     ?? 
 const EARLY_RETURN_MS     = parseInt(process.env.SCRAPER_EARLY_RETURN_MS     ?? '6000', 10);
 const MIN_EARLY_RESULTS   = parseInt(process.env.SCRAPER_MIN_EARLY_RESULTS   ?? '10', 10);
 
+// Extra search passes for non-English audio. Each pass re-queries every
+// provider with a different name, so these stay low on purpose. Both default to
+// one and only ever fire when a request actually asks for another language.
+const MAX_ALIAS_QUERIES = parseInt(process.env.SCRAPER_MAX_ALIAS_QUERIES ?? '1', 10);
+const MAX_TAG_QUERIES   = parseInt(process.env.SCRAPER_MAX_TAG_QUERIES   ?? '1', 10);
+
 /**
  * Scrape all (or a subset of) providers for a given content item.
  * Uses early-return: responds after EARLY_RETURN_MS if enough results
@@ -88,11 +94,31 @@ export async function scrapeAll(type, meta, providerIds = null, context = {}) {
     !providerIds || providerIds.includes(p.id)
   );
 
+  // One job per provider per query variant. With no localized titles or
+  // release tags there is exactly one variant, so this is the original fan-out.
+  const queries = queryVariants(meta);
+  const jobs = providers.flatMap(p =>
+    queries.map((query, i) => ({
+      provider: p,
+      query,
+      localized: i > 0,
+      label: i === 0 ? p.name : `${p.name} "${query.name}"`,
+    }))
+  );
+  if (queries.length > 1) {
+    logger.info(`Extra search passes: ${queries.slice(1).map(q => `"${q.name}"`).join(', ')}`);
+  }
+
   const collected = [];
   let matchedCount = 0;
   let resolved = false;
   const startedAt = Date.now();
   let completedCount = 0;
+  // The base pass usually satisfies the early-return threshold on its own, and
+  // it returns English releases. Returning there would cut off the localized
+  // passes and hand a user who asked for Italian an English-only list, so the
+  // early return waits for them. The hard timeout still applies.
+  let pendingLocalized = jobs.filter(j => j.localized).length;
 
   return new Promise((resolve) => {
     const finalize = () => {
@@ -101,7 +127,7 @@ export async function scrapeAll(type, meta, providerIds = null, context = {}) {
       clearTimeout(earlyTimer);
       clearTimeout(hardTimer);
 
-      logger.info(`Scrape totals: ${collected.length} raw, ${completedCount}/${providers.length} providers responded`);
+      logger.info(`Scrape totals: ${collected.length} raw, ${completedCount}/${jobs.length} searches responded`);
       const deduped = deduplicate(collected);
       const matched = filterByContent(deduped, meta);
       if (deduped.length !== matched.length) {
@@ -114,8 +140,8 @@ export async function scrapeAll(type, meta, providerIds = null, context = {}) {
     // Counts only results that pass the content filter, so a provider that
     // dumps an unrelated feed can't trigger an early return that ends empty.
     const earlyTimer = setTimeout(() => {
-      if (!resolved && matchedCount >= MIN_EARLY_RESULTS) {
-        logger.info(`Early return: ${matchedCount} matching results from ${completedCount}/${providers.length} providers after ${EARLY_RETURN_MS}ms`);
+      if (!resolved && !pendingLocalized && matchedCount >= MIN_EARLY_RESULTS) {
+        logger.info(`Early return: ${matchedCount} matching results from ${completedCount}/${jobs.length} searches after ${EARLY_RETURN_MS}ms`);
         finalize();
       }
     }, EARLY_RETURN_MS);
@@ -123,34 +149,35 @@ export async function scrapeAll(type, meta, providerIds = null, context = {}) {
     // Hard deadline: cut off after HARD_TIMEOUT_MS even if providers are still pending
     const hardTimer = setTimeout(() => {
       if (!resolved) {
-        logger.info(`Hard timeout: ${collected.length} results from ${completedCount}/${providers.length} providers after ${HARD_TIMEOUT_MS}ms`);
+        logger.info(`Hard timeout: ${collected.length} results from ${completedCount}/${jobs.length} searches after ${HARD_TIMEOUT_MS}ms`);
         finalize();
       }
     }, HARD_TIMEOUT_MS);
 
-    // Launch all providers in parallel (concurrency-limited)
-    const tasks = providers.map(p =>
+    // Launch every provider/query pair in parallel (concurrency-limited)
+    const tasks = jobs.map(({ provider: p, query, label, localized }) =>
       limit(async () => {
         if (resolved) return;
         const start = Date.now();
         try {
           const results = await withTimeout(
-            p.scrape({ ...meta, ...context, type }),
+            p.scrape({ ...query, ...context, type }),
             PROVIDER_TIMEOUT_MS,
             `${p.name} timed out`
           );
-          logger.info(`[${p.name}] ${results.length} results in ${Date.now() - start}ms`);
+          logger.info(`[${label}] ${results.length} results in ${Date.now() - start}ms`);
           collected.push(...results);
           matchedCount += filterByContent(results, meta).length;
         } catch (err) {
-          logger.warn(`[${p.name}] ${err.message} (${Date.now() - start}ms)`);
+          logger.warn(`[${label}] ${err.message} (${Date.now() - start}ms)`);
         } finally {
           completedCount++;
+          if (localized) pendingLocalized--;
           // If all providers finished, return immediately
-          if (completedCount >= providers.length) finalize();
+          if (completedCount >= jobs.length) finalize();
           // Past the early-return window: return as soon as enough results land
-          else if (Date.now() - startedAt >= EARLY_RETURN_MS && matchedCount >= MIN_EARLY_RESULTS) {
-            logger.info(`Early return: ${matchedCount} matching results from ${completedCount}/${providers.length} providers after ${Date.now() - startedAt}ms`);
+          else if (!pendingLocalized && Date.now() - startedAt >= EARLY_RETURN_MS && matchedCount >= MIN_EARLY_RESULTS) {
+            logger.info(`Early return: ${matchedCount} matching results from ${completedCount}/${jobs.length} searches after ${Date.now() - startedAt}ms`);
             finalize();
           }
         }
@@ -160,6 +187,28 @@ export async function scrapeAll(type, meta, providerIds = null, context = {}) {
     // Safety: if Promise.all somehow resolves before timers
     Promise.allSettled(tasks).then(finalize);
   });
+}
+
+/**
+ * Names to search each provider for: the catalogue name first, then any
+ * localized title the content is released under, then the catalogue name with
+ * the scene tag for the requested language ("The Godfather ITA"), which surfaces
+ * localized releases that rank far below the English ones for the bare title.
+ *
+ * Providers read the name off `meta.name`, so a variant is just a meta copy.
+ * Results are still filtered against the original meta, aliases included.
+ */
+function queryVariants(meta) {
+  const variants = [meta];
+  if (!meta?.name) return variants;
+
+  for (const alias of (meta.aliases ?? []).slice(0, Math.max(0, MAX_ALIAS_QUERIES))) {
+    variants.push({ ...meta, name: alias });
+  }
+  for (const tag of (meta.searchTags ?? []).slice(0, Math.max(0, MAX_TAG_QUERIES))) {
+    variants.push({ ...meta, name: `${meta.name} ${tag}` });
+  }
+  return variants;
 }
 
 async function withTimeout(promise, timeoutMs, message) {
@@ -202,30 +251,19 @@ function deduplicate(records) {
 export function filterByContent(records, meta) {
   if (!meta?.name) return records;
 
-  const nameWords = normalizeTitle(meta.name).split(/\s+/).filter(w => w.length > 1);
-  if (!nameWords.length) return records;
-
-  const phrasePattern = nameWords.map(escapeRegex).join('\\s+');
-  const phraseRegex = new RegExp(`\\b${phrasePattern}\\b`);
+  // The original name plus any localized title the content is released under,
+  // so an "Il Padrino" release passes the filter for "The Godfather".
+  const matchers = [meta.name, ...(meta.aliases ?? [])]
+    .map(buildNameMatcher)
+    .filter(Boolean);
+  if (!matchers.length) return records;
 
   return records.filter(r => {
     if (!r.title) return false;
     const norm = normalizeTitle(r.title);
 
-    if (r.matchedById) {
-      // Matched by ID upstream; skip the name check.
-    } else if (nameWords.length <= 2) {
-      const match = phraseRegex.exec(norm);
-      if (!match) return false;
-      const after = norm.slice(match.index + match[0].length).trim();
-      const nextWord = after.match(/^([a-z0-9]+)/);
-      if (nextWord && !isTorrentMetadata(nextWord[1])) return false;
-    } else {
-      const matchCount = nameWords.filter(w =>
-        new RegExp(`\\b${escapeRegex(w)}\\b`).test(norm)
-      ).length;
-      if (matchCount < Math.max(1, Math.ceil(nameWords.length * 0.5))) return false;
-    }
+    // matchedById records are matched by ID upstream; skip the name check.
+    if (!r.matchedById && !matchers.some(matches => matches(norm))) return false;
 
     if (meta.type === 'series' && meta.season != null) {
       const s = meta.season;
@@ -254,6 +292,35 @@ export function filterByContent(records, meta) {
 }
 
 /**
+ * Build a predicate that tests a normalized torrent title against one name.
+ * Returns null for a name that normalizes to nothing to match against.
+ *
+ * Short names are matched as a whole phrase, and the word after it must look
+ * like release metadata, so "Brother" does not match "Brother Bear". Longer
+ * names only need half their words, which absorbs punctuation and subtitle
+ * differences between a release name and the catalogue one.
+ */
+function buildNameMatcher(name) {
+  const words = normalizeTitle(String(name ?? '')).split(/\s+/).filter(w => w.length > 1);
+  if (!words.length) return null;
+
+  if (words.length <= 2) {
+    const phraseRegex = new RegExp(`\\b${words.map(escapeRegex).join('\\s+')}\\b`);
+    return norm => {
+      const match = phraseRegex.exec(norm);
+      if (!match) return false;
+      const after = norm.slice(match.index + match[0].length).trim();
+      const nextWord = after.match(/^([a-z0-9]+)/);
+      return !nextWord || isTorrentMetadata(nextWord[1]);
+    };
+  }
+
+  const wordRegexes = words.map(w => new RegExp(`\\b${escapeRegex(w)}\\b`));
+  const needed = Math.max(1, Math.ceil(words.length * 0.5));
+  return norm => wordRegexes.filter(re => re.test(norm)).length >= needed;
+}
+
+/**
  * Same markers as the series check above, for any season or episode number.
  */
 function hasAnySeasonMarker(title, withEpisode) {
@@ -274,8 +341,15 @@ function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+/**
+ * Decompose accents before dropping non-ASCII, so an accented localized title
+ * ("Nuovo Cinema Paradiso", "Amelie") still matches its unaccented form.
+ * Titles in a non-Latin script normalize to nothing and are matched by ID.
+ */
 function normalizeTitle(str) {
   return str
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9\s]/g, ' ')
     .replace(/\s+/g, ' ')

@@ -27,12 +27,20 @@ const SOURCE_PATTERNS = [
   { re: /\bhdtv\b/i,                            source: 'HDTV'     },
 ];
 
+// Scene releases label the audio track with a short tag far more often than
+// with the full language name: "iTA" is the norm and "italian" the exception.
+// A tag only counts as an audio track when it is not prefixed with "sub", so
+// "ENG.SUB-ITA" is reported as English audio with Italian subtitles rather
+// than as an Italian track.
+const notSubtitled = tag => new RegExp(`(?<!\\bsub[\\s._-]{0,2})\\b(?:${tag})\\b`, 'i');
+
 const LANGUAGE_PATTERNS = [
   { re: /\bmulti\b/i,     lang: 'multi' },
+  { re: notSubtitled('eng|english'),          lang: 'en' },
+  { re: notSubtitled('ita|italian[oa]?'),     lang: 'it' },
   { re: /\bfrench\b/i,    lang: 'fr'    },
   { re: /\bspanish\b/i,   lang: 'es'    },
   { re: /\bportuguese\b/i,lang: 'pt'    },
-  { re: /\bitalian\b/i,   lang: 'it'    },
   { re: /\bgerman\b/i,    lang: 'de'    },
   { re: /\brussian\b/i,   lang: 'ru'    },
   { re: /\bkorean\b/i,    lang: 'ko'    },
