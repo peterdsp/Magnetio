@@ -275,6 +275,37 @@ https://your-server:7000/providers=yts,eztv,1337x|sort=qualityseeders|limit=10|R
 | `TB` | API key | - | TorBox |
 | `PU` | API key | - | Put.io |
 
+### Non-English audio
+
+Selecting an audio language other than English changes how the scraper searches,
+because non-English scene groups name a release after the local title rather
+than the original one.
+
+For each non-English language you select, every provider gets up to three
+search passes instead of one:
+
+| Pass | Query for `tt0068646` with `languages=it` | Needs |
+|:---|:---|:---|
+| Catalogue name | `The Godfather 1972` | nothing |
+| Scene tag | `The Godfather ITA` | nothing |
+| Localized title | `Il Padrino` | a TMDB key |
+
+The localized title is looked up on TMDB and also accepted by the content
+filter, so a release called `Il.Padrino.1972.iTALiAN.BDRip` is no longer dropped
+for not containing the English name. Supply the key either per user (the TMDB
+field in the configuration page, the same one recommendations use) or
+server-wide with `TMDB_API_KEY` in the scraper environment. Without a key the
+scene-tag pass still runs, so Italian releases of a title that keeps its English
+name are found regardless.
+
+Audio tags are read from the release name, so `iTA`, `iTALiAN` and `ITALIANO`
+all register as Italian, while `ENG.SUB-ITA` is reported as English audio with
+Italian subtitles rather than as an Italian track.
+
+Extra passes cost extra requests, so they only ever run for a language you
+actually asked for. Tune them with `SCRAPER_MAX_ALIAS_QUERIES`,
+`SCRAPER_MAX_TAG_QUERIES` and `SCRAPER_MAX_ALIAS_LANGUAGES`.
+
 ### Presets
 
 Quick-start configurations for common use cases:
@@ -283,6 +314,7 @@ Quick-start configurations for common use cases:
 |:---|:---|
 | `lite` | English-only, no CAM/screener, 3 providers, limit 5 |
 | `brazuca` | Portuguese-focused, 4 providers, limit 10 |
+| `italia` | Italian-focused, Italian audio with English fallback, 8 providers, limit 10 |
 
 Use a preset: `https://your-server:7000/lite/manifest.json`
 

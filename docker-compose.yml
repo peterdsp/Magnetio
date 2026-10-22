@@ -20,6 +20,9 @@ services:
       - PREWARM_MOVIE_LIMIT=${PREWARM_MOVIE_LIMIT:-500}
       - PREWARM_SERIES_LIMIT=${PREWARM_SERIES_LIMIT:-200}
       - PREWARM_CACHE_TTL=${PREWARM_CACHE_TTL:-86400}
+      # Server-wide fallback for the localized-title lookup used by
+      # non-English audio requests. Optional; users may supply their own key.
+      - TMDB_API_KEY=${TMDB_API_KEY:-}
     deploy:
       resources:
         limits:

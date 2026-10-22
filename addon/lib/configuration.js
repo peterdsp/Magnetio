@@ -21,6 +21,10 @@ const PublicProviderAliases = {
   s16: TorrentProvider.GLOTORRENTS,
   s17: TorrentProvider.TORLOCK,
   s18: TorrentProvider.TORRENTDOWNLOADS,
+  s19: TorrentProvider.THERARBG,
+  s20: TorrentProvider.SUBSPLEASE,
+  s21: TorrentProvider.ANIMETOSHO,
+  s22: TorrentProvider.NEKOBT,
   rarbg: TorrentProvider.TORRENTGALAXY,
 };
 
@@ -41,6 +45,32 @@ export const PreConfigurations = {
     excludeSizes:[],
     sort:        SortType.QUALITY_THEN_SEEDERS,
     limit:       5,
+  },
+  italia: {
+    name: 'Magnetio Italia',
+    description: 'Italian-focused configuration: Italian audio first, with English as a fallback',
+    logo:        PRESET_LOGO,
+    overrideId:  'italia',
+    // General trackers carry most Italian releases. The scraper searches them
+    // for the Italian title and the "ITA" tag as well as the catalogue name.
+    providers:   [
+      TorrentProvider.THEPIRATEBAY,
+      TorrentProvider.LEETX,
+      TorrentProvider.TORRENTGALAXY,
+      TorrentProvider.THERARBG,
+      TorrentProvider.BITSEARCH,
+      TorrentProvider.BTDIG,
+      TorrentProvider.YTS,
+      TorrentProvider.ANIMESATURN,
+    ],
+    qualities:   [],
+    languages:   ['it', 'en'],
+    subtitleLanguages: ['it', 'en'],
+    prewarmDebrid: true,
+    prewarmLimit: 3,
+    excludeSizes:[],
+    sort:        SortType.QUALITY_THEN_SEEDERS,
+    limit:       10,
   },
   brazuca: {
     name: 'Magnetio Brazuca',
