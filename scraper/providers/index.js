@@ -78,6 +78,11 @@ const MIN_EARLY_RESULTS   = parseInt(process.env.SCRAPER_MIN_EARLY_RESULTS   ?? 
 const MAX_ALIAS_QUERIES = parseInt(process.env.SCRAPER_MAX_ALIAS_QUERIES ?? '1', 10);
 const MAX_TAG_QUERIES   = parseInt(process.env.SCRAPER_MAX_TAG_QUERIES   ?? '1', 10);
 
+// Years a release name may differ from the catalogue's and still be the same
+// film: a late local release or a festival year shifts it by one either way.
+const YEAR_SLACK = 1;
+const YEAR_IN_NAME = /\b(?:19|20)\d{2}\b/g;
+
 /**
  * Scrape all (or a subset of) providers for a given content item.
  * Uses early-return: responds after EARLY_RETURN_MS if enough results
@@ -98,15 +103,15 @@ export async function scrapeAll(type, meta, providerIds = null, context = {}) {
   // release tags there is exactly one variant, so this is the original fan-out.
   const queries = queryVariants(meta);
   const jobs = providers.flatMap(p =>
-    queries.map((query, i) => ({
+    queries.map(({ meta: query, localized }) => ({
       provider: p,
       query,
-      localized: i > 0,
-      label: i === 0 ? p.name : `${p.name} "${query.name}"`,
+      localized,
+      label: localized ? `${p.name} "${query.name}"` : p.name,
     }))
   );
   if (queries.length > 1) {
-    logger.info(`Extra search passes: ${queries.slice(1).map(q => `"${q.name}"`).join(', ')}`);
+    logger.info(`Extra search passes: ${queries.slice(1).map(q => `"${q.meta.name}"`).join(', ')}`);
   }
 
   const collected = [];
@@ -165,9 +170,12 @@ export async function scrapeAll(type, meta, providerIds = null, context = {}) {
             PROVIDER_TIMEOUT_MS,
             `${p.name} timed out`
           );
-          logger.info(`[${label}] ${results.length} results in ${Date.now() - start}ms`);
-          collected.push(...results);
-          matchedCount += filterByContent(results, meta).length;
+          // An extra pass searches without the year, so another film of the
+          // same name, or a sequel, can come back with it.
+          const kept = localized ? filterByYear(results, meta) : results;
+          logger.info(`[${label}] ${kept.length} results in ${Date.now() - start}ms`);
+          collected.push(...kept);
+          matchedCount += filterByContent(kept, meta).length;
         } catch (err) {
           logger.warn(`[${label}] ${err.message} (${Date.now() - start}ms)`);
         } finally {
@@ -195,20 +203,60 @@ export async function scrapeAll(type, meta, providerIds = null, context = {}) {
  * the scene tag for the requested language ("The Godfather ITA"), which surfaces
  * localized releases that rank far below the English ones for the bare title.
  *
+ * The extra passes search without the year. Providers treat every word in a
+ * query as required, and a localized release is routinely labelled with
+ * another year than the catalogue's (the local release, a festival cut) or with
+ * none at all: "It Follows ITA 2015" returns nothing from TorrentDownloads
+ * while "It Follows ITA" returns the 2014 Italian BDRemux. `filterByYear`
+ * puts the year back afterwards, where a mismatch costs a result rather than
+ * the whole pass.
+ *
  * Providers read the name off `meta.name`, so a variant is just a meta copy.
  * Results are still filtered against the original meta, aliases included.
  */
-function queryVariants(meta) {
-  const variants = [meta];
+export function queryVariants(meta) {
+  const variants = [{ meta, localized: false }];
   if (!meta?.name) return variants;
 
   for (const alias of (meta.aliases ?? []).slice(0, Math.max(0, MAX_ALIAS_QUERIES))) {
-    variants.push({ ...meta, name: alias });
+    variants.push({ meta: { ...meta, name: alias, year: null }, localized: true });
   }
   for (const tag of (meta.searchTags ?? []).slice(0, Math.max(0, MAX_TAG_QUERIES))) {
-    variants.push({ ...meta, name: `${meta.name} ${tag}` });
+    variants.push({ meta: { ...meta, name: `${meta.name} ${tag}`, year: null }, localized: true });
   }
   return variants;
+}
+
+/**
+ * Drop movie records whose name carries a year other than the requested one,
+ * used on the passes that searched without it.
+ *
+ * A release name states the original release year, which can sit a year either
+ * side of the catalogue's, so allow that much slack. A name with no year at all
+ * is kept: localized releases frequently omit it ("Ralph Spaccatutto [XviD -
+ * Ita Ac3 5.1]"), and the name match is the signal there.
+ *
+ * Series are left alone: their year is the first season's, while the release
+ * names carry the episode's, and the season and episode check already covers
+ * them.
+ */
+export function filterByYear(records, meta) {
+  if (meta?.type !== 'movie' || !meta.year) return records;
+  const year = Number(meta.year);
+  if (!Number.isFinite(year)) return records;
+
+  // A number that belongs to the title is not a release year: "Blade Runner
+  // 2049" and "1917" would otherwise disagree with their own catalogue year
+  // and drop every release that omits it.
+  const inTitle = new Set(
+    [meta.name, ...(meta.aliases ?? [])].flatMap(n => String(n ?? '').match(YEAR_IN_NAME) ?? [])
+  );
+
+  return records.filter(r => {
+    const years = (String(r.title ?? '').match(YEAR_IN_NAME) ?? []).filter(y => !inTitle.has(y));
+    if (!years.length) return true;
+    return years.some(y => Math.abs(Number(y) - year) <= YEAR_SLACK);
+  });
 }
 
 async function withTimeout(promise, timeoutMs, message) {
@@ -254,7 +302,7 @@ export function filterByContent(records, meta) {
   // The original name plus any localized title the content is released under,
   // so an "Il Padrino" release passes the filter for "The Godfather".
   const matchers = [meta.name, ...(meta.aliases ?? [])]
-    .map(buildNameMatcher)
+    .map(name => buildNameMatcher(name, meta.year))
     .filter(Boolean);
   if (!matchers.length) return records;
 
@@ -296,22 +344,28 @@ export function filterByContent(records, meta) {
  * Returns null for a name that normalizes to nothing to match against.
  *
  * Short names are matched as a whole phrase, and the word after it must look
- * like release metadata, so "Brother" does not match "Brother Bear". Longer
+ * like release metadata, or the name must be followed by the year, so
+ * "Brother" does not match "Brother Bear" but still matches the Italian habit
+ * of joining both titles: "Obsession-Complesso di colpa (1976) ITA". Longer
  * names only need half their words, which absorbs punctuation and subtitle
  * differences between a release name and the catalogue one.
  */
-function buildNameMatcher(name) {
+function buildNameMatcher(name, year = null) {
   const words = normalizeTitle(String(name ?? '')).split(/\s+/).filter(w => w.length > 1);
   if (!words.length) return null;
 
   if (words.length <= 2) {
+    // Built from a number, never from the string, so a stray value from a
+    // caller cannot reach the pattern.
+    const yearRegex = Number.isInteger(Number(year)) ? new RegExp(`\\b${Number(year)}\\b`) : null;
     const phraseRegex = new RegExp(`\\b${words.map(escapeRegex).join('\\s+')}\\b`);
     return norm => {
       const match = phraseRegex.exec(norm);
       if (!match) return false;
       const after = norm.slice(match.index + match[0].length).trim();
       const nextWord = after.match(/^([a-z0-9]+)/);
-      return !nextWord || isTorrentMetadata(nextWord[1]);
+      if (!nextWord || isTorrentMetadata(nextWord[1])) return true;
+      return yearRegex != null && yearRegex.test(norm);
     };
   }
 

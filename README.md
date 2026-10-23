@@ -294,6 +294,15 @@ The localized title is also accepted by the content filter, so a release called
 `Il.Padrino.1972.iTALiAN.BDRip` is no longer dropped for not containing the
 English name.
 
+Only the first pass carries the year. Providers require every word of a query,
+and a localized release is routinely labelled with the local release year or
+with none at all, so the year quietly empties the other two passes:
+`It Follows ITA 2015` returns nothing from TorrentDownloads while
+`It Follows ITA` returns ten Italian releases, the 2014 4K BDRemux among them.
+The year is checked again on what those passes return, with a year of slack
+either way, so a sequel or another film of the same name is still dropped
+without costing the whole pass.
+
 Localized titles come from Wikidata, which needs no API key or signup, so this
 works on a bare deployment. If a TMDB key is configured it is preferred, since
 TMDB tracks release titles more closely; supply it per user (the TMDB field in
