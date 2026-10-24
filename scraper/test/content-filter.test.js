@@ -126,3 +126,18 @@ test('an empty or non-Latin alias list leaves the filter unchanged', () => {
     assert.deepEqual(titles(records, { ...GODFATHER, aliases }), ['The.Godfather.1972.1080p']);
   }
 });
+
+test('a short name joined to the localized title is kept when the year matches', () => {
+  // Italian releases habitually carry both titles, so the word after the
+  // English one is the start of the Italian one rather than release metadata.
+  const OBSESSION = { name: 'Obsession', type: 'movie', imdbId: 'tt0074991', year: 1976 };
+  const records = [
+    record('Obsession-Complesso di colpa (1976) ITA Ac3 2 0-ENG Ac3 5 1 sub ita BDRip 1080p'),
+    record('Obsession.1976.1080p.BluRay.x264'),
+    record('Obsession Revisited (2019) 1080p'),
+  ];
+  assert.deepEqual(titles(records, OBSESSION), [
+    'Obsession-Complesso di colpa (1976) ITA Ac3 2 0-ENG Ac3 5 1 sub ita BDRip 1080p',
+    'Obsession.1976.1080p.BluRay.x264',
+  ]);
+});

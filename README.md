@@ -288,15 +288,32 @@ search passes instead of one:
 |:---|:---|:---|
 | Catalogue name | `The Godfather 1972` | nothing |
 | Scene tag | `The Godfather ITA` | nothing |
-| Localized title | `Il Padrino` | a TMDB key |
+| Localized title | `Il padrino` | nothing |
 
-The localized title is looked up on TMDB and also accepted by the content
-filter, so a release called `Il.Padrino.1972.iTALiAN.BDRip` is no longer dropped
-for not containing the English name. Supply the key either per user (the TMDB
-field in the configuration page, the same one recommendations use) or
-server-wide with `TMDB_API_KEY` in the scraper environment. Without a key the
-scene-tag pass still runs, so Italian releases of a title that keeps its English
-name are found regardless.
+The localized title is also accepted by the content filter, so a release called
+`Il.Padrino.1972.iTALiAN.BDRip` is no longer dropped for not containing the
+English name.
+
+Only the first pass carries the year. Providers require every word of a query,
+and a localized release is routinely labelled with the local release year or
+with none at all, so the year quietly empties the other two passes:
+`It Follows ITA 2015` returns nothing from TorrentDownloads while
+`It Follows ITA` returns ten Italian releases, the 2014 4K BDRemux among them.
+The year is checked again on what those passes return, with a year of slack
+either way, so a sequel or another film of the same name is still dropped
+without costing the whole pass.
+
+Localized titles come from Wikidata, which needs no API key or signup, so this
+works on a bare deployment. If a TMDB key is configured it is preferred, since
+TMDB tracks release titles more closely; supply it per user (the TMDB field in
+the configuration page, the same one recommendations use) or server-wide with
+`TMDB_API_KEY`. Wikidata still covers anything TMDB has no translation for.
+
+Audio preference is ordered, not a flat set: `languages=it,en` ranks Italian
+releases above English ones rather than treating both as equally wanted, and
+English remains as a fallback. A `MULTi` release passes any language whitelist,
+because the tag means several audio tracks are bundled without naming them, and
+it is ranked below an explicit match.
 
 Audio tags are read from the release name, so `iTA`, `iTALiAN` and `ITALIANO`
 all register as Italian, while `ENG.SUB-ITA` is reported as English audio with
@@ -314,7 +331,7 @@ Quick-start configurations for common use cases:
 |:---|:---|
 | `lite` | English-only, no CAM/screener, 3 providers, limit 5 |
 | `brazuca` | Portuguese-focused, 4 providers, limit 10 |
-| `italia` | Italian-focused, Italian audio with English fallback, 8 providers, limit 10 |
+| `italia` | Italian-focused, Italian audio ranked first with English fallback, all providers, limit 10 |
 
 Use a preset: `https://your-server:7000/lite/manifest.json`
 

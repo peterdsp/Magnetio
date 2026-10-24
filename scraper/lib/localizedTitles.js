@@ -10,9 +10,11 @@
  * audio languages a user asked for, so providers can be queried with it and the
  * content filter can accept it as an alias.
  *
- * Titles come from TMDB, which needs an API key: either the per-request key the
- * addon forwards from the user's configuration, or a server-wide TMDB_API_KEY.
- * Without a key this is a no-op and nothing else changes.
+ * Titles come from TMDB when an API key is available (either the per-request key
+ * the addon forwards from the user's configuration, or a server-wide
+ * TMDB_API_KEY), and from Wikidata otherwise. Wikidata needs no key and no
+ * signup, so localized titles work on a bare deployment; TMDB is preferred when
+ * a key exists because it tracks release titles more closely.
  */
 import axios from 'axios';
 import { cacheWrap } from './cache.js';
@@ -20,6 +22,12 @@ import { logger } from './logger.js';
 
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 const TIMEOUT   = 6000;
+
+const WIKIDATA_SPARQL = 'https://query.wikidata.org/sparql';
+// Wikidata asks for a descriptive User-Agent and throttles anonymous clients,
+// so this path is deliberately one query for all requested languages at once.
+const WIKIDATA_UA = 'Magnetio/1.0 (https://github.com/peterdsp/Magnetio)';
+const WIKIDATA_TIMEOUT = 8000;
 
 // Localized titles are stable, so cache them for a week.
 const TTL = 7 * 24 * 3600;
@@ -122,6 +130,63 @@ async function fetchTitle({ id, endpoint }, language, apiKey) {
 }
 
 /**
+ * Localized titles from Wikidata, which needs no API key.
+ *
+ * `rdfs:label` in a given language is the title the work is known by there, so
+ * tt0068646 yields "Il padrino" for Italian. One query covers every requested
+ * language. Returns [] on any failure: this is a best-effort enrichment.
+ */
+async function fromWikidata(imdbId, languages) {
+  // The id is interpolated into SPARQL, so only ever allow the IMDb id shape.
+  if (!/^tt\d{5,12}$/.test(imdbId)) return [];
+
+  const { value } = await cacheWrap(
+    `wikidata-titles:${imdbId}:${languages.join('+')}`,
+    async () => {
+      const langList = languages.map(l => `"${l}"`).join(',');
+      const query = `SELECT ?label WHERE { ?film wdt:P345 "${imdbId}". ` +
+                    `?film rdfs:label ?label. FILTER(LANG(?label) IN (${langList})) }`;
+
+      const { data } = await axios.get(WIKIDATA_SPARQL, {
+        params: { query, format: 'json' },
+        timeout: WIKIDATA_TIMEOUT,
+        headers: {
+          'User-Agent': WIKIDATA_UA,
+          Accept: 'application/sparql-results+json',
+        },
+      });
+
+      const rows = data?.results?.bindings ?? [];
+      return rows.map(r => r?.label?.value).filter(Boolean);
+    },
+    TTL
+  );
+
+  return value ?? [];
+}
+
+/**
+ * Localized titles from TMDB. Needs a key, returns [] without one.
+ */
+async function fromTmdb(meta, languages, key) {
+  const tmdb = await resolveTmdb(meta.imdbId, meta.type, key);
+  if (!tmdb) {
+    logger.debug(`[Localized] no TMDB match for ${meta.imdbId}`);
+    return [];
+  }
+
+  const titles = await Promise.all(
+    languages.map(lang =>
+      fetchTitle(tmdb, lang, key).catch(err => {
+        logger.debug(`[Localized] ${meta.imdbId} ${lang}: ${err.message}`);
+        return null;
+      })
+    )
+  );
+  return titles.filter(Boolean);
+}
+
+/**
  * Titles the content is released under in the requested audio languages,
  * excluding the name we already have.
  *
@@ -133,23 +198,20 @@ async function fetchTitle({ id, endpoint }, language, apiKey) {
 export async function getLocalizedTitles(meta, languages, apiKey = null) {
   const key = apiKey || process.env.TMDB_API_KEY || null;
   const targets = targetLanguages(languages);
-  if (!key || !targets.length || !meta?.imdbId || !meta?.name) return [];
+  if (!targets.length || !meta?.imdbId || !meta?.name) return [];
 
   try {
-    const tmdb = await resolveTmdb(meta.imdbId, meta.type, key);
-    if (!tmdb) {
-      logger.debug(`[Localized] no TMDB match for ${meta.imdbId}`);
-      return [];
+    // TMDB first when a key is configured, Wikidata as the keyless fallback.
+    // Also falls through to Wikidata when TMDB has no translation on file.
+    let titles = [];
+    let source = 'wikidata';
+    if (key) {
+      titles = await fromTmdb(meta, targets, key);
+      if (titles.length) source = 'tmdb';
     }
-
-    const titles = await Promise.all(
-      targets.map(lang =>
-        fetchTitle(tmdb, lang, key).catch(err => {
-          logger.debug(`[Localized] ${meta.imdbId} ${lang}: ${err.message}`);
-          return null;
-        })
-      )
-    );
+    if (!titles.length) {
+      titles = await fromWikidata(meta.imdbId, targets);
+    }
 
     const original = compare(meta.name);
     const aliases = [];
@@ -162,7 +224,7 @@ export async function getLocalizedTitles(meta, languages, apiKey = null) {
     }
 
     if (aliases.length) {
-      logger.info(`[Localized] "${meta.name}" also known as ${aliases.map(a => `"${a}"`).join(', ')}`);
+      logger.info(`[Localized:${source}] "${meta.name}" also known as ${aliases.map(a => `"${a}"`).join(', ')}`);
     }
     return aliases;
   } catch (err) {

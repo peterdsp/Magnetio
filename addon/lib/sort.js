@@ -1,5 +1,8 @@
 import { SortType, Quality } from './types.js';
 
+// Audio tag meaning "several tracks bundled", which may include a wanted one.
+export const MULTI_AUDIO = 'multi';
+
 // Seeder thresholds
 const HEALTHY_SEEDER_COUNT = 5;
 const SEEDED_SEEDER_COUNT  = 1;
@@ -17,15 +20,26 @@ const QUALITY_ORDER = [
 
 /**
  * Sort streams by language preference first, then by the configured sort strategy.
+ *
+ * Preference follows the order the languages were configured in, so
+ * languages=it,en ranks Italian audio above English instead of lumping both
+ * into one "preferred" bucket. That ordering is the whole point of listing a
+ * second language: it is a fallback, not an equal.
  */
 export function sortStreams(streams, config) {
   const preferredLangs = config?.languages ?? [];
-  if (preferredLangs.length) {
-    const preferred = streams.filter(s => hasLanguage(s, preferredLangs));
-    const rest      = streams.filter(s => !hasLanguage(s, preferredLangs));
-    return [..._sortStreams(preferred, config), ..._sortStreams(rest, config)];
+  if (!preferredLangs.length) return _sortStreams(streams, config);
+
+  const buckets = new Map();
+  for (const stream of streams) {
+    const rank = languageRank(stream, preferredLangs);
+    if (!buckets.has(rank)) buckets.set(rank, []);
+    buckets.get(rank).push(stream);
   }
-  return _sortStreams(streams, config);
+
+  return [...buckets.keys()]
+    .sort((a, b) => a - b)
+    .flatMap(rank => _sortStreams(buckets.get(rank), config));
 }
 
 // ─── Internal ─────────────────────────────────────────────────────────────────
@@ -103,6 +117,22 @@ export function extractQuality(stream) {
   return Quality.UNKNOWN;
 }
 
-function hasLanguage(stream, langs) {
-  return (stream.languages ?? []).some(l => langs.includes(l));
+/**
+ * Lower is better. An explicit match ranks at its position in the configured
+ * list. A multi-audio release ranks after every explicit match but ahead of
+ * unrelated audio, because it very likely carries the wanted track without
+ * saying so. Anything else sorts last.
+ */
+function languageRank(stream, langs) {
+  const streamLangs = stream.languages ?? [];
+
+  let best = Infinity;
+  for (const lang of streamLangs) {
+    const index = langs.indexOf(lang);
+    if (index !== -1 && index < best) best = index;
+  }
+  if (best !== Infinity) return best;
+
+  if (streamLangs.includes(MULTI_AUDIO)) return langs.length;
+  return langs.length + 1;
 }

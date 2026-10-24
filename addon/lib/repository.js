@@ -33,8 +33,12 @@ export async function getStreams(type, id, config) {
   // title and a scene-tag search pass, so they change the result set and have to
   // be part of the key. The TMDB key only decides whether localized titles are
   // available, so its presence is keyed but never the secret itself.
-  const languages = config.languages?.length ? [...config.languages].sort() : [];
-  const languageSuffix = languages.length ? `:lang-${languages.join('+')}` : '';
+  // The order is the user's preference order, and the scraper only looks up the
+  // first few languages, so it is sent as configured. The cache key sorts its
+  // own copy instead, since reordering the same languages yields the same
+  // searches.
+  const languages = config.languages?.length ? config.languages : [];
+  const languageSuffix = languages.length ? `:lang-${[...languages].sort().join('+')}` : '';
   const aliasSuffix    = languages.length && config.tmdbApiKey ? ':loc' : '';
   const cacheKey = `streams:${type}:${id}:${providerKey}${torznabSuffix}${languageSuffix}${aliasSuffix}`;
 

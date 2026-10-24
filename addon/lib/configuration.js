@@ -51,18 +51,10 @@ export const PreConfigurations = {
     description: 'Italian-focused configuration: Italian audio first, with English as a fallback',
     logo:        PRESET_LOGO,
     overrideId:  'italia',
-    // General trackers carry most Italian releases. The scraper searches them
-    // for the Italian title and the "ITA" tag as well as the catalogue name.
-    providers:   [
-      TorrentProvider.THEPIRATEBAY,
-      TorrentProvider.LEETX,
-      TorrentProvider.TORRENTGALAXY,
-      TorrentProvider.THERARBG,
-      TorrentProvider.BITSEARCH,
-      TorrentProvider.BTDIG,
-      TorrentProvider.YTS,
-      TorrentProvider.ANIMESATURN,
-    ],
+    // Every provider, deliberately. Italian releases are spread thinly across
+    // general trackers, so narrowing the list mostly just loses them, and an
+    // operator who needs fewer sources already has SCRAPER_DISABLED_PROVIDERS.
+    providers:   Object.values(TorrentProvider),
     qualities:   [],
     languages:   ['it', 'en'],
     subtitleLanguages: ['it', 'en'],
