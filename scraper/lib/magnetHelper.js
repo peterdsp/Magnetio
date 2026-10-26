@@ -12,9 +12,30 @@
 export function extractInfoHash(magnet = '') {
   const match = magnet.match(/xt=urn:btih:([a-fA-F0-9]{40}|[a-zA-Z2-7]{32})/i);
   if (!match) return null;
-  const raw = match[1];
-  if (raw.length === 32) return base32ToHex(raw);
-  return raw.toLowerCase();
+  return normaliseInfoHash(match[1]);
+}
+
+/**
+ * Normalise an infoHash that did not come from a magnet URI.
+ *
+ * Providers reading a hash out of a JSON field or an href have nothing to
+ * validate it, and an infoHash that is not 40-char lowercase hex is worse than
+ * none: dedup keys on this value, so a differently encoded copy of a release
+ * duplicates rather than merges, and a truncated one yields a magnet that
+ * resolves to nothing. The aggregator drops a record with no hash, so
+ * returning null is the safe outcome.
+ *
+ * Accepts 40-char hex or 32-char base32, in any case.
+ *
+ * @param {string} value
+ * @returns {string|null} lowercase 40-char hex infoHash, or null
+ */
+export function normaliseInfoHash(value) {
+  if (typeof value !== 'string') return null;
+  const raw = value.trim();
+  if (/^[a-fA-F0-9]{40}$/.test(raw)) return raw.toLowerCase();
+  if (/^[a-zA-Z2-7]{32}$/.test(raw)) return base32ToHex(raw);
+  return null;
 }
 
 /**

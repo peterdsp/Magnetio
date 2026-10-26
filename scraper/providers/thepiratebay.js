@@ -8,6 +8,7 @@
 import { get } from '../lib/httpClient.js';
 import { parseTitle, buildSearchQuery } from '../lib/titleHelper.js';
 import { tryDomains, PROVIDER_DOMAINS } from '../lib/domainRotation.js';
+import { normaliseInfoHash } from '../lib/magnetHelper.js';
 import { logger } from '../lib/logger.js';
 
 const DOMAINS = PROVIDER_DOMAINS.thepiratebay;
@@ -52,7 +53,7 @@ export async function scrape(meta) {
 function normalise(t, meta) {
   const parsed = parseTitle(t.name);
   return {
-    infoHash:  t.info_hash?.toLowerCase(),
+    infoHash:  normaliseInfoHash(t.info_hash),
     title:     t.name,
     seeders:   parseInt(t.seeders ?? '0', 10),
     leechers:  parseInt(t.leechers ?? '0', 10),
