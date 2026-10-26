@@ -1,0 +1,69 @@
+name: Add a torrent provider
+description: Propose a new torrent site for the scraper, or claim an existing provider issue
+title: "Add provider: "
+labels: ["provider", "good first issue"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping widen Magnetio's coverage. Before you fill this in:
+
+        **Check Torznab first.** If the site is reachable through Jackett or
+        Prowlarr, `torznab.js` already covers it and no new provider is needed.
+        Try it before opening this issue.
+
+        The walkthrough for writing a provider is in
+        [CONTRIBUTING.md](https://github.com/peterdsp/Magnetio/blob/main/CONTRIBUTING.md#adding-a-torrent-provider).
+  - type: input
+    id: site
+    attributes:
+      label: Site
+      description: Base URL of the search endpoint
+      placeholder: https://example.com
+    validations:
+      required: true
+  - type: dropdown
+    id: interface
+    attributes:
+      label: What does it expose?
+      description: RSS and JSON are stable and preferred. HTML works but needs maintaining.
+      options:
+        - RSS or XML feed
+        - JSON API
+        - HTML only (needs cheerio)
+        - Not sure yet
+    validations:
+      required: true
+  - type: checkboxes
+    id: viability
+    attributes:
+      label: Viability
+      description: A site that fails any of these is usually not worth adding.
+      options:
+        - label: Search works without an account
+          required: false
+        - label: Results include magnet links or infohashes
+          required: false
+        - label: Search is not behind a Cloudflare managed challenge
+          required: false
+  - type: dropdown
+    id: content
+    attributes:
+      label: Content it covers
+      multiple: true
+      options: [Movies, Series, Anime, Other]
+    validations:
+      required: true
+  - type: textarea
+    id: sample
+    attributes:
+      label: A sample search response
+      description: Paste a trimmed response for one query, so the record mapping is obvious.
+      render: text
+  - type: checkboxes
+    id: claim
+    attributes:
+      label: Are you writing it?
+      options:
+        - label: I want to implement this myself
+          required: false
