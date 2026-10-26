@@ -965,7 +965,7 @@ export function landingTemplate(manifest, initialConfig = {}) {
       <div class="feature-card">
         <span class="feature-icon">&#9889;</span>
         <div class="feature-title">Multi-Provider Scraping</div>
-        <div class="feature-desc">22 torrent providers queried in parallel with smart deduplication and quality ranking.</div>
+        <div class="feature-desc">23 torrent providers queried in parallel with smart deduplication and quality ranking.</div>
       </div>
       <div class="feature-card">
         <span class="feature-icon">&#128279;</span>

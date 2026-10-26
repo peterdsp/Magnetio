@@ -24,6 +24,7 @@ import * as therarbg         from './therarbg.js';
 import * as subsplease       from './subsplease.js';
 import * as animetosho       from './animetosho.js';
 import * as nekobt           from './nekobt.js';
+import * as tokyotosho       from './tokyotosho.js';
 import * as torznab          from './torznab.js';
 import { logger } from '../lib/logger.js';
 
@@ -49,6 +50,7 @@ const ALL_PROVIDERS = [
   subsplease,
   animetosho,
   nekobt,
+  tokyotosho,
   torznab,
 ];
 
