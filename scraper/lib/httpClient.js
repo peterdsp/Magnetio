@@ -39,7 +39,26 @@ function getLimiter(key) {
  *                                     still carries the hostname, so the Host
  *                                     header and TLS SNI are preserved.
  */
-export async function get(url, {
+export async function get(url, opts = {}) {
+  return request('get', url, opts);
+}
+
+/**
+ * POST a JSON body, with the same rate limiting, retries, headers and
+ * SSRF-pinning behaviour as get().
+ *
+ * Only needed by providers whose API is POST-only, such as the Knaben
+ * meta-indexer. Everything else should use get().
+ *
+ * @param {string} url
+ * @param {object} opts     as get(), plus:
+ * @param {object} opts.data  the JSON request body
+ */
+export async function post(url, opts = {}) {
+  return request('post', url, opts);
+}
+
+async function request(method, url, {
   limiterKey = 'default',
   params = {},
   headers = {},
@@ -47,6 +66,7 @@ export async function get(url, {
   responseType = 'text',
   retries = 2,
   lookup = null,
+  data = undefined,
 } = {}) {
   const limiter = getLimiter(limiterKey);
 
@@ -67,7 +87,10 @@ export async function get(url, {
     let lastErr;
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
-        const res = await axios.get(url, {
+        const res = await axios({
+          method,
+          url,
+          ...(data !== undefined ? { data } : {}),
           params,
           headers: { ...DEFAULT_HEADERS, ...headers },
           timeout,

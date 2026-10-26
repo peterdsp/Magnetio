@@ -15,6 +15,7 @@ import * as rutor            from './rutor.js';
 import * as rutracker        from './rutracker.js';
 import * as limetorrents     from './limetorrents.js';
 import * as bitsearch        from './bitsearch.js';
+import * as knaben           from './knaben.js';
 import * as bt4g             from './bt4g.js';
 import * as btdig            from './btdig.js';
 import * as glotorrents      from './glotorrents.js';
@@ -41,6 +42,7 @@ const ALL_PROVIDERS = [
   rutracker,
   limetorrents,
   bitsearch,
+  knaben,
   bt4g,
   btdig,
   glotorrents,

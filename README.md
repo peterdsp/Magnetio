@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <strong>A fully self-hosted Stremio addon with 23 torrent providers, 8 debrid services, Torznab/Jackett/Prowlarr integration, and TMDB recommendations.</strong>
+  <strong>A fully self-hosted Stremio addon with 24 torrent providers, 8 debrid services, Torznab/Jackett/Prowlarr integration, and TMDB recommendations.</strong>
 </p>
 
 <p align="center">
@@ -29,7 +29,7 @@
 
 ## What is Magnetio?
 
-Magnetio is an open-source, self-hostable **Stremio addon** that comes with its own **built-in torrent scraper**. It queries 23 torrent providers in parallel (including Torznab-compatible indexers via Jackett or Prowlarr), deduplicates results, and optionally resolves them into **instant direct-download streams** through your debrid service of choice.
+Magnetio is an open-source, self-hostable **Stremio addon** that comes with its own **built-in torrent scraper**. It queries 24 torrent providers in parallel (including Torznab-compatible indexers via Jackett or Prowlarr), deduplicates results, and optionally resolves them into **instant direct-download streams** through your debrid service of choice.
 
 Everything runs on your own hardware (a Raspberry Pi is enough). No cloud subscriptions, no external scraper APIs, no data leaving your network.
 
@@ -39,7 +39,7 @@ Everything runs on your own hardware (a Raspberry Pi is enough). No cloud subscr
 |:---|:---:|:---:|
 | Fully in-house scraping | Yes | Depends on external APIs |
 | Self-hosted, private | Yes | Often cloud-hosted |
-| 23 torrent providers + Torznab | Yes | Varies |
+| 24 torrent providers + Torznab | Yes | Varies |
 | Jackett / Prowlarr support | Yes | Rare |
 | 8 debrid services | Yes | 1-3 typically |
 | Background prewarm | Yes | No |
@@ -68,7 +68,7 @@ Everything runs on your own hardware (a Raspberry Pi is enough). No cloud subscr
                                      v
                     +---------------------------------+
                     |    Magnetio Scraper (:8080)     |
-                    |  Queries up to 23 providers     |
+                    |  Queries up to 24 providers     |
                     |  in parallel (max 4 concurrent) |
                     |  22s timeout per provider       |
                     +---------------------------------+
@@ -111,7 +111,7 @@ Real-Debrid results include both downloaded and uncached candidates. With Debrid
 
 ## Supported Torrent Providers
 
-Magnetio ships with **23 providers** covering movies, TV series, and anime, plus Torznab support for connecting external indexer managers.
+Magnetio ships with **24 providers** covering movies, TV series, and anime, plus Torznab support for connecting external indexer managers.
 
 The full matrix of ids and the content types each one covers is in
 [PROVIDERS.md](PROVIDERS.md), generated from the registry. Pass the **id** to
@@ -256,7 +256,7 @@ https://your-server:7000/providers=yts,eztv,1337x|sort=qualityseeders|limit=10|R
 
 | Parameter | Values | Default | Description |
 |:---|:---|:---|:---|
-| `providers` | Comma-separated provider IDs | All 23 | Which torrent providers to query |
+| `providers` | Comma-separated provider IDs | All 24 | Which torrent providers to query |
 | `sort` | `qualityseeders`, `qualitysize`, `seeders`, `size` | `qualityseeders` | How to rank streams |
 | `limit` | `1` to `50` | `10` | Max streams returned per request |
 | `qualities` | `4k`, `1080p`, `720p`, `480p`, `cam` | All | Quality whitelist |
