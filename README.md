@@ -717,8 +717,29 @@ cd addon && npm install && npm run dev
 ### Running Tests
 
 ```bash
-cd addon && npm test
+cd addon   && npm test
+cd scraper && npm test
 ```
+
+---
+
+## Contributing
+
+Contributions are welcome, and the codebase is deliberately shaped so that a
+first contribution can be small. Adding a torrent provider is one file, three
+exports, and no knowledge of the rest of the system.
+
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** has the full walkthrough: the provider
+  contract, the record shape, how to test a provider in isolation, and how to
+  add a debrid service.
+- **[`scraper/providers/_template.js`](scraper/providers/_template.js)** is a
+  commented starting point. Copy it, fill it in, register it.
+- **[Good first issues](https://github.com/peterdsp/Magnetio/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)**
+  are each scoped to a single file and name the interface to implement. Comment
+  on one to claim it.
+
+`npm test` in `scraper/` runs a contract test across every registered provider,
+so you get told what is wrong before a maintainer has to review it.
 
 ---
 

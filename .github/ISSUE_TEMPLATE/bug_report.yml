@@ -1,0 +1,61 @@
+name: Bug report
+description: Something in the addon or the scraper is not behaving
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Never paste an API key, a debrid token, or a full configure URL.**
+        A configure URL contains your credentials. Redact them.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options: [Addon, Scraper, Configure page, Deployment (Docker/systemd), Not sure]
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you expected, and what you got instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: How to reproduce
+      description: |
+        The exact title helps. A curl against your own scraper helps more:
+        `curl "localhost:8080/streams/movie/tt0068646"`
+      placeholder: |
+        1. Search for ...
+        2. ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Magnetio version
+      description: From `/health`, or the release tag you deployed
+      placeholder: v1.2.0
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How are you running it?
+      options: [Docker Compose, Docker (manual), Node directly, systemd, Other]
+    validations:
+      required: true
+  - type: input
+    id: node
+    attributes:
+      label: Node version
+      placeholder: "20.11.0"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: Scraper or addon logs around the failure. Redact keys.
+      render: shell
