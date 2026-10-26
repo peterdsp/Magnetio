@@ -165,3 +165,42 @@ test('an empty title returns an empty object', () => {
   assert.deepEqual(parseTitle(null), {});
   assert.deepEqual(parseTitle(undefined), {});
 });
+
+// ─── buildSearchQuery: anime ──────────────────────────────────────────────────
+
+test('anime is searched by absolute episode number, not SxxEyy', async () => {
+  const { buildSearchQuery } = await import('../lib/titleHelper.js');
+
+  assert.equal(
+    buildSearchQuery({ type: 'anime', name: 'One Piece', season: 1, episode: 1095, year: 1999 }),
+    'One Piece 1095'
+  );
+});
+
+// Anime releases are not labelled with the series start year, so appending it
+// matched nothing. This was why every anime provider returned empty.
+test('anime never gets the series year appended', async () => {
+  const { buildSearchQuery } = await import('../lib/titleHelper.js');
+
+  assert.equal(buildSearchQuery({ type: 'anime', name: 'One Piece', year: 1999 }), 'One Piece');
+  assert.equal(buildSearchQuery({ type: 'anime', name: 'Frieren', year: 2023, episode: 5 }), 'Frieren 5');
+});
+
+test('the episode number is used as given, without zero padding', async () => {
+  const { buildSearchQuery } = await import('../lib/titleHelper.js');
+
+  // Measured: neither form dominates on a real index, so no convention is
+  // invented here. See the note on buildSearchQuery.
+  assert.equal(buildSearchQuery({ type: 'anime', name: 'Naruto', episode: 5 }), 'Naruto 5');
+});
+
+test('series and movie query shapes are unchanged', async () => {
+  const { buildSearchQuery } = await import('../lib/titleHelper.js');
+
+  assert.equal(
+    buildSearchQuery({ type: 'series', name: 'Breaking Bad', season: 2, episode: 3 }),
+    'Breaking Bad S02E03'
+  );
+  assert.equal(buildSearchQuery({ type: 'movie', name: 'Heat', year: 1995 }), 'Heat 1995');
+  assert.equal(buildSearchQuery({ type: 'movie', name: 'Heat' }), 'Heat');
+});
