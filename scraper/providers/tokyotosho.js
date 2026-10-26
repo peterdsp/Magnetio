@@ -53,6 +53,9 @@ export function parseFeed(xml, meta = {}) {
       size: sizeMatch ? parseSize(sizeMatch[1]) : 0,
       provider: name,
       imdbId: meta.imdbId,
+      // A Japanese index: raws and sub groups both ship Japanese audio, and the
+      // sibling anime providers tag the same way (animetosho.js, nekobt.js).
+      languages: ['ja'],
     });
   });
 

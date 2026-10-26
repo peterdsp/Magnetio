@@ -21,4 +21,15 @@ test('Tokyo Toshokan parses anime feed items and excludes other categories', asy
   assert.equal(results[0].seeders, 0);
   assert.equal(results[0].leechers, 0);
   assert.equal(results[0].imdbId, 'tt0388629');
+  assert.deepEqual(results[0].languages, ['ja']);
+});
+
+test('Tokyo Toshokan is selectable from an add-on configuration', async () => {
+  const { TorrentProvider } = await import('../../addon/lib/types.js');
+
+  // The scraper id and the add-on id are the same string, or the provider is
+  // registered but unreachable: an explicit ?providers= list would drop it and
+  // the presets built from Object.values(TorrentProvider) would skip it.
+  assert.equal(TorrentProvider.TOKYOTOSHO, 'tokyotosho');
+  assert.ok(Object.values(TorrentProvider).includes('tokyotosho'));
 });

@@ -25,6 +25,7 @@ const PublicProviderAliases = {
   s20: TorrentProvider.SUBSPLEASE,
   s21: TorrentProvider.ANIMETOSHO,
   s22: TorrentProvider.NEKOBT,
+  s23: TorrentProvider.TOKYOTOSHO,
   rarbg: TorrentProvider.TORRENTGALAXY,
 };
 

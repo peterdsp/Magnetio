@@ -28,6 +28,7 @@ export const TorrentProvider = {
   SUBSPLEASE: 'subsplease',
   ANIMETOSHO: 'animetosho',
   NEKOBT: 'nekobt',
+  TOKYOTOSHO: 'tokyotosho',
   TORZNAB: 'torznab',
 };
 
