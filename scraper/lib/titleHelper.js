@@ -9,7 +9,11 @@ const QUALITY_PATTERNS = [
   { re: /\b1080p\b/i,                            quality: '1080p' },
   { re: /\b720p\b/i,                             quality: '720p'  },
   { re: /\b480p\b/i,                             quality: '480p'  },
-  { re: /\b(cam|camrip|ts|telesync|telecine|hdcam)\b/i, quality: 'cam' },
+  // "ts" is a telesync tag, but it is also a common release group name, and a
+  // group is suffixed after a dash: "DVDRip.XviD-TS" is a DVDRip by a group
+  // called TS, not a cam. Without the lookbehind it scored as the worst tier
+  // and was dropped by anyone excluding cams.
+  { re: /\b(cam|camrip|telesync|telecine|hdcam)\b|(?<!-)\bts\b/i, quality: 'cam' },
 ];
 
 const CODEC_PATTERNS = [
@@ -18,13 +22,19 @@ const CODEC_PATTERNS = [
   { re: /\bav1\b/i,                  codec: 'AV1'  },
 ];
 
+// First match wins, so the specific tags come first and the ambiguous one
+// last. A bare "web" collides with titles that contain the word: before this
+// order, "Spider.Web.2023.DVDRip.XviD" reported WEB-DL, because "Web" in the
+// film's own name was tested before the real DVDRip tag.
 const SOURCE_PATTERNS = [
   { re: /\b(bluray|blu-ray|bdrip|brrip)\b/i,  source: 'BluRay'   },
   { re: /\b(webrip|web-rip)\b/i,               source: 'WEBRip'   },
-  { re: /\b(webdl|web-dl|web)\b/i,             source: 'WEB-DL'   },
+  { re: /\b(webdl|web-dl)\b/i,                 source: 'WEB-DL'   },
   { re: /\bhdrip\b/i,                           source: 'HDRip'    },
   { re: /\bdvdrip\b/i,                          source: 'DVDRip'   },
   { re: /\bhdtv\b/i,                            source: 'HDTV'     },
+  // Only when nothing more specific said otherwise.
+  { re: /\bweb\b/i,                             source: 'WEB-DL'   },
 ];
 
 // Scene releases label the audio track with a short tag far more often than
