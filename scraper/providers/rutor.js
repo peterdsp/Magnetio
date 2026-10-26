@@ -22,6 +22,8 @@ const NON_VIDEO = /\b(flac|mp3|ost|soundtrack)\b|звуковые дорожки
 
 export const id   = 'rutor';
 export const name = 'Rutor';
+// Content types this provider can answer for.
+export const types = ['movie', 'series', 'anime'];
 
 export async function scrape(meta) {
   if (!meta?.name) return [];

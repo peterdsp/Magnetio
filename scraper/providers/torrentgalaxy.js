@@ -19,6 +19,8 @@ const MAX_DETAILS = 20;
 
 export const id   = 'torrentgalaxy';
 export const name = 'TorrentGalaxy';
+// Content types this provider can answer for.
+export const types = ['movie', 'series', 'anime'];
 
 export async function scrape(meta) {
   if (!meta?.name) return [];

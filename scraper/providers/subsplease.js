@@ -11,6 +11,8 @@ const BASE = 'https://subsplease.org';
 
 export const id   = 'subsplease';
 export const name = 'SubsPlease';
+// Content types this provider can answer for. Anime release group.
+export const types = ['series', 'anime'];
 
 export async function scrape(meta) {
   if (meta.type !== 'series' && meta.type !== 'anime') return [];

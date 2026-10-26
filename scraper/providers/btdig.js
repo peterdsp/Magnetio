@@ -11,6 +11,8 @@ const BASE = 'https://btdig.com';
 
 export const id   = 'btdig';
 export const name = 'BTDig';
+// Content types this provider can answer for.
+export const types = ['movie', 'series', 'anime'];
 
 export async function scrape(meta) {
   if (!meta?.name) return [];

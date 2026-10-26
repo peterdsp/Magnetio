@@ -416,7 +416,7 @@ function normalizeTitle(str) {
  * List all available provider IDs.
  */
 export function listProviders() {
-  return ACTIVE_PROVIDERS.map(p => ({ id: p.id, name: p.name }));
+  return ACTIVE_PROVIDERS.map(p => ({ id: p.id, name: p.name, types: [...p.types] }));
 }
 
 /**

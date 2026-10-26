@@ -12,6 +12,8 @@ const BASE = 'https://nekobt.to';
 
 export const id   = 'nekobt';
 export const name = 'nekoBT';
+// Content types this provider can answer for. Anime index.
+export const types = ['series', 'anime'];
 
 export async function scrape(meta) {
   if (meta.type !== 'series' && meta.type !== 'anime') return [];

@@ -16,6 +16,8 @@ const MAX_PAGES = 10;
 
 export const id   = 'eztv';
 export const name = 'EZTV';
+// Content types this provider can answer for. TV-only API.
+export const types = ['series'];
 
 export async function scrape(meta) {
   if (meta.type !== 'series') return [];

@@ -19,6 +19,8 @@ const SERIES_CATEGORIES = new Set(['205', '208', '212']);
 
 export const id   = 'thepiratebay';
 export const name = 'ThePirateBay';
+// Content types this provider can answer for.
+export const types = ['movie', 'series', 'anime'];
 
 export async function scrape(meta) {
   if (!meta?.name) return [];

@@ -15,6 +15,8 @@ const DOMAINS = PROVIDER_DOMAINS.torrentdownloads;
 
 export const id   = 'torrentdownloads';
 export const name = 'TorrentDownloads';
+// Content types this provider can answer for.
+export const types = ['movie', 'series', 'anime'];
 
 export async function scrape(meta) {
   if (!meta?.name) return [];

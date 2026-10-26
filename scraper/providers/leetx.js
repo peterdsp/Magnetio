@@ -11,6 +11,8 @@ const DOMAINS = PROVIDER_DOMAINS['1337x'];
 
 export const id   = '1337x';
 export const name = '1337x';
+// Content types this provider can answer for.
+export const types = ['movie', 'series', 'anime'];
 
 export async function scrape(meta) {
   if (!meta?.name) return [];

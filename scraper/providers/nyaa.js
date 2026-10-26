@@ -10,6 +10,8 @@ const BASE = 'https://nyaa.si';
 
 export const id   = 'nyaa';
 export const name = 'Nyaa';
+// Content types this provider can answer for. Anime index.
+export const types = ['series', 'anime'];
 
 export async function scrape(meta) {
   // Nyaa is anime-only

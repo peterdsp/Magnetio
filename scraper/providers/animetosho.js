@@ -12,6 +12,8 @@ const FEED_BASE = 'https://feed.animetosho.org';
 
 export const id   = 'animetosho';
 export const name = 'AnimeTosho';
+// Content types this provider can answer for. Anime index.
+export const types = ['series', 'anime'];
 
 export async function scrape(meta) {
   if (meta.type !== 'series' && meta.type !== 'anime') return [];

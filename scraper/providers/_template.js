@@ -28,6 +28,11 @@ const BASE = 'https://example.com';
 export const id   = 'template';
 // Human-readable. Used in logs and in each record's `provider` field.
 export const name = 'Template';
+// Content types this provider can answer for: any of 'movie', 'series',
+// 'anime'. GET /providers reports it, the configure page builds its matrix
+// from it, and PROVIDERS.md is generated from it. Declare only what the
+// scrape() guard below actually serves, or the matrix lies.
+export const types = ['movie', 'series', 'anime'];
 
 /**
  * Search the site and return every release it offers for this content.

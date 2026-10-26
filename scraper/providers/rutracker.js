@@ -11,6 +11,8 @@ const BASE = 'https://rutracker.org/forum';
 
 export const id   = 'rutracker';
 export const name = 'Rutracker';
+// Content types this provider can answer for.
+export const types = ['movie', 'series', 'anime'];
 
 export async function scrape(meta) {
   if (!meta?.name) return [];

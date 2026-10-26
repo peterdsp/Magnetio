@@ -9,6 +9,8 @@ const BASE = 'https://www.tokyotosho.info/rss.php';
 
 export const id = 'tokyotosho';
 export const name = 'Tokyo Toshokan';
+// Content types this provider can answer for. Anime index.
+export const types = ['series', 'anime'];
 
 export async function scrape(meta) {
   if ((meta.type !== 'series' && meta.type !== 'anime') || !meta?.name) return [];

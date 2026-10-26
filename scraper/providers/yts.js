@@ -11,6 +11,8 @@ const DOMAINS = PROVIDER_DOMAINS.yts;
 
 export const id   = 'yts';
 export const name = 'YTS';
+// Content types this provider can answer for. Movie-only API.
+export const types = ['movie'];
 
 export async function scrape(meta) {
   if (meta.type !== 'movie') return [];
