@@ -60,6 +60,18 @@ app.get('/streams/:type/:id', async (req, res) => {
     ? req.query.providers.split(',').map(s => s.trim()).filter(Boolean)
     : null;
 
+  if (providerIds) {
+    const known = new Set(listProviders().map(p => p.id));
+    const matched = providerIds.filter(id => known.has(id));
+    if (!matched.length) {
+      const unknown = providerIds.filter(id => !known.has(id));
+      return res.status(400).json({
+        error: `Unknown provider ids: ${unknown.join(', ')}`,
+        knownProviders: [...known].sort(),
+      });
+    }
+  }
+
   const torznabUrl    = req.query.torznabUrl || null;
   const torznabApiKey = req.query.torznabApiKey || null;
   const context = { torznabUrl, torznabApiKey };
