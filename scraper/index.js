@@ -2,7 +2,7 @@ import 'dotenv/config';
 import crypto from 'crypto';
 import { readFileSync } from 'node:fs';
 import express from 'express';
-import { scrapeAll, listProviders } from './providers/index.js';
+import { scrapeAll, listProviders, classifyProviderIds } from './providers/index.js';
 import { getMetadata } from './lib/cinemeta.js';
 import { getLocalizedTitles, releaseTagsFor } from './lib/localizedTitles.js';
 import { cacheWrap } from './lib/cache.js';
@@ -61,13 +61,29 @@ app.get('/streams/:type/:id', async (req, res) => {
     : null;
 
   if (providerIds) {
-    const known = new Set(listProviders().map(p => p.id));
-    const matched = providerIds.filter(id => known.has(id));
-    if (!matched.length) {
-      const unknown = providerIds.filter(id => !known.has(id));
+    const { active, disabled, unknown } = classifyProviderIds(providerIds);
+
+    // A provider this host switched off is not a typo, so it never reports as
+    // one. Info, not warn: the caller's config is correct and the operator
+    // chose this.
+    if (disabled.length) {
+      logger.info(`Providers disabled on this host, skipping: ${disabled.join(', ')}`);
+    }
+    // One bad id should not fail an otherwise good request, but it should not
+    // vanish either, or the typo stays invisible.
+    if (unknown.length && active.length) {
+      logger.warn(`Ignoring unknown provider ids: ${unknown.join(', ')}`);
+    }
+
+    if (!active.length) {
+      const error = unknown.length
+        ? `Unknown provider ids: ${unknown.join(', ')}`
+        : `Every requested provider is disabled on this host: ${disabled.join(', ')}`;
       return res.status(400).json({
-        error: `Unknown provider ids: ${unknown.join(', ')}`,
-        knownProviders: [...known].sort(),
+        error,
+        ...(unknown.length  ? { unknownProviders: unknown }   : {}),
+        ...(disabled.length ? { disabledProviders: disabled } : {}),
+        knownProviders: listProviders().map(p => p.id).sort(),
       });
     }
   }

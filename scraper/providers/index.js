@@ -416,3 +416,27 @@ function normalizeTitle(str) {
 export function listProviders() {
   return ACTIVE_PROVIDERS.map(p => ({ id: p.id, name: p.name }));
 }
+
+/**
+ * Sort requested provider ids into the three cases a caller can hit.
+ *
+ * `active` is what will actually be scraped. `disabled` is registered here but
+ * switched off by SCRAPER_DISABLED_PROVIDERS, so the caller's config is right
+ * and the host operator made that choice. `unknown` is the only one that means
+ * a typo, and keeping it apart from `disabled` is the whole point: the provider
+ * id is not always the site's name (providers/leetx.js registers as `1337x`),
+ * so a wrong id and a provider this host turned off need different answers.
+ *
+ * @param {string[]} requestedIds
+ * @returns {{ active: string[], disabled: string[], unknown: string[] }}
+ */
+export function classifyProviderIds(requestedIds) {
+  const registered = new Set(ALL_PROVIDERS.map(p => p.id));
+  const active     = new Set(ACTIVE_PROVIDERS.map(p => p.id));
+
+  return {
+    active:   requestedIds.filter(id => active.has(id)),
+    disabled: requestedIds.filter(id => registered.has(id) && !active.has(id)),
+    unknown:  requestedIds.filter(id => !registered.has(id)),
+  };
+}
