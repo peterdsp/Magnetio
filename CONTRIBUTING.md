@@ -109,13 +109,18 @@ cp _template.js mysite.js
 
 ### 2. Implement the contract
 
-A provider module exports exactly three things:
+A provider module exports exactly four things:
 
 | Export | Type | Notes |
 |---|---|---|
 | `id` | `string` | lowercase, no spaces. Users pass this in `?providers=` |
 | `name` | `string` | human-readable, used in logs and in the `provider` field |
+| `types` | `string[]` | which of `movie`, `series`, `anime` it serves |
 | `scrape(meta)` | `async function` | returns `Promise<TorrentRecord[]>` |
+
+Declare `types` to match what `scrape()` actually does. A test checks that a
+provider returns nothing for a type it does not claim, and
+[PROVIDERS.md](PROVIDERS.md) is generated from these declarations.
 
 `meta` is what the scraper knows about the requested content:
 
@@ -134,7 +139,25 @@ Build your query string with `buildSearchQuery(meta)` from
 `lib/titleHelper.js` rather than concatenating by hand. It produces
 `"Show Name S02E03"` for series and `"Movie Name 1972"` for movies.
 
-### 3. Return the right record shape
+### 3. Run it without the server
+
+```bash
+cd scraper
+npm run try -- mysite --name "The Shawshank Redemption" --imdb tt0111161
+npm run try -- mysite --type series --name "Breaking Bad" --season 1 --episode 2
+npm run try -- --list
+```
+
+This drives your `scrape()` directly, so you see real results from the site
+with no server, client or Stremio install. It prints the hash, size and seeders
+of each record, and warns when a result has no `infoHash` or a hash that is not
+40-char lowercase hex, which is the most common mistake in a new provider.
+
+If nothing comes back, the query shape is a likelier cause than your parser.
+Some providers search by IMDb id rather than title, so pass `--imdb`, and anime
+sites index absolute episode numbers rather than `S01E02`.
+
+### 4. Return the right record shape
 
 ```js
 {
@@ -165,7 +188,7 @@ Two rules that matter more than they look:
   `addon/lib/sort.js` sorts. A provider that tries to be clever fights the
   pipeline.
 
-### 4. Register it
+### 5. Register it
 
 In `scraper/providers/index.js`, add the import alongside the others and add
 the module to `ALL_PROVIDERS`:
@@ -179,7 +202,15 @@ const ALL_PROVIDERS = [
 ];
 ```
 
-### 5. Verify
+Then register the same id on the add-on side, or it will not be selectable:
+`TorrentProvider` in `addon/lib/types.js`, plus the next `sN` entry in
+`PublicProviderAliases` in `addon/lib/configuration.js`. Without those, an
+explicit `?providers=` list drops your provider and the presets built from
+`Object.values(TorrentProvider)` skip it, so it only ever runs when a request
+sends no provider filter at all. Regenerate the matrix with
+`npm run doc:providers`.
+
+### 6. Verify
 
 ```bash
 cd scraper

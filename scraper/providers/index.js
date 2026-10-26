@@ -420,6 +420,20 @@ export function listProviders() {
 }
 
 /**
+ * The provider module registered under an id, or undefined.
+ *
+ * Callers must never map an id back to a filename: the two are allowed to
+ * differ (leetx.js registers as `1337x`), so guessing breaks on exactly the
+ * provider that is hardest to guess.
+ *
+ * @param {string} id
+ * @returns {object|undefined}
+ */
+export function getProvider(id) {
+  return ACTIVE_PROVIDERS.find(p => p.id === id);
+}
+
+/**
  * Sort requested provider ids into the three cases a caller can hit.
  *
  * `active` is what will actually be scraped. `disabled` is registered here but

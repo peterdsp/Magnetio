@@ -8,7 +8,8 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "test": "node --test",
-    "doc:providers": "node scripts/gen-providers-doc.js"
+    "doc:providers": "node scripts/gen-providers-doc.js",
+    "try": "node scripts/try-provider.js"
   },
   "author": "Magnetio Contributors",
   "license": "Apache-2.0",
