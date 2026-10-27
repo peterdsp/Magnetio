@@ -141,3 +141,50 @@ test('a short name joined to the localized title is kept when the year matches',
     'Obsession.1976.1080p.BluRay.x264',
   ]);
 });
+
+// ─── anime ────────────────────────────────────────────────────────────────────
+
+// Anime is numbered absolutely, so no release carries an SxxEyy tag. The
+// season/episode rule is for series only, and applying it to anime dropped
+// every result the providers had just found. The requested type has to survive
+// as far as this filter: anime metadata is looked up as 'series', so the type
+// from the lookup is the wrong one to filter on.
+const ONE_PIECE = {
+  name: 'One Piece', type: 'anime', imdbId: 'tt0388629',
+  year: 1999, season: 1, episode: 1095,
+};
+
+test('an absolute-numbered anime release is kept', () => {
+  const records = [
+    record('[SubsPlease] One Piece - 1095 (1080p) [1B78FACE].mkv'),
+    record('[CameEsp] One Piece - 1095 [720p][ESP-ENG][mkv].mkv'),
+    record('[New-raws] One Piece -1095 [1080p] [WEB].mkv'),
+  ];
+  assert.equal(titles(records, ONE_PIECE).length, 3);
+});
+
+// The same records with the type the metadata lookup returns, which is what
+// used to reach the filter.
+test('the series episode rule is not applied to an anime request', () => {
+  const records = [record('[SubsPlease] One Piece - 1095 (1080p) [1B78FACE].mkv')];
+
+  assert.equal(titles(records, ONE_PIECE).length, 1);
+  assert.equal(titles(records, { ...ONE_PIECE, type: 'series' }).length, 0);
+});
+
+test('an unrelated release is still dropped from an anime request', () => {
+  const records = [
+    record('[SubsPlease] One Piece - 1095 (1080p).mkv'),
+    record('[Group] Naruto Shippuden - 500 (1080p).mkv'),
+    record('Some.Unrelated.Movie.2024.1080p.mkv'),
+  ];
+  assert.deepEqual(titles(records, ONE_PIECE), ['[SubsPlease] One Piece - 1095 (1080p).mkv']);
+});
+
+test('a series request still requires its season and episode tag', () => {
+  const records = [
+    record('Game.of.Thrones.S02E03.1080p.WEB-DL.x264'),
+    record('Game.of.Thrones.S05E09.1080p.WEB-DL.x264'),
+  ];
+  assert.deepEqual(titles(records, GOT), ['Game.of.Thrones.S02E03.1080p.WEB-DL.x264']);
+});
