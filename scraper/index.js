@@ -130,6 +130,12 @@ app.get('/streams/:type/:id', async (req, res) => {
       //    for an English-only request, which keeps the default path unchanged.
       const enriched = {
         ...meta,
+        // The requested type, not the one the metadata lookup used. Anime
+        // metadata is fetched as 'series', so getMetadata hands back
+        // type: 'series', and the content filter then demanded an SxxEyy tag
+        // that no anime release carries, dropping every result after the
+        // providers had found them.
+        type,
         aliases:    await getLocalizedTitles(meta, languages, tmdbApiKey),
         searchTags: releaseTagsFor(languages),
       };
