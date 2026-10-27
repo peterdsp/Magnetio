@@ -11,6 +11,8 @@ const DOMAINS = PROVIDER_DOMAINS.glotorrents;
 
 export const id   = 'glotorrents';
 export const name = 'GloTorrents';
+// Content types this provider can answer for.
+export const types = ['movie', 'series', 'anime'];
 
 export async function scrape(meta) {
   if (!meta?.name) return [];

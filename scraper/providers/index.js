@@ -15,6 +15,7 @@ import * as rutor            from './rutor.js';
 import * as rutracker        from './rutracker.js';
 import * as limetorrents     from './limetorrents.js';
 import * as bitsearch        from './bitsearch.js';
+import * as knaben           from './knaben.js';
 import * as bt4g             from './bt4g.js';
 import * as btdig            from './btdig.js';
 import * as glotorrents      from './glotorrents.js';
@@ -41,6 +42,7 @@ const ALL_PROVIDERS = [
   rutracker,
   limetorrents,
   bitsearch,
+  knaben,
   bt4g,
   btdig,
   glotorrents,
@@ -416,7 +418,21 @@ function normalizeTitle(str) {
  * List all available provider IDs.
  */
 export function listProviders() {
-  return ACTIVE_PROVIDERS.map(p => ({ id: p.id, name: p.name }));
+  return ACTIVE_PROVIDERS.map(p => ({ id: p.id, name: p.name, types: [...p.types] }));
+}
+
+/**
+ * The provider module registered under an id, or undefined.
+ *
+ * Callers must never map an id back to a filename: the two are allowed to
+ * differ (leetx.js registers as `1337x`), so guessing breaks on exactly the
+ * provider that is hardest to guess.
+ *
+ * @param {string} id
+ * @returns {object|undefined}
+ */
+export function getProvider(id) {
+  return ACTIVE_PROVIDERS.find(p => p.id === id);
 }
 
 /**

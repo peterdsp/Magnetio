@@ -11,6 +11,8 @@ const BASE = 'https://www.animesaturn.cx';
 
 export const id   = 'animesaturn';
 export const name = 'AnimeSaturn';
+// Content types this provider can answer for. Italian anime site.
+export const types = ['series', 'anime'];
 
 export async function scrape(meta) {
   if (meta.type !== 'series' && meta.type !== 'anime') return [];

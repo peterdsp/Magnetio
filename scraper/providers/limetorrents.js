@@ -11,6 +11,8 @@ const DOMAINS = PROVIDER_DOMAINS.limetorrents;
 
 export const id   = 'limetorrents';
 export const name = 'LimeTorrents';
+// Content types this provider can answer for.
+export const types = ['movie', 'series', 'anime'];
 
 export async function scrape(meta) {
   if (!meta?.name) return [];

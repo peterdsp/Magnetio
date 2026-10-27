@@ -12,6 +12,8 @@ const BASE = 'https://therarbg.com';
 
 export const id   = 'therarbg';
 export const name = 'TheRarBG';
+// Content types this provider can answer for. Returns [] for anime: it has no anime category.
+export const types = ['movie', 'series'];
 
 export async function scrape(meta) {
   if (!meta?.name) return [];

@@ -10,6 +10,8 @@ import { logger } from '../lib/logger.js';
 
 export const id   = 'torznab';
 export const name = 'Torznab';
+// Content types this provider can answer for.
+export const types = ['movie', 'series', 'anime'];
 
 const CATEGORY_MOVIES = '2000';
 const CATEGORY_TV     = '5000';

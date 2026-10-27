@@ -5,6 +5,7 @@
 import { get } from '../lib/httpClient.js';
 import { parseTitle } from '../lib/titleHelper.js';
 import { tryDomains, PROVIDER_DOMAINS } from '../lib/domainRotation.js';
+import { normaliseInfoHash } from '../lib/magnetHelper.js';
 import { logger } from '../lib/logger.js';
 
 const DOMAINS = PROVIDER_DOMAINS.eztv;
@@ -16,6 +17,8 @@ const MAX_PAGES = 10;
 
 export const id   = 'eztv';
 export const name = 'EZTV';
+// Content types this provider can answer for. TV-only API.
+export const types = ['series'];
 
 export async function scrape(meta) {
   if (meta.type !== 'series') return [];
@@ -58,7 +61,7 @@ async function fetchPage(imdbNumeric, page) {
 function normalise(t) {
   const parsed = parseTitle(t.title);
   return {
-    infoHash:  t.hash?.toLowerCase(),
+    infoHash:  normaliseInfoHash(t.hash),
     title:     t.title,
     seeders:   t.seeds ?? 0,
     leechers:  t.peers ?? 0,

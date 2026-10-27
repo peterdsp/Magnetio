@@ -15,6 +15,8 @@ const BASE = 'https://bt4gprx.com';
 
 export const id   = 'bt4g';
 export const name = 'BT4G';
+// Content types this provider can answer for.
+export const types = ['movie', 'series', 'anime'];
 
 export async function scrape(meta) {
   if (!meta?.name) return [];

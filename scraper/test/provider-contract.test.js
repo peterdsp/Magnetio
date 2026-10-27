@@ -143,3 +143,64 @@ test('the shared extractInfoHash normalises base32 to hex', async () => {
   assert.equal(extractInfoHash('magnet:?dn=no-hash-here'), null);
   assert.equal(extractInfoHash(''), null);
 });
+
+test('every provider declares the content types it serves', () => {
+  const VALID = ['movie', 'series', 'anime'];
+
+  for (const { file, mod } of modules) {
+    assert.ok(
+      Array.isArray(mod.types) && mod.types.length,
+      `${file}: missing the \`types\` export. Declare which of ${VALID.join(', ')} ` +
+      'this provider serves; GET /providers and PROVIDERS.md are built from it.'
+    );
+    for (const t of mod.types) {
+      assert.ok(VALID.includes(t), `${file}: "${t}" is not a content type (${VALID.join(', ')})`);
+    }
+    assert.equal(
+      new Set(mod.types).size,
+      mod.types.length,
+      `${file}: duplicate entries in \`types\``
+    );
+  }
+});
+
+test('the aggregator reports each provider the types its module declares', () => {
+  const registered = new Map(listProviders().map(p => [p.id, p.types]));
+
+  for (const { file, mod } of modules) {
+    if (!registered.has(mod.id)) continue;
+    assert.deepEqual(
+      registered.get(mod.id),
+      mod.types,
+      `${file}: aggregator types disagree with the module's \`types\` export`
+    );
+  }
+});
+
+// A declared type that the guard rejects would make the matrix lie, which is
+// the whole point of generating it. Anything the module says it cannot serve
+// must come back empty rather than being attempted.
+test('a provider returns nothing for a type it does not declare', async () => {
+  const ALL = ['movie', 'series', 'anime'];
+  const skipped = [];
+
+  for (const { file, mod } of modules) {
+    for (const type of ALL) {
+      if (mod.types.includes(type)) continue;
+      // A real name on purpose: an empty one would be rejected by the
+      // `!meta.name` guard instead, and the test would pass without ever
+      // exercising the type guard it is here to check.
+      const out = await mod.scrape({
+        type, name: 'The Shawshank Redemption', year: 1994, imdbId: 'tt0111161',
+      });
+      assert.deepEqual(
+        out,
+        [],
+        `${file}: does not declare "${type}" but returned results for it`
+      );
+      skipped.push(`${mod.id}/${type}`);
+    }
+  }
+
+  assert.ok(skipped.length, 'expected at least one undeclared type to check');
+});
