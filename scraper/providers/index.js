@@ -28,6 +28,7 @@ import * as nekobt           from './nekobt.js';
 import * as tokyotosho       from './tokyotosho.js';
 import * as torznab          from './torznab.js';
 import { logger } from '../lib/logger.js';
+import { isSkipped } from '../lib/providerHealth.js';
 
 const ALL_PROVIDERS = [
   yts,
@@ -99,9 +100,19 @@ const YEAR_IN_NAME = /\b(?:19|20)\d{2}\b/g;
  * @returns {Promise<TorrentRecord[]>}
  */
 export async function scrapeAll(type, meta, providerIds = null, context = {}) {
-  const providers = ACTIVE_PROVIDERS.filter(p =>
+  const requested = ACTIVE_PROVIDERS.filter(p =>
     !providerIds || providerIds.includes(p.id)
   );
+
+  // A provider whose last few requests all failed is left out of this round.
+  // Asking it again takes a concurrency slot and up to the provider timeout
+  // out of every user's budget to arrive at the same 403. The skip expires on
+  // its own, so a provider that recovers comes back without a restart.
+  const providers = requested.filter(p => !isSkipped(p.id));
+  const skipped = requested.filter(p => isSkipped(p.id)).map(p => p.id);
+  if (skipped.length) {
+    logger.info(`Skipping providers that are currently failing: ${skipped.join(', ')}`);
+  }
 
   // One job per provider per query variant. With no localized titles or
   // release tags there is exactly one variant, so this is the original fan-out.

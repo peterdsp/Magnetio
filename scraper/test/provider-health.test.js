@@ -1,8 +1,8 @@
-import test from 'node:test';
+import test, { mock } from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  classifyError, recordSuccess, recordFailure, snapshot, reset,
+  classifyError, recordSuccess, recordFailure, snapshot, reset, isSkipped,
 } from '../lib/providerHealth.js';
 
 const err = (code, extra = {}) => Object.assign(new Error(code ?? 'boom'), { code }, extra);
@@ -102,4 +102,57 @@ test('non-provider traffic is not recorded', (t) => {
   recordSuccess('');
 
   assert.deepEqual(snapshot(), []);
+});
+
+// ─── skipping a failing provider ──────────────────────────────────────────────
+
+test('a healthy or unknown provider is never skipped', (t) => {
+  reset();
+  t.after(reset);
+
+  assert.equal(isSkipped('yts'), false, 'never asked for anything yet');
+  recordSuccess('yts');
+  assert.equal(isSkipped('yts'), false);
+  recordFailure('yts', err('ETIMEDOUT'));
+  assert.equal(isSkipped('yts'), false, 'one failure is not a verdict');
+});
+
+test('a provider is skipped once it has failed its last three requests', (t) => {
+  reset();
+  t.after(reset);
+
+  for (let i = 0; i < 3; i++) recordFailure('torlock', err(undefined, { response: { status: 403 } }));
+  assert.equal(isSkipped('torlock'), true);
+  assert.equal(snapshot().find(p => p.id === 'torlock').skipped, true);
+});
+
+// The skip must expire on its own. A block or an outage is usually temporary,
+// and a provider that needs a restart to come back is a worse bug than the
+// one being fixed.
+test('the skip lifts after the cooldown, so a recovered provider returns', (t) => {
+  reset();
+  t.after(reset);
+
+  for (let i = 0; i < 3; i++) recordFailure('bt4g', err(undefined, { response: { status: 429 } }));
+  assert.equal(isSkipped('bt4g'), true);
+
+  // Backdate the last failure past the five minute cooldown.
+  const e = snapshot().find(p => p.id === 'bt4g');
+  assert.ok(e.lastFailureAt);
+  mock.timers.enable({ apis: ['Date'], now: Date.parse(e.lastFailureAt) + 300_001 });
+  t.after(() => mock.timers.reset());
+
+  assert.equal(isSkipped('bt4g'), false, 'the trial request is allowed through');
+});
+
+test('a success during the trial clears the skip entirely', (t) => {
+  reset();
+  t.after(reset);
+
+  for (let i = 0; i < 3; i++) recordFailure('animetosho', err(undefined, { response: { status: 403 } }));
+  assert.equal(isSkipped('animetosho'), true);
+
+  recordSuccess('animetosho');
+  assert.equal(isSkipped('animetosho'), false);
+  assert.equal(snapshot().find(p => p.id === 'animetosho').healthy, true);
 });

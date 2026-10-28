@@ -13,9 +13,15 @@
  */
 import { logger } from './logger.js';
 
-// Consecutive hard failures before saying so out loud. Low enough to notice a
-// dead host quickly, high enough that one timeout stays quiet.
+// Consecutive hard failures before saying so out loud, and before we stop
+// asking. Low enough to notice a dead host quickly, high enough that one
+// timeout stays quiet.
 const ALERT_AFTER = 3;
+
+// How long to leave a failing provider alone. After this, one request is let
+// through: if it works the provider is back, if it fails the clock restarts.
+// Never permanent, because a block or an outage is usually temporary.
+const COOLDOWN_MS = parseInt(process.env.SCRAPER_PROVIDER_COOLDOWN_MS ?? '300000', 10);
 
 const health = new Map();
 
@@ -93,11 +99,37 @@ export function recordFailure(id, err) {
 }
 
 /**
+ * Whether to skip a provider for now.
+ *
+ * A provider that has failed its last few requests will almost certainly fail
+ * the next one, and asking anyway is not free: it takes a slot in the
+ * concurrency limit and up to the provider timeout out of the budget for every
+ * single user request. On this host torlock was asked 1192 times and answered
+ * 403 all 1192 times, delaying every search for nothing.
+ *
+ * This is a half-open circuit, not a kill switch: once the cooldown passes,
+ * isSkipped goes false, the next request is a live trial, and a success clears
+ * the streak while a failure restarts the clock.
+ *
+ * @param {string} id
+ * @returns {boolean}
+ */
+export function isSkipped(id) {
+  const e = health.get(id);
+  if (!e || e.consecutiveFailures < ALERT_AFTER || !e.lastFailureAt) return false;
+  return Date.now() - Date.parse(e.lastFailureAt) < COOLDOWN_MS;
+}
+
+/**
  * Current health, worst first, so an operator sees the broken ones at the top.
  */
 export function snapshot() {
   return [...health.entries()]
-    .map(([id, e]) => ({ id, ...e, healthy: e.consecutiveFailures < ALERT_AFTER }))
+    .map(([id, e]) => ({
+      id, ...e,
+      healthy: e.consecutiveFailures < ALERT_AFTER,
+      skipped: isSkipped(id),
+    }))
     .sort((a, b) => b.consecutiveFailures - a.consecutiveFailures || a.id.localeCompare(b.id));
 }
 
