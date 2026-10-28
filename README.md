@@ -453,7 +453,8 @@ magnetio/
 | Method | Path | Description |
 |:---|:---|:---|
 | `GET` | `/health` | Health check |
-| `GET` | `/providers` | List all available provider IDs and names |
+| `GET` | `/providers` | List all available provider IDs, names and the content types each covers |
+| `GET` | `/providers/health` | Which providers are actually answering. `503` when any is degraded |
 | `GET` | `/streams/:type/:id` | Scrape all providers for a title |
 | `GET` | `/streams/:type/:id?providers=yts,eztv` | Scrape specific providers only |
 | `POST` | `/prewarm` | Manually trigger cache prewarm |

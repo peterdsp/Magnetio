@@ -2,6 +2,7 @@ import http from 'node:http';
 import https from 'node:https';
 import axios from 'axios';
 import Bottleneck from 'bottleneck';
+import { recordSuccess, recordFailure } from './providerHealth.js';
 
 // Default browser-like headers to avoid basic bot detection
 const DEFAULT_HEADERS = {
@@ -97,15 +98,23 @@ async function request(method, url, {
           responseType,
           ...safe,
         });
+        // Recorded here rather than in each provider: a provider catches its
+        // own errors and returns [], so upstream cannot tell a dead site from
+        // an empty search. See lib/providerHealth.js and #196.
+        recordSuccess(limiterKey);
         return res;
       } catch (err) {
         lastErr = err;
         const status = err.response?.status;
         // Don't retry on client errors (4xx)
-        if (status && status < 500) throw err;
+        if (status && status < 500) {
+          recordFailure(limiterKey, err);
+          throw err;
+        }
         if (attempt < retries) await sleep(1000 * (attempt + 1));
       }
     }
+    recordFailure(limiterKey, lastErr);
     throw lastErr;
   });
 }
