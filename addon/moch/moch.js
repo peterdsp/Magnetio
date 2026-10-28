@@ -12,6 +12,7 @@ import * as EasyDebrid  from './easydebrid.js';
 import * as Offcloud    from './offcloud.js';
 import * as TorBox      from './torbox.js';
 import * as Putio       from './putio.js';
+import * as Seedr       from './seedr.js';
 import { logger } from '../lib/logger.js';
 
 // Map MochOptions key → module
@@ -24,6 +25,7 @@ const MOCH_MODULES = {
   offcloud:    Offcloud,
   torbox:      TorBox,
   putio:       Putio,
+  seedr:       Seedr,
 };
 
 const PREWARM_CACHE_TTL = 60 * 60 * 6;

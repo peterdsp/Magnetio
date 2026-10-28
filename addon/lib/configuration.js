@@ -171,6 +171,9 @@ export function parseConfiguration(configString) {
       case 'pu':
         config.putioApiKey = value;
         break;
+      case 'sr':
+        config.seedrRefreshToken = value;
+        break;
       case 'tmdb':
         config.tmdbApiKey = value;
         break;
@@ -248,6 +251,7 @@ export function getDefaultConfiguration() {
     offcloudApiKey:     null,
     torboxApiKey:       null,
     putioApiKey:        null,
+    seedrRefreshToken:  null,
   };
 }
 

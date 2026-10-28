@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <strong>A fully self-hosted Stremio addon with 24 torrent providers, 8 debrid services, Torznab/Jackett/Prowlarr integration, and TMDB recommendations.</strong>
+  <strong>A fully self-hosted Stremio addon with 24 torrent providers, 9 debrid services, Torznab/Jackett/Prowlarr integration, and TMDB recommendations.</strong>
 </p>
 
 <p align="center">
@@ -41,7 +41,7 @@ Everything runs on your own hardware (a Raspberry Pi is enough). No cloud subscr
 | Self-hosted, private | Yes | Often cloud-hosted |
 | 24 torrent providers + Torznab | Yes | Varies |
 | Jackett / Prowlarr support | Yes | Rare |
-| 8 debrid services | Yes | 1-3 typically |
+| 9 debrid services | Yes | 1-3 typically |
 | Background prewarm | Yes | No |
 | Per-user config (providers, quality, language) | Yes | Limited |
 | Subtitle sync pipeline | Yes | No |

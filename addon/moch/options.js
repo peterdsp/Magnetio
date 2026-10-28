@@ -82,6 +82,16 @@ export const MochOptions = {
     hasCatalog: true,
     instantAvailability: false,
   },
+  // The configured value is a Seedr *refresh* token, not an access token or a
+  // password. See moch/seedr.js for why.
+  seedr: {
+    id:         'sr',
+    configKey:  'seedrRefreshToken',
+    shortName:  'SR',
+    name:       'Seedr',
+    hasCatalog: false,
+    instantAvailability: false,
+  },
 };
 
 /** Minimum API-key length to be considered valid. */
