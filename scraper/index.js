@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { readFileSync } from 'node:fs';
 import express from 'express';
 import { scrapeAll, listProviders, classifyProviderIds } from './providers/index.js';
+import { snapshot as providerSnapshot } from './lib/providerHealth.js';
 import { getMetadata } from './lib/cinemeta.js';
 import { getLocalizedTitles, releaseTagsFor } from './lib/localizedTitles.js';
 import { cacheWrap } from './lib/cache.js';
@@ -35,6 +36,30 @@ app.get('/health', (_req, res) => {
 
 app.get('/providers', (_req, res) => {
   res.json({ providers: listProviders() });
+});
+
+// ─── Provider health ──────────────────────────────────────────────────────────
+//
+// GET /providers/health
+//
+// Which providers are actually answering. A provider never throws, it catches
+// its own errors and returns [], so a dead site looks exactly like a search
+// with no hits. This reports what happened to the underlying requests, with
+// the worst first, and a `degraded` list for a monitor to alert on.
+//
+// `kind: "dns"` means the hostname no longer resolves, which is permanent and
+// needs a code change rather than patience. That is what hid #196 for months.
+
+app.get('/providers/health', (_req, res) => {
+  const providers = providerSnapshot();
+  const degraded = providers.filter(p => !p.healthy);
+  res.status(degraded.length ? 503 : 200).json({
+    status: degraded.length ? 'degraded' : 'ok',
+    degraded: degraded.map(p => ({ id: p.id, kind: p.lastErrorKind, error: p.lastError })),
+    // A provider absent from this list has not been asked for anything since
+    // the process started, which is not the same as healthy.
+    providers,
+  });
 });
 
 // ─── Streams endpoint ─────────────────────────────────────────────────────────
