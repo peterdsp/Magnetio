@@ -3,6 +3,7 @@ import https from 'node:https';
 import axios from 'axios';
 import Bottleneck from 'bottleneck';
 import { recordSuccess, recordFailure } from './providerHealth.js';
+import { proxyAppliesTo, proxyAgents } from './proxy.js';
 
 // Default browser-like headers to avoid basic bot detection
 const DEFAULT_HEADERS = {
@@ -82,7 +83,14 @@ async function request(method, url, {
         httpsAgent: new https.Agent({ lookup, keepAlive: false }),
         maxRedirects: 0,
       }
-    : {};
+    // A pinned request is never proxied, deliberately. Pinning exists for the
+    // one case where the URL comes from the user (torznab's Jackett or
+    // Prowlarr address), and a proxy agent would replace the very agent that
+    // carries the pinned lookup, silently turning the SSRF guard off. That
+    // address is also normally on the operator's own LAN, so sending it out
+    // through a VPN exit would break it even if it were safe. See lib/proxy.js
+    // and #201.
+    : (proxyAppliesTo(limiterKey) ? (proxyAgents() ?? {}) : {});
 
   return limiter.schedule(async () => {
     let lastErr;
