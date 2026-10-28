@@ -106,7 +106,15 @@ async function request(method, url, {
       } catch (err) {
         lastErr = err;
         const status = err.response?.status;
-        // Don't retry on client errors (4xx)
+        // 429 is the one 4xx that means "ask again later" rather than "your
+        // request is wrong", so it is retried, honouring Retry-After when the
+        // server sends one. It used to be thrown with the rest of the 4xx
+        // range and never retried at all.
+        if (status === 429 && attempt < retries) {
+          await sleep(retryAfterMs(err, attempt));
+          continue;
+        }
+        // Any other client error is final.
         if (status && status < 500) {
           recordFailure(limiterKey, err);
           throw err;
@@ -121,4 +129,37 @@ async function request(method, url, {
 
 function sleep(ms) {
   return new Promise(r => setTimeout(r, ms));
+}
+
+// Capped because the aggregator gives each provider a hard timeout anyway, so
+// a server asking for a two minute wait is better treated as a failure now
+// than as a request that outlives the response it belongs to.
+const RETRY_AFTER_MAX_MS = 5000;
+
+/**
+ * How long to wait before retrying a 429, from the Retry-After header when
+ * there is one. The header is either a number of seconds or an HTTP date.
+ *
+ * @returns {number} milliseconds
+ */
+export function retryAfterMs(err, attempt = 0) {
+  const fallback = 1000 * (attempt + 1);
+  const header = err?.response?.headers?.['retry-after'];
+  if (header == null) return fallback;
+
+  // Decided before Date.parse sees it: Date.parse('-5') is not NaN, so a
+  // negative number would otherwise be read as a date rather than rejected.
+  const trimmed = String(header).trim();
+  if (!trimmed) return fallback;
+  const seconds = Number(trimmed);
+  if (Number.isFinite(seconds)) {
+    return seconds < 0 ? fallback : Math.min(seconds * 1000, RETRY_AFTER_MAX_MS);
+  }
+
+  const date = Date.parse(header);
+  if (!Number.isNaN(date)) {
+    return Math.min(Math.max(0, date - Date.now()), RETRY_AFTER_MAX_MS);
+  }
+
+  return fallback;
 }
