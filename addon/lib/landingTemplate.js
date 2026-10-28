@@ -86,8 +86,8 @@ export function landingTemplate(manifest, initialConfig = {}) {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${escapeHtml(manifest.name)} - Self-Hosted Stremio Addon with 22+ Providers and Debrid Support</title>
-  <meta name="description" content="Magnetio is a free, open-source, self-hosted Stremio addon with 22+ torrent providers, 8 debrid services, Torznab/Jackett/Prowlarr support, TMDB recommendations, and subtitle sync. Stream movies, series, and anime instantly." />
+  <title>${escapeHtml(manifest.name)} - Self-Hosted Stremio Addon with 24 Providers and Debrid Support</title>
+  <meta name="description" content="Magnetio is a free, open-source, self-hosted Stremio addon with 24 torrent providers, 9 debrid services, Torznab/Jackett/Prowlarr support, TMDB recommendations, and subtitle sync. Stream movies, series, and anime instantly." />
   <meta name="keywords" content="Magnetio, Stremio addon, self-hosted, torrent, debrid, Real-Debrid, Premiumize, AllDebrid, TorBox, Jackett, Prowlarr, Torznab, streaming, movies, series, anime, open source, TMDB" />
   <meta name="author" content="peterdsp" />
   <meta name="robots" content="index, follow" />
@@ -96,7 +96,7 @@ export function landingTemplate(manifest, initialConfig = {}) {
   <!-- Open Graph -->
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Magnetio - Self-Hosted Stremio Addon" />
-  <meta property="og:description" content="Stream anything with 22+ providers, 8 debrid services, Torznab support, and TMDB recommendations. Fully self-hosted, your API keys never leave your server." />
+  <meta property="og:description" content="Stream anything with 24 providers, 9 debrid services, Torznab support, and TMDB recommendations. Fully self-hosted, your API keys never leave your server." />
   <meta property="og:url" content="https://magnetio.peterdsp.dev/" />
   <meta property="og:site_name" content="Magnetio" />
   <meta property="og:image" content="${brandLogo}" />
@@ -106,7 +106,7 @@ export function landingTemplate(manifest, initialConfig = {}) {
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Magnetio - Self-Hosted Stremio Addon" />
-  <meta name="twitter:description" content="Stream anything with 22+ providers, 8 debrid services, and Torznab support. Open source and self-hosted." />
+  <meta name="twitter:description" content="Stream anything with 24 providers, 9 debrid services, and Torznab support. Open source and self-hosted." />
   <meta name="twitter:image" content="${brandLogo}" />
   <link rel="icon" href="${brandLogo}" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="${brandLogo}" />
@@ -120,7 +120,7 @@ export function landingTemplate(manifest, initialConfig = {}) {
     "applicationCategory": "MultimediaApplication",
     "operatingSystem": "Docker, Node.js",
     "url": "https://magnetio.peterdsp.dev",
-    "description": "Self-hosted Stremio addon with 22+ torrent providers, 8 debrid services, Torznab/Jackett/Prowlarr support, TMDB recommendations, and subtitle sync pipeline.",
+    "description": "Self-hosted Stremio addon with 24 torrent providers, 9 debrid services, Torznab/Jackett/Prowlarr support, TMDB recommendations, and subtitle sync pipeline.",
     "offers": {
       "@type": "Offer",
       "price": "0",
@@ -135,8 +135,8 @@ export function landingTemplate(manifest, initialConfig = {}) {
     "license": "https://github.com/peterdsp/Magnetio/blob/main/LICENSE",
     "codeRepository": "https://github.com/peterdsp/Magnetio",
     "featureList": [
-      "22+ torrent providers",
-      "8 debrid services (Real-Debrid, Premiumize, AllDebrid, TorBox, etc.)",
+      "24 torrent providers",
+      "9 debrid services (Real-Debrid, Premiumize, AllDebrid, TorBox, etc.)",
       "Torznab/Jackett/Prowlarr integration",
       "TMDB similar content recommendations",
       "Subtitle search and sync pipeline",
@@ -926,8 +926,8 @@ export function landingTemplate(manifest, initialConfig = {}) {
         <span class="gradient-text">Stream anything.</span><br />Own your setup.
       </h1>
       <p class="hero-sub">
-        Magnetio is a self-hosted addon for <strong>Stremio</strong> and <strong><a href="https://nuvioplugin.com" target="_blank" rel="noreferrer" style="color:var(--accent);text-decoration:none;">Nuvio</a></strong> that aggregates torrents from 22+ providers,
-        resolves them through 8 debrid services, and delivers instant high-quality streams.
+        Magnetio is a self-hosted addon for <strong>Stremio</strong> and <strong><a href="https://nuvioplugin.com" target="_blank" rel="noreferrer" style="color:var(--accent);text-decoration:none;">Nuvio</a></strong> that aggregates torrents from 24 providers,
+        resolves them through 9 debrid services, and delivers instant high-quality streams.
       </p>
       <div class="hero-buttons">
         <a href="#configure" class="btn-hero-primary">Get Started</a>
@@ -939,7 +939,7 @@ export function landingTemplate(manifest, initialConfig = {}) {
   <!-- Stats Bar -->
   <div class="stats-bar">
     <div class="stat-item">
-      <div class="stat-number">22+</div>
+      <div class="stat-number">24</div>
       <div class="stat-label">Torrent Providers</div>
     </div>
     <div class="stat-item">
@@ -970,7 +970,7 @@ export function landingTemplate(manifest, initialConfig = {}) {
       <div class="feature-card">
         <span class="feature-icon">&#128279;</span>
         <div class="feature-title">Debrid Integration</div>
-        <div class="feature-desc">8 debrid services for instant cached streams at full speed with automatic fallback.</div>
+        <div class="feature-desc">9 debrid services for instant cached streams at full speed with automatic fallback.</div>
       </div>
       <div class="feature-card">
         <span class="feature-icon">&#128270;</span>
