@@ -809,6 +809,36 @@ export function landingTemplate(manifest, initialConfig = {}) {
     .footer-text a { color: var(--accent); text-decoration: none; }
     .footer-text a:hover { text-decoration: underline; }
 
+    /* ---- From the same maker: Lidhra card ---- */
+    .lidhra-card {
+      max-width: 640px;
+      margin: 0 auto 32px;
+      text-align: left;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 24px;
+    }
+    .lidhra-card-label {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 14px;
+    }
+    .lidhra-card-body { display: flex; gap: 18px; align-items: flex-start; }
+    .lidhra-card-icon { width: 56px; height: 56px; flex-shrink: 0; border-radius: 13px; }
+    .lidhra-card-name { font-weight: 700; font-size: 1.1rem; letter-spacing: -0.02em; margin-bottom: 6px; }
+    .lidhra-card-text p { font-size: 0.92rem; color: var(--text-secondary); line-height: 1.6; }
+    .lidhra-card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-top: 16px; }
+    .lidhra-card-badge { display: inline-block; line-height: 0; border-radius: 8px; }
+    .lidhra-card-badge img { height: 40px; width: auto; }
+    .lidhra-card-site { color: var(--accent); font-size: 0.88rem; text-decoration: none; }
+    .lidhra-card-site:hover { text-decoration: underline; }
+    .lidhra-card a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+    @media (max-width: 480px) { .lidhra-card-body { flex-direction: column; } .lidhra-card { padding: 20px; } }
+
     /* ---- Mobile footer ---- */
     .mobile-footer {
       display: none;
@@ -1219,6 +1249,20 @@ export function landingTemplate(manifest, initialConfig = {}) {
 
   <!-- Footer -->
   <footer class="site-footer">
+    <section class="lidhra-card" aria-labelledby="lidhra-card-title">
+      <div class="lidhra-card-label">From the same maker</div>
+      <div class="lidhra-card-body">
+        <img class="lidhra-card-icon" src="/static/lidhra/lidhra-icon.webp" alt="Lidhra app icon" width="56" height="56" loading="lazy" decoding="async" />
+        <div class="lidhra-card-text">
+          <h2 id="lidhra-card-title" class="lidhra-card-name">Lidhra</h2>
+          <p>Your library, everywhere: films and series sorted with posters and Next up, played on the fly or cast to a TV.</p>
+          <div class="lidhra-card-actions">
+            <a class="lidhra-card-badge" href="https://apps.apple.com/app/lidhra-debrid-downloader/id6790952504" rel="noopener"><img src="/static/lidhra/app-store-badge-white.svg" alt="Download on the App Store" width="120" height="40" loading="lazy" /></a>
+            <a class="lidhra-card-site" href="https://lidhra.peterdsp.dev/" rel="noopener">lidhra.peterdsp.dev</a>
+          </div>
+        </div>
+      </div>
+    </section>
     <div class="footer-text">
       Magnetio does not host or distribute any content.
       <a href="https://github.com/peterdsp/Magnetio#disclaimer" target="_blank" rel="noreferrer">Read disclaimer</a>.<br />
