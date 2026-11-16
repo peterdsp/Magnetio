@@ -148,1068 +148,563 @@ export function landingTemplate(manifest, initialConfig = {}) {
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
-    html { scroll-behavior: smooth; }
+    /* Magnetio's tokens, taken from its mark: the navy tile, the emerald and cyan of the magnet,
+       the amber pole caps and the pale band under them. One face, Inter, as before. */
+    :root {
+      color-scheme: dark;
+      --ground: #0b1120;
+      --surface: #121a2c;
+      --surface-2: #1a2438;
+      --surface-3: #233049;
+      --ink: #eef2f8;
+      --muted: #a3b0c4;
+      --emerald: #10b981;
+      --emerald-strong: #0ea371;
+      --cyan: #22d3ee;
+      --amber: #f5a623;
+      --coral: #ff6b6b;
+      --band: #e5e7eb;
+      --on-colour: #06121a;
+      --field-line: rgba(238, 242, 248, 0.16);
+      --field-line-strong: rgba(238, 242, 248, 0.32);
+      --m: clamp(16px, 4vw, 56px);
+      --max: 1328px;
+      --s-display: clamp(40px, 5.2vw, 84px);
+      --s-h2: clamp(34px, 4.4vw, 64px);
+      --s-lead: 20px;
+      --s-body: 17px;
+      --s-small: 14px;
+      --u: 0 0 999px 999px;
+      --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+      --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+      --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --bg: #06070a;
-      --surface: rgba(255,255,255,0.04);
-      --surface-solid: #0d0e12;
-      --border: rgba(255,255,255,0.08);
-      --border-hover: rgba(255,255,255,0.15);
-      --text-primary: #e2e8f0;
-      --text-secondary: #94a3b8;
-      --text-muted: rgba(255,255,255,0.3);
-      --accent: #a78bfa;
-      --accent-hover: #c4b5fd;
-      --gradient-start: #667eea;
-      --gradient-end: #764ba2;
-      --success: #34d399;
-      --input-bg: rgba(255,255,255,0.05);
-      --chip-bg: rgba(255,255,255,0.06);
-      --chip-bg-active: rgba(167,139,250,0.15);
-      --chip-border-active: #a78bfa;
-      --code-bg: rgba(0,0,0,0.4);
-    }
-
+    html { scroll-behavior: smooth; background: var(--ground); }
     body {
       min-height: 100vh;
-      color: var(--text-primary);
-      background: var(--bg);
-      font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--ground);
+      color: var(--ink);
+      font-family: var(--font);
+      font-size: var(--s-body);
+      line-height: 1.55;
       overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
     }
+    a { color: inherit; }
+    img, svg { display: block; max-width: 100%; }
+    :focus-visible { outline: 3px solid var(--cyan); outline-offset: 3px; }
+    ::selection { background: var(--emerald); color: var(--on-colour); }
 
-    /* ---- Navbar ---- */
-    .navbar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 1000;
-      padding: 0 32px;
-      height: 64px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: rgba(6,7,10,0.8);
-      backdrop-filter: blur(20px);
-      border-bottom: 1px solid var(--border);
-    }
-
-    .nav-left {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .nav-logo {
-      width: 32px;
-      height: 32px;
-      display: block;
-      flex-shrink: 0;
-    }
-
-    .nav-brand {
-      font-weight: 800;
-      font-size: 1.15rem;
-      letter-spacing: -0.04em;
-      background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .nav-version {
-      font-family: "JetBrains Mono", monospace;
-      font-size: 0.7rem;
-      color: var(--text-muted);
-      background: var(--surface);
-      border: 1px solid var(--border);
-      padding: 3px 10px;
-      border-radius: 999px;
-    }
-
-    .nav-cta {
-      display: inline-flex;
-      align-items: center;
-      padding: 8px 22px;
-      border-radius: 999px;
-      border: none;
-      background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
-      color: #fff;
-      font-family: "Inter", sans-serif;
-      font-weight: 600;
-      font-size: 0.85rem;
-      cursor: pointer;
-      transition: opacity 0.2s, transform 0.2s;
-      text-decoration: none;
-    }
-
-    .nav-cta:hover { opacity: 0.9; transform: translateY(-1px); }
-
-    /* ---- Hero ---- */
-    .hero {
-      position: relative;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 120px 24px 80px;
-      overflow: hidden;
-    }
-
-    .hero-watermark {
-      position: absolute;
-      top: 120px;
-      left: 50%;
-      width: min(520px, 70vw);
-      height: auto;
-      opacity: 0.06;
-      transform: translateX(-50%);
-      pointer-events: none;
-    }
-
-    .hero-orb {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(120px);
-      opacity: 0.3;
-      pointer-events: none;
-    }
-
-    .hero-orb-1 {
-      width: 600px;
-      height: 600px;
-      background: radial-gradient(circle, var(--gradient-start), transparent 70%);
-      top: -200px;
-      left: -100px;
-      animation: floatOrb1 20s ease-in-out infinite;
-    }
-
-    .hero-orb-2 {
-      width: 500px;
-      height: 500px;
-      background: radial-gradient(circle, var(--gradient-end), transparent 70%);
-      bottom: -150px;
-      right: -100px;
-      animation: floatOrb2 25s ease-in-out infinite;
-    }
-
-    .hero-orb-3 {
-      width: 350px;
-      height: 350px;
-      background: radial-gradient(circle, var(--accent), transparent 70%);
-      top: 40%;
-      left: 50%;
-      transform: translateX(-50%);
-      animation: floatOrb3 18s ease-in-out infinite;
-      opacity: 0.15;
-    }
-
-    @keyframes floatOrb1 {
-      0%, 100% { transform: translate(0, 0); }
-      33% { transform: translate(60px, 40px); }
-      66% { transform: translate(-40px, 20px); }
-    }
-
-    @keyframes floatOrb2 {
-      0%, 100% { transform: translate(0, 0); }
-      33% { transform: translate(-50px, -30px); }
-      66% { transform: translate(30px, -50px); }
-    }
-
-    @keyframes floatOrb3 {
-      0%, 100% { transform: translateX(-50%) scale(1); }
-      50% { transform: translateX(-50%) scale(1.2); }
-    }
-
-    .hero-content {
-      position: relative;
-      z-index: 1;
-      max-width: 800px;
-    }
-
-    .hero-brand {
-      display: flex;
-      justify-content: center;
-      margin-bottom: 28px;
-    }
-
-    .hero-brand img {
-      width: min(560px, 82vw);
-      height: auto;
-      display: block;
-      filter: drop-shadow(0 24px 80px rgba(0, 0, 0, 0.28));
-    }
-
-    .hero-headline {
-      font-weight: 800;
-      font-size: 4rem;
-      line-height: 1.08;
-      letter-spacing: -0.04em;
-      margin-bottom: 24px;
-    }
-
-    .hero-headline .gradient-text {
-      background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end), var(--accent));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .hero-sub {
-      font-size: 1.15rem;
-      line-height: 1.7;
-      color: var(--text-secondary);
-      max-width: 560px;
-      margin: 0 auto 40px;
-    }
-
-    .hero-buttons {
-      display: flex;
-      gap: 16px;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-
-    .btn-hero-primary {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 14px 32px;
-      border-radius: 999px;
-      border: none;
-      background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
-      color: #fff;
-      font-family: "Inter", sans-serif;
-      font-weight: 700;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: opacity 0.2s, transform 0.2s;
-      text-decoration: none;
-    }
-
-    .btn-hero-primary:hover { opacity: 0.9; transform: translateY(-2px); }
-
-    .btn-hero-secondary {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 14px 32px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      background: transparent;
-      color: var(--text-primary);
-      font-family: "Inter", sans-serif;
-      font-weight: 600;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: all 0.2s;
-      text-decoration: none;
-    }
-
-    .btn-hero-secondary:hover { border-color: var(--accent); color: var(--accent); }
-
-    /* ---- Stats Bar ---- */
-    .stats-bar {
-      display: flex;
-      justify-content: center;
-      gap: 0;
-      padding: 0 24px;
-      max-width: 960px;
-      margin: -40px auto 0;
-      position: relative;
-      z-index: 2;
-    }
-
-    .stat-item {
-      flex: 1;
-      text-align: center;
-      padding: 32px 24px;
-      background: var(--surface);
-      backdrop-filter: blur(12px);
-      border: 1px solid var(--border);
-      border-right: none;
-    }
-
-    .stat-item:first-child { border-radius: 16px 0 0 16px; }
-    .stat-item:last-child { border-radius: 0 16px 16px 0; border-right: 1px solid var(--border); }
-
-    .stat-number {
-      font-weight: 800;
-      font-size: 2rem;
-      letter-spacing: -0.04em;
-      color: var(--success);
-      line-height: 1;
-    }
-
-    .stat-label {
-      font-size: 0.78rem;
-      color: var(--text-secondary);
-      margin-top: 8px;
-    }
-
-    /* ---- Section container ---- */
-    .page-section {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 100px 24px;
-      opacity: 0;
-      transform: translateY(30px);
-      transition: opacity 0.7s ease-out, transform 0.7s ease-out;
-    }
-
-    .page-section.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    .section-label {
-      font-family: "JetBrains Mono", monospace;
-      font-size: 0.75rem;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--accent);
-      margin-bottom: 12px;
-    }
-
-    .section-heading {
-      font-weight: 800;
-      font-size: 2.4rem;
-      letter-spacing: -0.04em;
-      margin-bottom: 16px;
-    }
-
-    .section-sub {
-      font-size: 1.05rem;
-      color: var(--text-secondary);
-      line-height: 1.7;
-      max-width: 600px;
-      margin-bottom: 48px;
-    }
-
-    /* ---- Features Grid ---- */
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-    }
-
-    .feature-card {
-      background: var(--surface);
-      backdrop-filter: blur(12px);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 32px 28px;
-      transition: border-color 0.3s, box-shadow 0.3s;
-    }
-
-    .feature-card:hover {
-      border-color: var(--border-hover);
-      box-shadow: 0 0 30px rgba(102,126,234,0.08);
-    }
-
-    .feature-icon {
-      font-size: 2rem;
-      margin-bottom: 20px;
-      display: block;
-    }
-
-    .feature-title {
-      font-weight: 700;
-      font-size: 1.1rem;
-      letter-spacing: -0.02em;
-      margin-bottom: 10px;
-    }
-
-    .feature-desc {
-      font-size: 0.88rem;
-      color: var(--text-secondary);
-      line-height: 1.65;
-    }
-
-    /* ---- How It Works ---- */
-    .how-steps {
-      display: flex;
-      gap: 0;
-      align-items: flex-start;
-      position: relative;
-    }
-
-    .how-step {
-      flex: 1;
-      text-align: center;
-      padding: 0 24px;
-      position: relative;
-    }
-
-    .how-step-number {
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
-      color: #fff;
-      font-weight: 800;
-      font-size: 1.2rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 20px;
-      position: relative;
-      z-index: 1;
-    }
-
-    .how-step-line {
-      position: absolute;
-      top: 28px;
-      left: calc(50% + 28px);
-      width: calc(100% - 56px);
-      height: 2px;
-      background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
-      opacity: 0.3;
-    }
-
-    .how-step:last-child .how-step-line { display: none; }
-
-    .how-step-title {
-      font-weight: 700;
-      font-size: 1.15rem;
-      letter-spacing: -0.02em;
-      margin-bottom: 10px;
-    }
-
-    .how-step-desc {
-      font-size: 0.88rem;
-      color: var(--text-secondary);
-      line-height: 1.6;
-    }
-
-    /* ---- Configure Section ---- */
-    .configure-section {
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 100px 24px;
-    }
-
-    .config-card {
-      background: var(--surface);
-      backdrop-filter: blur(12px);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 32px;
-      margin-bottom: 24px;
-      display: grid;
-      gap: 20px;
-    }
-
-    .config-card-title {
-      font-weight: 700;
-      font-size: 1.1rem;
-      letter-spacing: -0.02em;
-    }
-
-    .config-card-desc {
-      font-size: 0.85rem;
-      color: var(--text-secondary);
-      line-height: 1.65;
-    }
-
-    .config-card-desc a { color: var(--accent); }
-
-    .field-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-
-    label {
-      display: grid;
-      gap: 6px;
-      font-size: 0.78rem;
-      color: var(--text-secondary);
-    }
-
-    select, input[type="number"] {
-      width: 100%;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      background: var(--input-bg);
-      color: var(--text-primary);
-      padding: 11px 14px;
-      font-family: "JetBrains Mono", monospace;
-      font-size: 0.82rem;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-
-    select:focus, input:focus { border-color: var(--accent); }
-
-    .chip-grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .chip {
-      cursor: pointer;
-      display: inline-flex;
-      font-size: 0.78rem;
-    }
-
-    .chip span {
-      display: inline-block;
-      padding: 7px 16px;
-      border-radius: 999px;
-      background: var(--chip-bg);
-      border: 1px solid var(--border);
-      color: var(--text-secondary);
-      font-family: "JetBrains Mono", monospace;
-      font-size: 0.75rem;
-      transition: all 0.2s;
-      user-select: none;
-    }
-
-    .chip:has(input:checked) span,
-    .chip.selected span {
-      background: var(--chip-bg-active);
-      border-color: var(--chip-border-active);
-      color: var(--accent);
-    }
-
-    .chip input { display: none; }
-
-    .password-wrap { position: relative; }
-
-    .password-wrap input {
-      width: 100%;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      background: var(--input-bg);
-      color: var(--text-primary);
-      padding: 11px 40px 11px 14px;
-      font-family: "JetBrains Mono", monospace;
-      font-size: 0.82rem;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-
-    .password-wrap input:focus { border-color: var(--accent); }
-
-    .eye-toggle {
-      position: absolute;
-      right: 8px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: none;
-      color: var(--text-secondary);
-      cursor: pointer;
-      padding: 4px;
-      display: flex;
-      align-items: center;
-    }
-
-    .eye-toggle:hover { color: var(--accent); }
-
-    /* ---- Install Bar ---- */
-    .install-bar {
-      max-width: 800px;
-      margin: 0 auto 60px;
-      padding: 0 24px;
-    }
-
-    .install-card {
-      background: var(--surface);
-      backdrop-filter: blur(12px);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 32px;
-      display: grid;
-      gap: 16px;
-    }
-
-    .install-card-label {
-      font-family: "JetBrains Mono", monospace;
-      font-size: 0.7rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--text-muted);
-    }
-
-    .install-card-url {
-      font-family: "JetBrains Mono", monospace;
-      color: var(--accent);
-      word-break: break-all;
-      line-height: 1.6;
-      font-size: 0.75rem;
-    }
-
-    .install-card-actions {
-      display: flex;
-      gap: 12px;
-    }
+    .wrap { width: 100%; max-width: calc(var(--max) + 2 * var(--m)); margin: 0 auto; padding: 0 var(--m); }
+    .h2 { font-size: var(--s-h2); line-height: 1; letter-spacing: -0.035em; font-weight: 750; max-width: 16ch; }
+    .lead { font-size: var(--s-lead); line-height: 1.5; max-width: 46ch; }
 
+    /* The button is the magnet: a flat top and a round bottom. */
     .btn {
-      border: none;
-      border-radius: 999px;
-      padding: 14px 28px;
-      font-family: "Inter", sans-serif;
-      font-weight: 600;
-      font-size: 0.88rem;
-      cursor: pointer;
-      transition: all 0.2s;
-      text-align: center;
-      flex: 1;
+      display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+      min-height: 52px; padding: 12px 30px 16px;
+      border: 0; border-radius: var(--u);
+      font: 650 var(--s-body)/1.2 var(--font); text-decoration: none; cursor: pointer;
+      transition: transform 160ms var(--ease-out), background-color 180ms ease, color 180ms ease;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: var(--emerald); color: var(--on-colour); }
+    .btn-quiet { background: var(--surface-2); color: var(--ink); }
+    @media (hover: hover) and (pointer: fine) {
+      .btn-primary:hover { background: #34d399; }
+      .btn-quiet:hover { background: var(--surface-3); }
+    }
+    .text-link { color: var(--ink); font-weight: 600; text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 0.22em; transition: text-decoration-color 180ms ease; }
+    .text-link:hover { text-decoration-color: currentColor; }
+
+    /* ---- Navigation: the one glass layer. It floats over content, so it gets blur, a specular rim
+       and a solid fallback wherever blur is missing or unwanted. ---- */
+    .navbar {
+      position: sticky; top: 0; z-index: 1000;
+      background: rgba(11, 17, 32, 0.72);
+      -webkit-backdrop-filter: blur(18px) saturate(1.5);
+      backdrop-filter: blur(18px) saturate(1.5);
+      box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.10); /* taste-skill-ignore: specular rim of the sticky glass bar */
+    }
+    .nav-inner { display: flex; align-items: center; justify-content: space-between; gap: 24px; height: 68px; }
+    .nav-left { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+    .nav-logo { width: 34px; height: 34px; flex-shrink: 0; }
+    .nav-brand { font-weight: 800; font-size: 22px; letter-spacing: -0.04em; color: var(--ink); }
+    .nav-right { display: flex; align-items: center; gap: 28px; }
+    .nav-links { display: flex; gap: 24px; list-style: none; }
+    .nav-links a { font-size: var(--s-small); font-weight: 550; text-decoration: none; color: var(--ink); opacity: 0.86; transition: opacity 180ms ease; }
+    .nav-links a:hover { opacity: 1; }
+    .nav-cta { min-height: 40px; padding: 8px 20px 11px; font-size: var(--s-small); }
+    @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+      .navbar, .mobile-footer { background: var(--ground); }
+    }
+    @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+      .navbar, .mobile-footer { background: var(--ground); -webkit-backdrop-filter: none; backdrop-filter: none; }
     }
 
-    .btn:hover { opacity: 0.88; }
-
-    .btn-primary {
-      color: #fff;
-      background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+    /* ---- Hero: the magnet at enormous scale, cropped by the screen ---- */
+    .hero { position: relative; overflow: hidden; min-height: calc(100svh - 68px); display: flex; align-items: center; }
+    .hero-copy { position: relative; z-index: 2; padding: 64px 0 96px; }
+    .hero-copy .wrap > div { max-width: min(52%, 760px); }
+    .hero-headline { font-size: var(--s-display); line-height: 0.98; letter-spacing: -0.04em; font-weight: 800; }
+    .hero-sub { margin-top: 36px; font-size: var(--s-lead); line-height: 1.5; max-width: 34ch; }
+    .hero-buttons { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 28px; margin-top: 40px; }
+    .magnet {
+      position: absolute; z-index: 1;
+      height: 118svh; aspect-ratio: 380 / 454;
+      right: -10vw; top: 7svh;
     }
-
-    .btn-primary:hover { transform: translateY(-1px); }
-
-    .btn-secondary {
-      color: var(--text-primary);
-      background: transparent;
-      border: 1px solid var(--border);
+    .magnet svg { width: 100%; height: 100%; }
+    .magnet-chip {
+      position: absolute; left: 31%; right: 31%; top: 22%;
+      padding: 18px 18px 20px; border-radius: 14px;
+      background: var(--ground); color: var(--ink);
+      font-size: var(--s-small); line-height: 1.4;
     }
+    .magnet-chip b { display: block; font-size: var(--s-small); font-weight: 650; margin-bottom: 8px; }
+    .magnet-chip span { display: block; font: 500 14px/1.45 var(--font); color: var(--cyan); word-break: break-all; max-height: 7.3em; overflow: hidden; }
 
-    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+    /* ---- Section rhythm ---- */
+    .section { padding: clamp(96px, 13vw, 184px) 0 0; }
+    .section-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 24px 48px; margin-bottom: 56px; }
+    .section-head .lead { max-width: 40ch; }
 
-    .status {
-      font-family: "JetBrains Mono", monospace;
-      color: var(--accent);
-      font-size: 0.78rem;
-      min-height: 1.2rem;
-      text-align: center;
+    /* ---- How it works: the setup as one bar, each stage as long as it takes ---- */
+    .stages { display: flex; gap: 6px; height: 22vh; min-height: 176px; }
+    .stage { position: relative; padding: 20px; border-radius: 0; color: var(--on-colour); min-width: 12%; }
+    .stage:first-child { border-radius: 18px 0 0 18px; }
+    .stage:last-child { border-radius: 0 18px 18px 0; }
+    .stage-time { font-size: var(--s-lead); font-weight: 750; letter-spacing: -0.01em; }
+    .stage-1 { flex: 58 1 0; background: var(--emerald); }
+    .stage-2 { flex: 14 1 0; background: var(--cyan); }
+    .stage-3 { flex: 28 1 0; background: var(--amber); }
+    .stage-notes { display: flex; gap: 6px; margin-top: 20px; }
+    .stage-notes p { min-width: 12%; max-width: 26ch; font-size: var(--s-body); padding-right: 16px; }
+    .stage-notes p:nth-child(1) { flex: 58 1 0; }
+    .stage-notes p:nth-child(2) { flex: 14 1 0; }
+    .stage-notes p:nth-child(3) { flex: 28 1 0; }
+
+    /* ---- Features: close-ups of the configure screen on one board ---- */
+    .board { display: grid; grid-template-columns: repeat(12, 1fr); grid-auto-rows: 104px; gap: 8px; }
+    .tile { position: relative; overflow: hidden; border-radius: 18px; background: var(--surface); }
+    .tile-head { grid-column: span 6; grid-row: span 2; background: transparent; padding: 4px 0 0; }
+    .t-6x4 { grid-column: span 6; grid-row: span 4; }
+    .t-6x2 { grid-column: span 6; grid-row: span 2; }
+    .t-3x4 { grid-column: span 3; grid-row: span 4; }
+    .t-3x2 { grid-column: span 3; grid-row: span 2; }
+    .f-emerald { background: var(--emerald); color: var(--on-colour); }
+    .f-cyan { background: var(--cyan); color: var(--on-colour); }
+    .f-amber { background: var(--amber); color: var(--on-colour); }
+    .f-band { background: var(--band); color: var(--on-colour); }
+    .f-surface { background: var(--surface-2); color: var(--ink); }
+    .tile-cap { position: absolute; left: 20px; right: 20px; bottom: 18px; z-index: 2; }
+    .tile-cap strong { display: block; font-size: var(--s-body); font-weight: 650; line-height: 1.3; }
+    .tile-cap span { display: block; font-size: var(--s-small); line-height: 1.4; max-width: 40ch; }
+    .zoom { position: absolute; pointer-events: none; font-family: var(--font); }
+
+    /* The enlarged parts, built in em at their real proportions */
+    .z-chips { font-size: 44px; left: -0.4em; top: 0.35em; display: flex; gap: 0.25em; white-space: nowrap; }
+    .z-chip { padding: 0.18em 0.6em 0.26em; border-radius: 999px; background: rgba(6, 18, 26, 0.14); font-weight: 600; font-size: 0.8em; }
+    .z-chip.on { background: var(--on-colour); color: var(--emerald); }
+    .z-field { font-size: 34px; left: 0.6em; right: -2.5em; top: 0.6em; }
+    .z-field label { display: block; font-size: 0.5em; font-weight: 650; margin-bottom: 0.35em; }
+    .z-field .box { border-radius: 0.36em; background: rgba(6, 18, 26, 0.16); padding: 0.4em 0.5em; font-weight: 600; letter-spacing: 0.08em; white-space: nowrap; }
+    .f-surface .z-field .box { background: var(--surface-3); font-size: 0.6em; font-weight: 500; letter-spacing: 0; color: var(--cyan); padding: 0.7em 0.8em; }
+    .z-subs { font-size: 34px; left: 0.5em; }
+    .z-subs .z-chip.on { color: var(--band); }
+    .z-select { font-size: 40px; left: 0.5em; top: 0.45em; display: flex; align-items: center; gap: 0.3em; font-weight: 750; }
+    .z-select i { font-style: normal; display: inline-grid; place-items: center; width: 1.3em; height: 1.3em; border-radius: 0.3em; background: var(--on-colour); color: var(--coral); }
+    .z-like { font-size: 40px; left: 0.5em; top: 0.4em; font-weight: 750; letter-spacing: -0.03em; color: var(--cyan); white-space: nowrap; }
+    .z-cmd { font-size: 28px; left: 0.7em; top: 0.7em; right: -3em; }
+    .z-cmd code { display: block; font: 600 1em/1.3 ui-monospace, Menlo, monospace; color: var(--on-colour); white-space: nowrap; }
+    .z-cmd code + code { opacity: 0.5; }
+
+    /* ---- Showcase: the one switch privacy turns on ---- */
+    .showcase { position: relative; overflow: hidden; height: 92svh; min-height: 620px; margin-top: clamp(96px, 13vw, 184px); background: var(--emerald); color: var(--on-colour); transition: background-color 420ms var(--ease-in-out); }
+    .showcase.is-on { background: var(--amber); }
+    .showcase .wrap { position: relative; z-index: 2; padding-top: clamp(56px, 8vw, 112px); }
+    .showcase h2 { font-size: clamp(28px, 2.8vw, 40px); line-height: 1.1; letter-spacing: -0.03em; font-weight: 750; max-width: 18ch; }
+    .showcase p { margin-top: 18px; font-size: var(--s-body); max-width: 40ch; }
+    .switch {
+      position: absolute; z-index: 1; right: -6vw; bottom: -6vh;
+      font-size: min(23vh, 21vw);
+      display: grid; justify-items: start; gap: 0.12em;
+      background: none; border: 0; color: inherit; cursor: pointer; text-align: left; font-family: var(--font);
     }
+    .switch-label { font-size: 0.36em; font-weight: 800; letter-spacing: -0.04em; line-height: 1; }
+    .switch-track { position: relative; width: 4em; height: 2em; border-radius: 1em; background: var(--on-colour); transition: background-color 300ms ease; }
+    .switch-thumb { position: absolute; top: 0.2em; left: 0.2em; width: 1.6em; height: 1.6em; border-radius: 50%; background: var(--emerald); transition: transform 420ms var(--ease-out), background-color 420ms var(--ease-in-out); }
+    .showcase.is-on .switch-thumb { transform: translateX(2em); background: var(--amber); }
+    .switch:focus-visible { outline: 6px solid var(--on-colour); outline-offset: 10px; }
+    .switch-state { font-size: 0.22em; font-weight: 700; }
 
-    /* ---- Footer ---- */
-    .site-footer {
-      border-top: 1px solid var(--border);
-      padding: 40px 24px;
-      text-align: center;
+    /* ---- Configure: the working screen (app-screen rules inside) ---- */
+    .configure { padding-top: clamp(96px, 13vw, 184px); }
+    .config-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 400px); gap: 32px 40px; align-items: start; }
+    .config-cards { display: grid; gap: 12px; }
+    .config-card { background: var(--surface); border-radius: 22px; padding: 28px; display: grid; gap: 20px; }
+    .config-card-title { font-weight: 700; font-size: var(--s-lead); letter-spacing: -0.02em; }
+    .config-card-desc { font-size: var(--s-body); color: var(--muted); line-height: 1.6; max-width: 70ch; }
+    .config-card-desc strong { color: var(--ink); }
+    .config-card-desc a, .key-link { color: var(--cyan); text-decoration: none; }
+    .config-card-desc a:hover, .key-link:hover { text-decoration: underline; }
+    .config-card.warn { background: rgba(245, 166, 35, 0.12); }
+    .config-card.warn .config-card-title { color: var(--amber); }
+    .config-card.warn .config-card-desc { color: var(--ink); }
+    .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .configure label { display: grid; gap: 8px; font-size: var(--s-small); color: var(--muted); font-weight: 550; }
+    .configure select, .configure input[type="number"], .password-wrap input {
+      width: 100%; min-height: 46px;
+      border: 1px solid var(--field-line); border-radius: 12px;
+      background: var(--surface-2); color: var(--ink);
+      padding: 11px 14px; font: 500 15px/1.3 var(--font); outline: none;
+      transition: border-color 180ms ease, background-color 180ms ease;
     }
+    .password-wrap { position: relative; }
+    .password-wrap input { padding-right: 44px; }
+    .configure select:hover, .password-wrap input:hover { border-color: var(--field-line-strong); }
+    .configure select:focus, .configure input:focus { border-color: var(--cyan); }
+    .eye-toggle { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); display: flex; align-items: center; padding: 8px; background: none; border: 0; border-radius: 8px; color: var(--muted); cursor: pointer; }
+    .eye-toggle:hover { color: var(--ink); background: var(--surface-3); }
+    .chip-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip { cursor: pointer; display: inline-flex; }
+    .chip span { display: inline-block; padding: 7px 15px 8px; border-radius: 999px; background: var(--surface-2); color: var(--ink); font-size: var(--s-small); font-weight: 550; user-select: none; transition: background-color 160ms ease, color 160ms ease, transform 160ms var(--ease-out); }
+    .chip:hover span { background: var(--surface-3); }
+    .chip:active span { transform: scale(0.96); }
+    .chip:has(input:checked) span, .chip.selected span { background: var(--emerald); color: var(--on-colour); }
+    .chip input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+    .chip:has(input:focus-visible) span { outline: 3px solid var(--cyan); outline-offset: 2px; }
 
-    .footer-text {
-      font-size: 0.82rem;
-      color: var(--text-secondary);
-      line-height: 1.8;
-    }
+    /* The manifest URL is the output: it stays in view beside the settings on a wide screen. */
+    .install-bar { position: sticky; top: 92px; }
+    .install-card { background: var(--surface-2); border-radius: 22px; padding: 28px; display: grid; gap: 18px; }
+    .install-card h3 { font-size: var(--s-lead); font-weight: 700; letter-spacing: -0.02em; }
+    .install-card-url { font: 500 14px/1.55 var(--font); color: var(--cyan); word-break: break-all; background: var(--ground); padding: 14px 16px; border-radius: 12px; max-height: 14em; overflow: auto; }
+    .install-card-actions { display: grid; gap: 10px; }
+    .install-card-actions .btn { width: 100%; }
+    .status { color: var(--emerald); font-size: var(--s-small); min-height: 1.3em; }
 
-    .footer-text a { color: var(--accent); text-decoration: none; }
-    .footer-text a:hover { text-decoration: underline; }
-
-    /* ---- Lidhra, from the same maker ---- */
-    /* Lidhra promo. A content-layer card: solid surface, no glass, no shadow.
-       Each site maps its own tokens onto the --lp-* roles below. */
-
+    /* ---- Lidhra, from the same maker: a content card, solid, no glass ---- */
     .lidhra-promo {
-      --lp-surface: #f2f2f4;
-      --lp-ink: #16161a;
-      --lp-muted: #55555c;
-      --lp-link: #1f5fd1;
-      --lp-ring: #1f5fd1;
-      --lp-radius: 22px;
-      --lp-pad: clamp(18px, 4vw, 32px);
-      --lp-font: inherit;
-      --lp-title-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.1rem);
+      --lp-surface: var(--surface);
+      --lp-ink: var(--ink);
+      --lp-muted: var(--muted);
+      --lp-link: var(--cyan);
+      --lp-ring: var(--cyan);
+      --lp-radius: 28px;
+      --lp-pad: clamp(20px, 4vw, 48px);
+      --lp-title-size: var(--s-h2);
       container-type: inline-size;
-      margin: 3rem 0;
       padding: var(--lp-pad);
       border-radius: var(--lp-radius);
       background: var(--lp-surface);
       color: var(--lp-ink);
-      font-family: var(--lp-font);
       text-align: left;
     }
-
+    .lidhra-promo__inner { display: grid; grid-template-columns: minmax(0, 1fr); gap: 32px 56px; }
     .lidhra-promo__copy { min-width: 0; }
-
-    .lidhra-promo__title {
-      margin: 0;
-      max-width: 24ch;
-      font-size: var(--lp-title-size);
-      line-height: 1.08;
-      letter-spacing: -0.025em;
-      font-weight: 750;
-      text-wrap: balance;
-      color: var(--lp-ink);
-    }
-
-    .lidhra-promo__text {
-      margin: 14px 0 0;
-      max-width: 46ch;
-      font-size: 1.0625rem;
-      line-height: 1.55;
-      color: var(--lp-ink);
-    }
-
-    .lidhra-promo__facts {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      margin-top: 20px;
-    }
-
-    .lidhra-promo__facts p {
-      margin: 0;
-      font-size: 0.95rem;
-      line-height: 1.45;
-      color: var(--lp-muted);
-    }
-
+    .lidhra-promo__title { margin: 0; max-width: 15ch; font-size: clamp(32px, 3.6vw, 52px); line-height: 1.02; letter-spacing: -0.035em; font-weight: 750; text-wrap: balance; }
+    .lidhra-promo__text { margin: 24px 0 0; max-width: 44ch; font-size: var(--s-body); line-height: 1.55; }
+    .lidhra-promo__facts { display: flex; gap: 14px; align-items: center; margin-top: 24px; }
+    .lidhra-promo__facts p { margin: 0; font-size: var(--s-small); line-height: 1.45; color: var(--lp-muted); }
     .lidhra-promo__facts strong { color: var(--lp-ink); font-weight: 650; }
-
-    /* Concentric with the card: the icon's radius is the platform's squircle approximation. */
-    .lidhra-promo__icon {
-      flex: none;
-      width: 44px;
-      height: 44px;
-      border-radius: 10px;
-    }
-
-    .lidhra-promo__actions {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 12px 22px;
-      margin-top: 22px;
-    }
-
-    .lidhra-promo__badge {
-      display: inline-block;
-      line-height: 0;
-      border-radius: 9px;
-    }
-
-    .lidhra-promo__badge img {
-      display: block;
-      width: auto;
-      height: 48px;
-    }
-
-    .lidhra-promo__more {
-      font-weight: 650;
-      color: var(--lp-link);
-      text-underline-offset: 3px;
-    }
-
-    .lidhra-promo a:focus-visible {
-      outline: 3px solid var(--lp-ring);
-      outline-offset: 3px;
-    }
-
-    /* Screens: the library on the big screen, the phone overlapping its corner.
-       Inner radii are the card radius minus the card padding, so the corners stay concentric. */
-    .lidhra-promo__shots {
-      order: -1;
-      display: grid;
-      margin: 0 0 13%;
-      min-width: 0;
-    }
-
-    .lidhra-promo__library,
-    .lidhra-promo__phone { grid-area: 1 / 1; display: block; height: auto; }
-
-    .lidhra-promo__library {
-      width: 100%;
-      aspect-ratio: 2 / 1;
-      object-fit: cover;
-      border-radius: max(8px, calc(var(--lp-radius) - var(--lp-pad) + 4px));
-      background: #0d1424;
-    }
-
-    .lidhra-promo__phone {
-      justify-self: end;
-      align-self: end;
-      width: 27%;
-      aspect-ratio: 360 / 570;
-      margin: 0 5% -13% 0;
-      border-radius: 14px;
-      outline: 4px solid var(--lp-surface);
-      background: #e9ebf2;
-    }
-
-    .lidhra-promo__inner {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr);
-      gap: 24px 40px;
-    }
-
-    @container (min-width: 700px) {
-      .lidhra-promo__inner { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); align-items: center; }
+    .lidhra-promo__icon { flex: none; width: 48px; height: 48px; border-radius: 11px; }
+    .lidhra-promo__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 24px; margin-top: 28px; }
+    .lidhra-promo__badge { display: inline-block; line-height: 0; border-radius: 9px; transition: transform 160ms var(--ease-out); }
+    .lidhra-promo__badge:active { transform: scale(0.97); }
+    .lidhra-promo__badge img { display: block; width: auto; height: 48px; }
+    .lidhra-promo__more { font-weight: 650; color: var(--lp-link); text-decoration: none; }
+    .lidhra-promo__more:hover { text-decoration: underline; }
+    .lidhra-promo a:focus-visible { outline: 3px solid var(--lp-ring); outline-offset: 3px; }
+    /* Inner radii are the card radius minus its padding, so the corners stay concentric. */
+    .lidhra-promo__shots { order: -1; display: grid; margin: 0 0 13%; min-width: 0; overflow: visible; }
+    .lidhra-promo__library, .lidhra-promo__phone { grid-area: 1 / 1; display: block; height: auto; }
+    .lidhra-promo__library { width: 100%; aspect-ratio: 2 / 1; object-fit: cover; border-radius: max(10px, calc(var(--lp-radius) - var(--lp-pad) + 6px)); background: var(--ground); }
+    .lidhra-promo__phone { justify-self: end; align-self: end; width: 27%; aspect-ratio: 360 / 570; margin: 0 5% -13% 0; border-radius: 16px; outline: 5px solid var(--lp-surface); background: #e9ebf2; }
+    @container (min-width: 760px) {
+      .lidhra-promo__inner { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); align-items: center; }
       .lidhra-promo__shots { order: 0; margin-bottom: 9%; }
       .lidhra-promo__phone { width: 25%; margin-bottom: -9%; }
     }
-
-    @container (min-width: 480px) and (max-width: 699px) {
+    @container (min-width: 480px) and (max-width: 759px) {
       .lidhra-promo__shots { margin-bottom: 9%; }
       .lidhra-promo__phone { width: 21%; margin-bottom: -9%; }
     }
 
-    /* Magnetio's tokens on the promo: the config cards' surface, border and radius. */
-    .lidhra-wrap { max-width: 800px; margin: 0 auto 72px; padding: 0 24px; }
-    .lidhra-promo {
-      --lp-surface: #101116;
-      --lp-ink: var(--text-primary);
-      --lp-muted: var(--text-secondary);
-      --lp-link: var(--accent);
-      --lp-ring: var(--accent);
-      --lp-radius: 20px;
-      --lp-font: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
-      --lp-title-size: clamp(1.45rem, 1.1rem + 1.4vw, 1.9rem);
-      margin: 0;
-      border: 1px solid var(--border);
+    /* ---- FAQ: questions filed like cards in a drawer ---- */
+    .faq .wrap > * { max-width: 920px; margin-left: auto; margin-right: auto; }
+    .faq .h2 { margin-bottom: 48px; }
+    .cards { display: grid; }
+    .qcard { --tab: 0px; position: relative; margin-top: -24px; padding-top: 40px; }
+    .qcard:first-child { margin-top: 0; }
+    .qcard-shape {
+      position: absolute; inset: 0;
+      clip-path: polygon(var(--tab) 0, calc(var(--tab) + 200px) 0, calc(var(--tab) + 200px) 40px, 100% 40px, 100% 100%, 0 100%, 0 40px, var(--tab) 40px);
+      border-radius: 0 0 22px 22px;
     }
-    .lidhra-promo__title { font-weight: 700; color: #fff; max-width: 24ch; }
-    .lidhra-promo__text { color: var(--text-primary); }
-    .lidhra-promo__more { text-decoration: none; }
-    .lidhra-promo__more:hover { text-decoration: underline; color: var(--accent-hover); }
-    .lidhra-promo__badge img { box-shadow: 0 0 0 1px rgba(255,255,255,0.22); border-radius: 8px; }
-    @media (max-width: 640px) { .lidhra-wrap { padding: 0 16px; margin-bottom: 48px; } }
+    .qcard:nth-child(3n+1) .qcard-shape { background: var(--surface-2); }
+    .qcard:nth-child(3n+2) .qcard-shape { background: var(--surface-3); }
+    .qcard:nth-child(3n) .qcard-shape { background: var(--surface); }
+    .qcard:nth-child(1) { --tab: 0px; }
+    .qcard:nth-child(2) { --tab: 150px; }
+    .qcard:nth-child(3) { --tab: 300px; }
+    .qcard:nth-child(4) { --tab: 450px; }
+    .qcard:nth-child(5) { --tab: 600px; }
+    @media (max-width: 1080px) { .qcard:nth-child(2) { --tab: 120px; } .qcard:nth-child(3) { --tab: 240px; } .qcard:nth-child(4) { --tab: 360px; } .qcard:nth-child(5) { --tab: 480px; } }
+    .qcard-tab { position: absolute; top: 0; left: var(--tab); width: 200px; height: 40px; display: flex; align-items: center; padding: 0 20px; font-size: var(--s-small); font-weight: 650; color: var(--muted); z-index: 1; }
+    .qcard button { position: relative; z-index: 1; display: block; width: 100%; text-align: left; background: none; border: 0; color: var(--ink); cursor: pointer; padding: 18px 28px 44px; font: 650 var(--s-lead)/1.3 var(--font); letter-spacing: -0.01em; }
+    .qcard:last-child button { padding-bottom: 28px; }
+    .qcard button:hover { color: #fff; }
+    .qcard-answer { position: relative; z-index: 1; padding: 0 28px 48px; font-size: var(--s-body); max-width: calc(50ch + 56px); }
+    .qcard:last-child .qcard-answer { padding-bottom: 32px; }
+    .qcard-answer code { font: 500 0.92em ui-monospace, Menlo, monospace; color: var(--cyan); }
+    .js .qcard:not(.open) .qcard-answer { display: none; }
 
+    /* ---- Footer: the mark, built large from its own parts ---- */
+    .site-footer { margin-top: clamp(96px, 13vw, 184px); background: var(--surface); padding: clamp(48px, 6vw, 80px) 0 32px; }
+    .footer-mark { display: flex; align-items: end; gap: 4px; height: 34svh; min-height: 200px; }
+    .footer-mark svg { height: 100%; width: auto; }
+    .footer-mark .word { flex: 1; min-width: 0; height: 100%; display: flex; align-items: end; }
+    .footer-mark .word svg { width: 100%; height: auto; max-height: 100%; }
+    .footer-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 1.4fr); gap: 32px; margin-top: 56px; font-size: var(--s-body); }
+    .footer-cols h3 { font-size: var(--s-body); font-weight: 650; margin-bottom: 10px; }
+    .footer-cols ul { list-style: none; display: grid; gap: 6px; }
+    .footer-cols a { text-decoration: none; color: var(--muted); transition: color 180ms ease; }
+    .footer-cols a:hover { color: var(--ink); }
+    .footer-note { color: var(--muted); max-width: 36ch; }
+    .footer-last { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-top: 48px; font-size: var(--s-small); color: var(--muted); }
+    .footer-last .btn { min-height: 40px; padding: 8px 20px 11px; font-size: var(--s-small); }
 
-    /* ---- Mobile footer ---- */
+    /* ---- Mobile install bar: the second glass layer, floating over the page ---- */
     .mobile-footer {
-      display: none;
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: rgba(6,7,10,0.95);
-      backdrop-filter: blur(20px);
-      border-top: 1px solid var(--border);
-      padding: 12px 16px;
-      z-index: 100;
+      display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(11, 17, 32, 0.78);
+      -webkit-backdrop-filter: blur(18px) saturate(1.5);
+      backdrop-filter: blur(18px) saturate(1.5);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10); /* taste-skill-ignore: specular rim of the sticky glass bar */
+      padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
     }
-
-    .mobile-footer .footer-actions {
-      display: flex;
-      gap: 10px;
-    }
-
-    .mobile-footer .btn {
-      flex: 1;
-      padding: 12px 12px;
-      font-size: 0.8rem;
-    }
-
-    .mobile-footer .footer-preview {
-      margin-top: 8px;
-      display: none;
-    }
-
+    .js .mobile-footer { transform: translateY(110%); transition: transform 320ms var(--ease-out); }
+    .js .mobile-footer.is-shown { transform: none; }
+    .mobile-footer .footer-actions { display: flex; gap: 10px; }
+    .mobile-footer .btn { flex: 1; min-height: 46px; padding: 10px 12px 13px; font-size: 15px; }
+    .mobile-footer .footer-preview { margin-top: 8px; display: none; }
     .mobile-footer .footer-preview.open { display: block; }
+    .mobile-footer .preview-toggle { background: none; border: 0; color: var(--muted); font: 500 var(--s-small) var(--font); cursor: pointer; padding: 8px 0 0; text-decoration: underline; text-underline-offset: 0.2em; }
+    .mobile-footer .preview-code { font: 500 14px/1.5 var(--font); color: var(--cyan); word-break: break-all; margin-top: 6px; max-height: 6em; overflow: auto; }
 
-    .mobile-footer .preview-toggle {
-      background: none;
-      border: none;
-      font-family: "JetBrains Mono", monospace;
-      color: var(--text-secondary);
-      font-size: 0.72rem;
-      cursor: pointer;
-      padding: 6px 0 0;
-      text-decoration: underline;
-    }
-
-    .mobile-footer .preview-code {
-      font-family: "JetBrains Mono", monospace;
-      color: var(--accent);
-      word-break: break-all;
-      font-size: 0.68rem;
-      line-height: 1.5;
-      margin-top: 6px;
+    /* ---- Motion: entrances that never hide content without script ---- */
+    @media (prefers-reduced-motion: no-preference) {
+      .js [data-rise] { opacity: 0; transform: translateY(24px); transition: opacity 700ms var(--ease-out), transform 700ms var(--ease-out); transition-delay: calc(var(--i, 0) * 75ms); }
+      .js [data-rise].is-in { opacity: 1; transform: none; }
+      .js .magnet { clip-path: inset(100% 0 0 0); transition: clip-path 1100ms var(--ease-in-out); }
+      .js .magnet svg { transform: scale(1.12); transform-origin: 50% 100%; transition: transform 1500ms var(--ease-out); }
+      .js .magnet.is-in { clip-path: inset(-10% -10% -10% -10%); }
+      .js .magnet.is-in svg { transform: none; }
+      .js .magnet-chip { opacity: 0; transform: translateY(16px); transition: opacity 600ms var(--ease-out) 900ms, transform 600ms var(--ease-out) 900ms; }
+      .js .magnet.is-in .magnet-chip { opacity: 1; transform: none; }
+      .js .stage { transform-origin: left center; }
+      .tile .zoom { transition: transform 900ms var(--ease-out); }
+      .tile:hover .zoom { transform: translateX(-0.12em); }
     }
 
     /* ---- Responsive ---- */
-    @media (max-width: 980px) {
-      .hero-headline { font-size: 2.8rem; }
-      .hero-watermark { width: min(440px, 76vw); }
-      .features-grid { grid-template-columns: repeat(2, 1fr); }
-      .stats-bar { flex-wrap: wrap; margin-top: 0; }
-      .stat-item { flex: 1 1 45%; }
-      .stat-item:first-child { border-radius: 16px 0 0 0; }
-      .stat-item:nth-child(2) { border-radius: 0 16px 0 0; border-right: 1px solid var(--border); }
-      .stat-item:nth-child(3) { border-radius: 0 0 0 16px; }
-      .stat-item:last-child { border-radius: 0 0 16px 0; }
-      .how-steps { flex-direction: column; gap: 32px; }
-      .how-step { text-align: left; display: flex; gap: 20px; align-items: flex-start; padding: 0; }
-      .how-step-number { margin: 0; flex-shrink: 0; }
-      .how-step-line { display: none !important; }
+    @media (max-width: 1080px) {
+      .nav-links { display: none; }
+      .config-grid { grid-template-columns: 1fr; }
       .install-bar { display: none; }
       .mobile-footer { display: block; }
-      body { padding-bottom: 90px; }
+      body { padding-bottom: 104px; }
+      .t-3x4 { grid-column: span 6; }
+      .t-3x2 { grid-column: span 6; }
     }
-
-    @media (max-width: 640px) {
-      .navbar { padding: 0 16px; }
-      .nav-logo { width: 28px; height: 28px; }
-      .nav-version { display: none; }
-      .hero { padding: 100px 16px 60px; }
-      .hero-watermark { width: min(300px, 74vw); top: 132px; }
-      .hero-brand { margin-bottom: 22px; }
-      .hero-brand img { width: min(420px, 84vw); }
-      .hero-headline { font-size: 2rem; }
-      .hero-sub { font-size: 0.95rem; }
-      .features-grid { grid-template-columns: 1fr; }
-      .section-heading { font-size: 1.8rem; }
+    @media (max-width: 760px) {
+      :root { --s-lead: 18px; --s-body: 16px; }
+      .hero { min-height: calc(100svh - 68px); align-items: flex-start; }
+      .hero-copy { padding: 9svh 0 62svh; }
+      .hero-copy .wrap > div { max-width: none; }
+      .hero-headline { font-size: 9.6vw; }
+      .hero-sub { margin-top: 24px; }
+      .hero-buttons { margin-top: 28px; }
+      .magnet { height: auto; width: 116vw; right: auto; left: -8vw; top: auto; bottom: -34vw; }
+      .magnet-chip { display: none; }
+      .section-head { margin-bottom: 36px; }
+      .stages { flex-direction: column; height: 70svh; min-height: 460px; }
+      .stage { min-height: 72px; }
+      .stage:first-child { border-radius: 18px 18px 0 0; }
+      .stage:last-child { border-radius: 0 0 18px 18px; }
+      .stage-notes { display: none; }
+      .stage-mobile-note { display: block !important; font-size: var(--s-body); font-weight: 500; margin-top: 8px; max-width: 30ch; }
+      .board { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 28vw; gap: 6px; }
+      .tile-head { grid-column: span 2; grid-row: span 2; }
+      .t-6x4 { grid-column: span 2; grid-row: span 3; }
+      .t-6x2 { grid-column: span 2; grid-row: span 2; }
+      .t-3x4, .t-3x2 { grid-column: span 1; grid-row: span 3; }
+      .tile-cap { left: 14px; right: 14px; bottom: 14px; }
+      .tile-cap strong { font-size: 16px; }
+      .tile-cap span { font-size: 14px; }
+      .z-chips { font-size: 34px; }
+      .z-select, .z-like { font-size: 30px; }
+      .z-field { font-size: 26px; }
+      .z-cmd { font-size: 18px; }
+      .showcase { height: 86svh; min-height: 560px; }
+      .showcase h2 { font-size: 26px; }
+      .switch { right: auto; left: 16px; bottom: -4svh; font-size: 32vw; }
       .field-grid { grid-template-columns: 1fr; }
-      .config-card { padding: 24px 20px; }
-      .page-section { padding: 60px 16px; }
-      .configure-section { padding: 60px 16px; }
+      .config-card { padding: 22px 18px; }
+      .qcard { margin-top: -20px; }
+      .qcard-shape { clip-path: polygon(var(--tab) 0, calc(var(--tab) + 120px) 0, calc(var(--tab) + 120px) 40px, 100% 40px, 100% 100%, 0 100%, 0 40px, var(--tab) 40px); }
+      .qcard-tab { width: 120px; padding: 0 14px; }
+      .qcard:nth-child(2) { --tab: 48px; }
+      .qcard:nth-child(3) { --tab: 96px; }
+      .qcard:nth-child(4) { --tab: 144px; }
+      .qcard:nth-child(5) { --tab: 192px; }
+      .qcard button { padding: 16px 20px 40px; font-size: 18px; }
+      .qcard-answer { padding: 0 20px 44px; }
+      .footer-mark { height: 22svh; min-height: 140px; }
+      .footer-cols { grid-template-columns: 1fr 1fr; }
+      .footer-note { grid-column: span 2; }
     }
   </style>
 </head>
 <body>
 
-  <!-- Navbar -->
-  <nav class="navbar">
-    <div class="nav-left">
-      <img class="nav-logo" src="${brandLogo}" alt="" aria-hidden="true" />
-      <span class="nav-brand">${escapeHtml(manifest.name)}</span>
-      <span class="nav-version">v${escapeHtml(manifest.version)}</span>
+  <nav class="navbar" aria-label="Main">
+    <div class="wrap nav-inner">
+      <a class="nav-left" href="#top" aria-label="Magnetio, back to top">
+        <img class="nav-logo" src="${brandLogo}" alt="" width="34" height="34" />
+        <span class="nav-brand">${escapeHtml(manifest.name)}</span>
+      </a>
+      <div class="nav-right">
+        <ul class="nav-links">
+          <li><a href="#how">How it works</a></li>
+          <li><a href="#configure">Configure</a></li>
+          <li><a href="#faq">FAQ</a></li>
+          <li><a href="https://github.com/peterdsp/Magnetio" target="_blank" rel="noreferrer">GitHub</a></li>
+        </ul>
+        <a href="#configure" class="btn btn-primary nav-cta">Configure</a>
+      </div>
     </div>
-    <a href="#configure" class="nav-cta">Configure</a>
   </nav>
 
-  <!-- Hero -->
-  <section class="hero">
-    <img class="hero-watermark" src="${brandLogo}" alt="" aria-hidden="true" />
-    <div class="hero-orb hero-orb-1"></div>
-    <div class="hero-orb hero-orb-2"></div>
-    <div class="hero-orb hero-orb-3"></div>
-    <div class="hero-content">
-      <div class="hero-brand">
-        <img src="${brandBackground}" alt="${escapeHtml(manifest.name)}" />
-      </div>
-      <h1 class="hero-headline">
-        <span class="gradient-text">Stream anything.</span><br />Own your setup.
-      </h1>
-      <p class="hero-sub">
-        Magnetio is a self-hosted addon for <strong>Stremio</strong> and <strong><a href="https://nuvioplugin.com" target="_blank" rel="noreferrer" style="color:var(--accent);text-decoration:none;">Nuvio</a></strong> that aggregates torrents from 24 providers,
-        resolves them through 9 debrid services, and delivers instant high-quality streams.
-      </p>
-      <div class="hero-buttons">
-        <a href="#configure" class="btn-hero-primary">Get Started</a>
-        <a href="https://github.com/peterdsp/Magnetio" target="_blank" rel="noreferrer" class="btn-hero-secondary">View on GitHub</a>
+  <main id="top">
+  <!-- Hero: the magnet from the mark, at the scale of the screen -->
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="hero-copy">
+      <div class="wrap"><div>
+        <h1 class="hero-headline" id="hero-title" data-rise>Stream anything. Own your setup.</h1>
+        <p class="hero-sub" data-rise style="--i:1">Magnetio is a self-hosted addon for Stremio and Nuvio. It searches 24 torrent sources and plays what it finds through your own debrid account.</p>
+        <div class="hero-buttons" data-rise style="--i:2">
+          <a href="#configure" class="btn btn-primary">Configure and install</a>
+          <a href="https://github.com/peterdsp/Magnetio" target="_blank" rel="noreferrer" class="text-link">View on GitHub</a>
+        </div>
+      </div></div>
+    </div>
+    <div class="magnet" aria-hidden="true">
+      <svg viewBox="326 284 380 454" preserveAspectRatio="xMidYMid meet">
+        <defs><clipPath id="magnetBody"><rect x="300" y="528" width="440" height="240" /></clipPath></defs>
+        <path clip-path="url(#magnetBody)" fill="#10b981" d="M326 284H438V543C438 586.078 472.922 621 516 621C559.078 621 594 586.078 594 543V284H706V548C706 652.934 620.934 738 516 738C411.066 738 326 652.934 326 548V284Z" />
+        <rect x="326" y="284" width="112" height="120" fill="#f5a623" />
+        <rect x="594" y="284" width="112" height="120" fill="#ff6b6b" />
+        <rect x="326" y="422" width="112" height="88" fill="#e5e7eb" />
+        <rect x="594" y="422" width="112" height="88" fill="#e5e7eb" />
+      </svg>
+      <div class="magnet-chip" data-ui>
+        <b>Your manifest URL</b>
+        <span id="heroManifest">${escapeHtml('https://magnetio.peterdsp.dev/manifest.json')}</span>
       </div>
     </div>
   </section>
 
-  <!-- Stats Bar -->
-  <div class="stats-bar">
-    <div class="stat-item">
-      <div class="stat-number">24</div>
-      <div class="stat-label">Torrent Providers</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-number">8</div>
-      <div class="stat-label">Debrid Services</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-number">500+</div>
-      <div class="stat-label">Indexers via Torznab</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-number">24/7</div>
-      <div class="stat-label">Self-Hosted</div>
-    </div>
-  </div>
-
-  <!-- Features -->
-  <section class="page-section">
-    <div class="section-label">Features</div>
-    <h2 class="section-heading">Everything you need to stream</h2>
-    <p class="section-sub">Built for power users who want full control over their streaming pipeline.</p>
-    <div class="features-grid">
-      <div class="feature-card">
-        <span class="feature-icon">&#9889;</span>
-        <div class="feature-title">Multi-Provider Scraping</div>
-        <div class="feature-desc">24 torrent providers queried in parallel with smart deduplication and quality ranking.</div>
+  <!-- How it works -->
+  <section class="section" id="how" aria-labelledby="how-title">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 class="h2" id="how-title" data-rise>From keys to playback</h2>
+        <p class="lead" data-rise style="--i:1">Most of the setup is choosing what you want. Installing is one tap, and cached streams start at once.</p>
       </div>
-      <div class="feature-card">
-        <span class="feature-icon">&#128279;</span>
-        <div class="feature-title">Debrid Integration</div>
-        <div class="feature-desc">9 debrid services for instant cached streams at full speed with automatic fallback.</div>
+      <div class="stages" data-ui data-rise style="--i:2">
+        <div class="stage stage-1"><div class="stage-time">About a minute</div><p class="stage-mobile-note" style="display:none">First, choose qualities and languages, and paste your debrid key.</p></div>
+        <div class="stage stage-2"><div class="stage-time">One tap</div><p class="stage-mobile-note" style="display:none">Then install the manifest URL in Stremio or Nuvio.</p></div>
+        <div class="stage stage-3"><div class="stage-time">Seconds</div><p class="stage-mobile-note" style="display:none">Last, press play: cached results start at full speed.</p></div>
       </div>
-      <div class="feature-card">
-        <span class="feature-icon">&#128270;</span>
-        <div class="feature-title">Torznab Support</div>
-        <div class="feature-desc">Connect Jackett or Prowlarr for 500+ additional indexers and private trackers.</div>
-      </div>
-      <div class="feature-card">
-        <span class="feature-icon">&#10024;</span>
-        <div class="feature-title">Smart Recommendations</div>
-        <div class="feature-desc">TMDB-powered similar content suggestions for every movie and series title.</div>
-      </div>
-      <div class="feature-card">
-        <span class="feature-icon">&#127916;</span>
-        <div class="feature-title">Subtitle Pipeline</div>
-        <div class="feature-desc">Automatic subtitle search, download, and sync with ffsubsync in 15 languages.</div>
-      </div>
-      <div class="feature-card">
-        <span class="feature-icon">&#128274;</span>
-        <div class="feature-title">Self-Hosted</div>
-        <div class="feature-desc">Runs on a Raspberry Pi. Your API keys never leave your server. No tracking, no telemetry.</div>
-      </div>
-      <div class="feature-card">
-        <span class="feature-icon">&#128257;</span>
-        <div class="feature-title">Stremio + Nuvio</div>
-        <div class="feature-desc">Works with both <a href="https://www.stremio.com" target="_blank" rel="noreferrer" style="color:var(--accent);">Stremio</a> and <a href="https://nuvioplugin.com" target="_blank" rel="noreferrer" style="color:var(--accent);">Nuvio</a>. Same manifest URL, same configuration — install once, use on both platforms.</div>
+      <div class="stage-notes" data-rise style="--i:3">
+        <p>First, choose qualities and languages, and paste your debrid key.</p>
+        <p>Then install the manifest URL in Stremio or Nuvio.</p>
+        <p>Last, press play: cached results start at full speed.</p>
       </div>
     </div>
   </section>
 
-  <!-- How It Works -->
-  <section class="page-section">
-    <div class="section-label">How it works</div>
-    <h2 class="section-heading">Three steps to streaming</h2>
-    <p class="section-sub">From configuration to playback in under a minute.</p>
-    <div class="how-steps">
-      <div class="how-step">
-        <div class="how-step-number">1</div>
-        <div class="how-step-line"></div>
-        <div>
-          <div class="how-step-title">Configure</div>
-          <div class="how-step-desc">Set your quality preferences, debrid API keys, and optional Torznab indexers below.</div>
+  <!-- Features: close-ups of the settings below -->
+  <section class="section" aria-labelledby="features-title">
+    <div class="wrap">
+      <div class="board">
+        <div class="tile tile-head" data-rise>
+          <h2 class="h2" id="features-title">What it does for you</h2>
+          <p class="lead" style="margin-top:20px">Every tile is a setting you will find in Configure.</p>
         </div>
-      </div>
-      <div class="how-step">
-        <div class="how-step-number">2</div>
-        <div class="how-step-line"></div>
-        <div>
-          <div class="how-step-title">Install</div>
-          <div class="how-step-desc">One-click install into Stremio via the generated manifest URL. Works on any device.</div>
+        <div class="tile t-6x2 f-surface" data-rise style="--i:1">
+          <div class="zoom z-field" data-ui aria-hidden="true"><label>Torznab URL</label><div class="box">http://jackett:9117/api/v2.0/indexers/all/results/torznab</div></div>
+          <div class="tile-cap"><strong>Torznab, Jackett and Prowlarr</strong><span>Point it at your own indexer manager for more sources.</span></div>
         </div>
-      </div>
-      <div class="how-step">
-        <div class="how-step-number">3</div>
-        <div>
-          <div class="how-step-title">Stream</div>
-          <div class="how-step-desc">Play any movie or series with instant debrid-resolved streams at full quality.</div>
+        <div class="tile t-6x4 f-emerald" data-rise style="--i:2">
+          <div class="zoom z-chips" data-ui aria-hidden="true"><span class="z-chip">4K</span><span class="z-chip on">1080p</span><span class="z-chip on">720p</span><span class="z-chip">480p</span></div>
+          <div class="tile-cap"><strong>Only the releases you want</strong><span>Filter by quality and audio language, then sort by quality, seeders or size.</span></div>
+        </div>
+        <div class="tile t-3x4 f-cyan" data-rise style="--i:3">
+          <div class="zoom z-field" data-ui aria-hidden="true"><label>Real-Debrid</label><div class="box">&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;</div></div>
+          <div class="tile-cap"><strong>8 debrid services</strong><span>Real-Debrid, AllDebrid, TorBox, Premiumize and four more.</span></div>
+        </div>
+        <div class="tile t-3x4 f-band" data-rise style="--i:4">
+          <div class="zoom z-chips z-subs" data-ui aria-hidden="true"><span class="z-chip on">Greek</span><span class="z-chip on">Albanian</span></div>
+          <div class="tile-cap"><strong>Subtitles in 19 languages</strong><span>Searched, ranked and synced to the release you play.</span></div>
+        </div>
+        <div class="tile t-3x2 f-amber" data-rise style="--i:5">
+          <div class="zoom z-select" data-ui aria-hidden="true">Prewarm <i>3</i></div>
+          <div class="tile-cap"><strong>Prewarm</strong><span>Starts the top results in your account while you browse.</span></div>
+        </div>
+        <div class="tile t-3x2 f-surface" data-rise style="--i:6">
+          <div class="zoom z-like" data-ui aria-hidden="true">More like this</div>
+          <div class="tile-cap"><strong>Recommendations</strong><span>Similar titles from TMDB, with your free key.</span></div>
+        </div>
+        <div class="tile t-6x2 f-emerald" data-rise style="--i:7">
+          <div class="zoom z-cmd" data-ui aria-hidden="true"><code>docker compose up -d</code><code>cp .env.example .env</code></div>
+          <div class="tile-cap"><strong>Runs on a Raspberry Pi</strong><span>Self-hosted with Docker. Your keys stay on your server.</span></div>
         </div>
       </div>
     </div>
+  </section>
+
+  <!-- Showcase: the one switch -->
+  <section class="showcase" id="privacy" aria-labelledby="privacy-title">
+    <div class="wrap">
+      <h2 id="privacy-title" data-rise><span id="privacyHeading">Your IP stays out of the swarm</span></h2>
+      <p id="privacyText" data-rise style="--i:1">With a debrid key and P2P fallback off, every stream comes from your debrid service and never from other peers. Try the switch: it is the same setting as in Configure.</p>
+    </div>
+    <button type="button" class="switch" id="privacySwitch" role="switch" aria-checked="false" aria-labelledby="privacySwitchLabel" data-ui>
+      <span class="switch-label" id="privacySwitchLabel">P2P fallback</span>
+      <span class="switch-track"><span class="switch-thumb"></span></span>
+      <span class="switch-state" id="privacySwitchState">Off, direct links only</span>
+    </button>
   </section>
 
   <!-- Configure -->
-  <div class="configure-section" id="configure">
-    <div class="section-label">Configure</div>
-    <h2 class="section-heading">Set up your addon</h2>
-    <p class="section-sub">Customize providers, quality filters, subtitles, and API keys.</p>
+  <section class="configure" id="configure" aria-labelledby="configure-title">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 class="h2" id="configure-title">Set up your addon</h2>
+        <p class="lead">Choose your settings, then install the URL this page builds. Nothing is saved here: it all lives in the URL.</p>
+      </div>
+      <div class="config-grid">
+      <div class="config-cards">
 
     <div class="config-card">
-      <div class="config-card-title">Stream Rules</div>
+      <div class="config-card-title">Stream rules</div>
       <div class="field-grid">
         <label>
           Sort order
@@ -1265,14 +760,14 @@ export function landingTemplate(manifest, initialConfig = {}) {
           TMDB API Key
           <div class="password-wrap">
             <input type="password" id="tmdb" autocomplete="off" placeholder="TMDB API key (v3 auth)" />
-            <button type="button" class="eye-toggle" data-target="tmdb" title="Toggle visibility">${SVG_EYE}</button>
+            <button type="button" class="eye-toggle" data-target="tmdb" title="Toggle visibility" aria-label="Show or hide the TMDB key">${SVG_EYE}</button>
           </div>
         </label>
       </div>
     </div>
 
     <div class="config-card">
-      <div class="config-card-title">Torznab / Jackett / Prowlarr</div>
+      <div class="config-card-title">Torznab, Jackett, Prowlarr</div>
       <div class="config-card-desc">Connect a Torznab-compatible indexer manager. Enter the full Torznab API URL and your API key.</div>
       <div class="field-grid">
         <label>
@@ -1285,20 +780,20 @@ export function landingTemplate(manifest, initialConfig = {}) {
           Torznab API Key
           <div class="password-wrap">
             <input type="password" id="torznabKey" autocomplete="off" placeholder="API key" />
-            <button type="button" class="eye-toggle" data-target="torznabKey" title="Toggle visibility">${SVG_EYE}</button>
+            <button type="button" class="eye-toggle" data-target="torznabKey" title="Toggle visibility" aria-label="Show or hide the Torznab key">${SVG_EYE}</button>
           </div>
         </label>
       </div>
     </div>
 
-    <div class="config-card" id="p2pWarningCard" style="display:none;border-color:rgba(251,191,36,0.4);">
-      <div class="config-card-title" style="color:#fbbf24;">&#9888; P2P Exposure Warning</div>
-      <div class="config-card-desc" style="color:#fbbf24;opacity:0.85;">You have no debrid service configured. Without a debrid service, streams are fetched directly via P2P (peer-to-peer), which <strong>exposes your IP address</strong> to other peers in the torrent swarm. To protect your privacy, either add a debrid API key above or enable the Privacy Proxy below and provide your own VPN/SOCKS5 proxy so that the Magnetio server routes torrent traffic through your VPN.</div>
+    <div class="config-card warn" id="p2pWarningCard" style="display:none;">
+      <div class="config-card-title">P2P exposes your IP address</div>
+      <div class="config-card-desc">You have no debrid service configured. Without one, streams are fetched directly via P2P (peer-to-peer), which <strong>exposes your IP address</strong> to other peers in the torrent swarm. To protect your privacy, either add a debrid API key below or enable the Privacy Proxy and provide your own VPN or SOCKS5 proxy, so the Magnetio server routes torrent traffic through your VPN.</div>
     </div>
 
     <div class="config-card">
-      <div class="config-card-title">Privacy Proxy</div>
-      <div class="config-card-desc">Stream torrents through the Magnetio server instead of connecting directly to the swarm. Your device never touches the torrent network.<br /><br /><strong>Important:</strong> Without a VPN/SOCKS5 proxy configured below, the server's own IP is used for torrent connections. Each user can provide their own SOCKS5 proxy (from a VPN provider) so that all torrent traffic is routed through that VPN — keeping both you and the server operator private.</div>
+      <div class="config-card-title">Privacy proxy</div>
+      <div class="config-card-desc">Stream torrents through the Magnetio server instead of connecting directly to the swarm. Your device never touches the torrent network.<br /><br /><strong>Important:</strong> without a VPN or SOCKS5 proxy configured below, the server's own IP is used for torrent connections. Each user can provide their own SOCKS5 proxy (from a VPN provider), so all torrent traffic is routed through that VPN, keeping both you and the server operator private.</div>
       <div class="field-grid">
         <label>
           P2P Privacy Proxy
@@ -1311,15 +806,15 @@ export function landingTemplate(manifest, initialConfig = {}) {
           Your SOCKS5 Proxy
           <div class="password-wrap">
             <input type="password" id="proxyUrl" autocomplete="off" placeholder="socks5://user:pass@host:1080" />
-            <button type="button" class="eye-toggle" data-target="proxyUrl" title="Toggle visibility">${SVG_EYE}</button>
+            <button type="button" class="eye-toggle" data-target="proxyUrl" title="Toggle visibility" aria-label="Show or hide the proxy address">${SVG_EYE}</button>
           </div>
         </label>
       </div>
-      <div class="config-card-desc" id="proxyHelpText" style="display:none;font-size:0.8rem;opacity:0.7;">Most VPN providers offer SOCKS5 proxy access (NordVPN, Surfshark, PIA, Mullvad, etc.). Enter the SOCKS5 address from your VPN provider above. This way, torrent traffic goes through your VPN — not through the server's IP.</div>
+      <div class="config-card-desc" id="proxyHelpText" style="display:none;">Most VPN providers offer SOCKS5 proxy access (NordVPN, Surfshark, PIA, Mullvad and others). Enter the SOCKS5 address from your VPN provider above, so torrent traffic goes through your VPN, not through the server's IP.</div>
     </div>
 
     <div class="config-card">
-      <div class="config-card-title">Debrid Services</div>
+      <div class="config-card-title">Debrid services</div>
       <div class="config-card-desc">Real-Debrid shows cached and uncached results. Enable prewarm to start the top results downloading in your account while you browse. Press play to reuse a download or start another result. Playback is ready once Real-Debrid finishes downloading.</div>
       <div class="field-grid">
         <label>
@@ -1363,68 +858,123 @@ export function landingTemplate(manifest, initialConfig = {}) {
       <div class="field-grid">
         ${DEBRID_FIELDS.map(([id, label, url]) => `
           <label>
-            <a href="${url}" target="_blank" rel="noreferrer" style="color:var(--accent);text-decoration:none;">${label} <span style="font-size:0.65em;opacity:0.6;">&#8599;</span></a>
+            <a class="key-link" href="${url}" target="_blank" rel="noreferrer">${label} key &#8599;</a>
             <div class="password-wrap">
               <input type="password" id="${id}" autocomplete="off" placeholder="${label} API key" />
-              <button type="button" class="eye-toggle" data-target="${id}" title="Toggle visibility">${SVG_EYE}</button>
+              <button type="button" class="eye-toggle" data-target="${id}" title="Toggle visibility" aria-label="Show or hide the ${label} key">${SVG_EYE}</button>
             </div>
           </label>
         `).join('')}
       </div>
     </div>
-  </div>
-
-  <!-- Install Bar (desktop) -->
-  <div class="install-bar" id="desktopSummary">
-    <div class="install-card">
-      <div class="install-card-label">Manifest URL</div>
-      <div class="install-card-url" id="manifestPreview"></div>
-      <div class="install-card-actions">
-        <button class="btn btn-primary" type="button" id="installBtn">Install in Stremio</button>
-        <button class="btn btn-secondary" type="button" id="copyBtn">Copy URL</button>
       </div>
-      <div class="status" id="status"></div>
+
+      <!-- Install (desktop): the output, kept in view -->
+      <aside class="install-bar" id="desktopSummary" aria-labelledby="install-title">
+        <div class="install-card" data-ui>
+          <h3 id="install-title">Manifest URL</h3>
+          <div class="install-card-url" id="manifestPreview"></div>
+          <div class="install-card-actions">
+            <button class="btn btn-primary" type="button" id="installBtn">Install in Stremio</button>
+            <button class="btn btn-quiet" type="button" id="copyBtn">Copy URL</button>
+          </div>
+          <div class="status" id="status" role="status"></div>
+        </div>
+      </aside>
+      </div>
     </div>
-  </div>
+  </section>
 
   <!-- Lidhra, from the same maker: the same debrid account, on Apple devices -->
-  <div class="lidhra-wrap">
-    <section class="lidhra-promo lidhra-promo--magnetio" aria-labelledby="lidhra-promo-title" lang="en">
+  <section class="section" aria-labelledby="lidhra-promo-title">
+    <div class="wrap">
+    <div class="lidhra-promo lidhra-promo--magnetio" lang="en" data-rise>
       <div class="lidhra-promo__inner">
       <div class="lidhra-promo__copy">
         <h2 class="lidhra-promo__title" id="lidhra-promo-title">Your debrid account, as a native Apple app</h2>
         <p class="lidhra-promo__text">Paste a magnet or a link and Lidhra fetches it through Real-Debrid, AllDebrid, TorBox or six other services, then downloads it natively and resumes where it stopped. Finished files wait in a library, ready to play or cast to a TV.</p>
         <div class="lidhra-promo__facts">
-          <img class="lidhra-promo__icon" src="/static/lidhra/lidhra-icon.webp" width="44" height="44" alt="Lidhra app icon" loading="lazy" decoding="async">
-          <p><strong>Lidhra for iPhone, iPad, Mac, Apple TV and Vision Pro</strong><br>One purchase, no subscription.</p>
+          <img class="lidhra-promo__icon" src="/static/lidhra/lidhra-icon.webp" width="48" height="48" alt="Lidhra app icon" loading="lazy" decoding="async">
+          <p><strong>For iPhone, iPad, Mac, Apple TV and Vision Pro</strong><br>One purchase, no subscription.</p>
         </div>
         <div class="lidhra-promo__actions">
-          <a class="lidhra-promo__badge" href="https://apps.apple.com/app/lidhra-debrid-downloader/id6790952504?ct=magnetio&mt=8" rel="noopener"><img src="/static/lidhra/app-store-badge-white.svg" width="120" height="40" alt="Download Lidhra on the App Store" loading="lazy" decoding="async"></a>
+          <a class="lidhra-promo__badge" href="https://apps.apple.com/app/lidhra-debrid-downloader/id6790952504?ct=magnetio&mt=8" rel="noopener"><img src="/static/lidhra/app-store-badge-white.svg" width="144" height="48" alt="Download Lidhra on the App Store" loading="lazy" decoding="async"></a>
           <a class="lidhra-promo__more" href="https://lidhra.peterdsp.dev/" rel="noopener">See how Lidhra works</a>
         </div>
       </div>
       <figure class="lidhra-promo__shots">
-        <img class="lidhra-promo__library" src="/static/lidhra/lidhra-transfers-1200.webp" srcset="/static/lidhra/lidhra-transfers-640.webp 640w, /static/lidhra/lidhra-transfers-1200.webp 1200w" sizes="(min-width: 900px) 560px, 92vw" width="1200" height="600" alt="Lidhra on Mac: downloads coming to the device and files ready in the debrid cloud, with progress bars" loading="lazy" decoding="async">
-        <img class="lidhra-promo__phone" src="/static/lidhra/lidhra-add-360.webp" srcset="/static/lidhra/lidhra-add-240.webp 240w, /static/lidhra/lidhra-add-360.webp 360w" sizes="(min-width: 900px) 150px, 26vw" width="360" height="570" alt="Lidhra on iPhone: the Add a transfer sheet, with a field for a magnet or an https link" loading="lazy" decoding="async">
+        <img class="lidhra-promo__library" src="/static/lidhra/lidhra-transfers-1200.webp" srcset="/static/lidhra/lidhra-transfers-640.webp 640w, /static/lidhra/lidhra-transfers-1200.webp 1200w" sizes="(min-width: 900px) 640px, 92vw" width="1200" height="600" alt="Lidhra on Mac: downloads coming to the device and files ready in the debrid cloud, with progress bars" loading="lazy" decoding="async">
+        <img class="lidhra-promo__phone" src="/static/lidhra/lidhra-add-360.webp" srcset="/static/lidhra/lidhra-add-240.webp 240w, /static/lidhra/lidhra-add-360.webp 360w" sizes="(min-width: 900px) 170px, 26vw" width="360" height="570" alt="Lidhra on iPhone: the Add a transfer sheet, with a field for a magnet or an https link" loading="lazy" decoding="async">
       </figure>
       </div>
-    </section>
-  </div>
+    </div>
+    </div>
+  </section>
 
-  <!-- Footer -->
+  <!-- FAQ -->
+  <section class="section faq" id="faq" aria-labelledby="faq-title">
+    <div class="wrap">
+      <h2 class="h2" id="faq-title" data-rise>Questions, answered</h2>
+      <div class="cards" data-rise style="--i:1">
+        <div class="qcard open">
+          <div class="qcard-shape"></div><span class="qcard-tab">Content</span>
+          <button type="button" aria-expanded="true" aria-controls="qa1">Does Magnetio host any content?</button>
+          <div class="qcard-answer" id="qa1">No. Magnetio does not host or distribute any content. It finds links that already exist and hands them to your player. <a class="text-link" href="https://github.com/peterdsp/Magnetio#disclaimer" target="_blank" rel="noreferrer">Read the disclaimer</a>.</div>
+        </div>
+        <div class="qcard">
+          <div class="qcard-shape"></div><span class="qcard-tab">Debrid</span>
+          <button type="button" aria-expanded="false" aria-controls="qa2">Do I need a debrid account?</button>
+          <div class="qcard-answer" id="qa2">No, but without one, streams come over P2P and other peers can see your IP address. Add a debrid key, or turn on the privacy proxy with your own SOCKS5 proxy.</div>
+        </div>
+        <div class="qcard">
+          <div class="qcard-shape"></div><span class="qcard-tab">Your keys</span>
+          <button type="button" aria-expanded="false" aria-controls="qa3">Where do my API keys go?</button>
+          <div class="qcard-answer" id="qa3">Into your manifest URL, and from there only to the server that runs the addon. Run your own copy and they never leave your machine. Keep the URL to yourself.</div>
+        </div>
+        <div class="qcard">
+          <div class="qcard-shape"></div><span class="qcard-tab">Self-host</span>
+          <button type="button" aria-expanded="false" aria-controls="qa4">How do I run my own copy?</button>
+          <div class="qcard-answer" id="qa4">Clone the repository, copy <code>.env.example</code> to <code>.env</code>, set your public URL, then run <code>docker compose up -d</code>. A Raspberry Pi is enough. The <a class="text-link" href="https://github.com/peterdsp/Magnetio#deployment" target="_blank" rel="noreferrer">deployment guide</a> has the details.</div>
+        </div>
+        <div class="qcard">
+          <div class="qcard-shape"></div><span class="qcard-tab">Players</span>
+          <button type="button" aria-expanded="false" aria-controls="qa5">Does it work with Nuvio too?</button>
+          <div class="qcard-answer" id="qa5">Yes. <a class="text-link" href="https://www.stremio.com" target="_blank" rel="noreferrer">Stremio</a> and <a class="text-link" href="https://nuvioplugin.com" target="_blank" rel="noreferrer">Nuvio</a> use the same manifest URL and the same configuration. Install it once in each.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+  </main>
+
+  <!-- Footer: the mark, built large -->
   <footer class="site-footer">
-    <div class="footer-text">
-      Magnetio does not host or distribute any content.
-      <a href="https://github.com/peterdsp/Magnetio#disclaimer" target="_blank" rel="noreferrer">Read disclaimer</a>.<br />
-      <a href="https://github.com/peterdsp/Magnetio" target="_blank" rel="noreferrer">GitHub</a>
+    <div class="wrap">
+      <div class="footer-mark" aria-hidden="true" data-rise>
+        <svg viewBox="326 284 380 454">
+          <defs><clipPath id="footBody"><rect x="300" y="528" width="440" height="240" /></clipPath></defs>
+          <path clip-path="url(#footBody)" fill="#10b981" d="M326 284H438V543C438 586.078 472.922 621 516 621C559.078 621 594 586.078 594 543V284H706V548C706 652.934 620.934 738 516 738C411.066 738 326 652.934 326 548V284Z" />
+          <rect x="326" y="284" width="112" height="120" fill="#f5a623" />
+          <rect x="594" y="284" width="112" height="120" fill="#ff6b6b" />
+          <rect x="326" y="422" width="112" height="88" fill="#e5e7eb" />
+          <rect x="594" y="422" width="112" height="88" fill="#e5e7eb" />
+        </svg>
+        <div class="word"><svg viewBox="0 0 1000 262" preserveAspectRatio="xMaxYMax meet"><text x="0" y="206" fill="#eef2f8" font-family="Inter, sans-serif" font-weight="800" font-size="222" letter-spacing="-8.8" textLength="1000" lengthAdjust="spacingAndGlyphs">Magnetio</text></svg></div>
+      </div>
+      <div class="footer-cols">
+        <div><h3>Addon</h3><ul><li><a href="#configure">Configure</a></li><li><a href="#how">How it works</a></li><li><a href="#faq">FAQ</a></li></ul></div>
+        <div><h3>Code</h3><ul><li><a href="https://github.com/peterdsp/Magnetio" target="_blank" rel="noreferrer">GitHub</a></li><li><a href="https://github.com/peterdsp/Magnetio#deployment" target="_blank" rel="noreferrer">Deployment guide</a></li><li><a href="https://github.com/peterdsp/Magnetio/blob/main/LICENSE" target="_blank" rel="noreferrer">License</a></li></ul></div>
+        <div><h3>Also by the maker</h3><ul><li><a href="https://lidhra.peterdsp.dev/" rel="noopener">Lidhra</a></li><li><a href="https://github.com/peterdsp" target="_blank" rel="noreferrer">peterdsp on GitHub</a></li></ul></div>
+        <p class="footer-note">Magnetio does not host or distribute any content. <a href="https://github.com/peterdsp/Magnetio#disclaimer" target="_blank" rel="noreferrer">Read disclaimer</a>.</p>
+      </div>
+      <div class="footer-last"><span>Magnetio v${escapeHtml(manifest.version)}, open source</span><a href="#configure" class="btn btn-primary">Configure</a></div>
     </div>
   </footer>
 
-  <!-- Mobile footer -->
+  <!-- Mobile install bar -->
   <div class="mobile-footer" id="mobileFooter">
     <div class="footer-actions">
       <button class="btn btn-primary" type="button" id="mobileInstallBtn">Install</button>
-      <button class="btn btn-secondary" type="button" id="mobileCopyBtn">Copy URL</button>
+      <button class="btn btn-quiet" type="button" id="mobileCopyBtn">Copy URL</button>
     </div>
     <button class="preview-toggle" type="button" id="mobilePreviewToggle">Show manifest URL</button>
     <div class="footer-preview" id="mobilePreview">
@@ -1433,6 +983,7 @@ export function landingTemplate(manifest, initialConfig = {}) {
   </div>
 
   <script>
+    document.documentElement.classList.add('js');
     const initialConfig = ${initialState};
 
     (function initTheme() {
@@ -1570,6 +1121,8 @@ export function landingTemplate(manifest, initialConfig = {}) {
     function refreshPreview() {
       var url = manifestUrl();
       document.getElementById('manifestPreview').textContent = url;
+      var heroEl = document.getElementById('heroManifest');
+      if (heroEl) heroEl.textContent = url;
       var mobileEl = document.getElementById('mobileManifestPreview');
       if (mobileEl) mobileEl.textContent = url;
       document.getElementById('status').textContent = '';
@@ -1614,17 +1167,62 @@ export function landingTemplate(manifest, initialConfig = {}) {
       });
     });
 
-    // Fade-in on scroll (IntersectionObserver)
-    document.querySelectorAll('.page-section').forEach(function(section) {
-      var observer = new IntersectionObserver(function(entries) {
+    // Entrances: each part rises once as its section arrives. Without script nothing is hidden.
+    (function reveal() {
+      var magnet = document.querySelector('.magnet');
+      // The magnet is on the first screen and starts fully clipped, so it opens on the next frame.
+      requestAnimationFrame(function() { requestAnimationFrame(function() { magnet.classList.add('is-in'); }); });
+      var parts = document.querySelectorAll('[data-rise]');
+      if (!('IntersectionObserver' in window)) { parts.forEach(function(el) { el.classList.add('is-in'); }); return; }
+      var io = new IntersectionObserver(function(entries) {
         entries.forEach(function(entry) {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('visible');
-            observer.unobserve(entry.target);
-          }
+          if (entry.isIntersecting) { entry.target.classList.add('is-in'); io.unobserve(entry.target); }
         });
-      }, { threshold: 0.1 });
-      observer.observe(section);
+      }, { threshold: 0.12 });
+      parts.forEach(function(el) { io.observe(el); });
+    })();
+
+    // The phone install bar appears while the settings are on screen: the URL it holds is built there.
+    (function mobileBar() {
+      var bar = document.getElementById('mobileFooter');
+      var area = document.getElementById('configure');
+      if (!('IntersectionObserver' in window)) { bar.classList.add('is-shown'); return; }
+      new IntersectionObserver(function(entries) {
+        bar.classList.toggle('is-shown', entries[0].isIntersecting);
+      }, { rootMargin: '0px 0px -30% 0px' }).observe(area);
+    })();
+
+    // The privacy switch is the same setting as "P2P fallback when Debrid misses".
+    var privacy = document.getElementById('privacy');
+    var privacySwitch = document.getElementById('privacySwitch');
+    function renderPrivacy() {
+      var on = document.getElementById('p2pFallback').value === '1';
+      privacy.classList.toggle('is-on', on);
+      privacySwitch.setAttribute('aria-checked', on ? 'true' : 'false');
+      document.getElementById('privacySwitchState').textContent = on ? 'On, peers on a miss' : 'Off, direct links only';
+      document.getElementById('privacyHeading').textContent = on ? 'A miss goes to the swarm' : 'Your IP stays out of the swarm';
+      document.getElementById('privacyText').textContent = on
+        ? 'With P2P fallback on, a title your debrid service has not got falls back to peers, and they can see your IP unless you set a SOCKS5 proxy.'
+        : 'With a debrid key and P2P fallback off, every stream comes from your debrid service and never from other peers. Try the switch: it is the same setting as in Configure.';
+    }
+    privacySwitch.addEventListener('click', function() {
+      var select = document.getElementById('p2pFallback');
+      select.value = select.value === '1' ? '0' : '1';
+      renderPrivacy();
+      refreshPreview();
+    });
+    document.getElementById('p2pFallback').addEventListener('change', renderPrivacy);
+
+    // Questions: one card open at a time.
+    var qcards = document.querySelectorAll('.qcard');
+    qcards.forEach(function(card) {
+      card.querySelector('button').addEventListener('click', function() {
+        qcards.forEach(function(other) {
+          var open = other === card;
+          other.classList.toggle('open', open);
+          other.querySelector('button').setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+      });
     });
 
     function updateProxyVisibility() {
@@ -1653,6 +1251,7 @@ export function landingTemplate(manifest, initialConfig = {}) {
     updateProxyVisibility();
     updateP2pWarning();
     refreshPreview();
+    renderPrivacy();
   </script>
 </body>
 </html>`;
