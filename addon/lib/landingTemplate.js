@@ -809,35 +809,175 @@ export function landingTemplate(manifest, initialConfig = {}) {
     .footer-text a { color: var(--accent); text-decoration: none; }
     .footer-text a:hover { text-decoration: underline; }
 
-    /* ---- From the same maker: Lidhra card ---- */
-    .lidhra-card {
-      max-width: 640px;
-      margin: 0 auto 32px;
+    /* ---- Lidhra, from the same maker ---- */
+    /* Lidhra promo. A content-layer card: solid surface, no glass, no shadow.
+       Each site maps its own tokens onto the --lp-* roles below. */
+
+    .lidhra-promo {
+      --lp-surface: #f2f2f4;
+      --lp-ink: #16161a;
+      --lp-muted: #55555c;
+      --lp-link: #1f5fd1;
+      --lp-ring: #1f5fd1;
+      --lp-radius: 22px;
+      --lp-pad: clamp(18px, 4vw, 32px);
+      --lp-font: inherit;
+      --lp-title-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.1rem);
+      container-type: inline-size;
+      margin: 3rem 0;
+      padding: var(--lp-pad);
+      border-radius: var(--lp-radius);
+      background: var(--lp-surface);
+      color: var(--lp-ink);
+      font-family: var(--lp-font);
       text-align: left;
-      background: var(--surface);
+    }
+
+    .lidhra-promo__copy { min-width: 0; }
+
+    .lidhra-promo__title {
+      margin: 0;
+      max-width: 18ch;
+      font-size: var(--lp-title-size);
+      line-height: 1.08;
+      letter-spacing: -0.025em;
+      font-weight: 750;
+      text-wrap: balance;
+      color: var(--lp-ink);
+    }
+
+    .lidhra-promo__text {
+      margin: 14px 0 0;
+      max-width: 46ch;
+      font-size: 1.0625rem;
+      line-height: 1.55;
+      color: var(--lp-ink);
+    }
+
+    .lidhra-promo__facts {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-top: 20px;
+    }
+
+    .lidhra-promo__facts p {
+      margin: 0;
+      font-size: 0.95rem;
+      line-height: 1.45;
+      color: var(--lp-muted);
+    }
+
+    .lidhra-promo__facts strong { color: var(--lp-ink); font-weight: 650; }
+
+    /* Concentric with the card: the icon's radius is the platform's squircle approximation. */
+    .lidhra-promo__icon {
+      flex: none;
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+    }
+
+    .lidhra-promo__actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px 22px;
+      margin-top: 22px;
+    }
+
+    .lidhra-promo__badge {
+      display: inline-block;
+      line-height: 0;
+      border-radius: 9px;
+    }
+
+    .lidhra-promo__badge img {
+      display: block;
+      width: auto;
+      height: 48px;
+    }
+
+    .lidhra-promo__more {
+      font-weight: 650;
+      color: var(--lp-link);
+      text-underline-offset: 3px;
+    }
+
+    .lidhra-promo a:focus-visible {
+      outline: 3px solid var(--lp-ring);
+      outline-offset: 3px;
+    }
+
+    /* Screens: the library on the big screen, the phone overlapping its corner.
+       Inner radii are the card radius minus the card padding, so the corners stay concentric. */
+    .lidhra-promo__shots {
+      order: -1;
+      display: grid;
+      margin: 0 0 13%;
+      min-width: 0;
+    }
+
+    .lidhra-promo__library,
+    .lidhra-promo__phone { grid-area: 1 / 1; display: block; height: auto; }
+
+    .lidhra-promo__library {
+      width: 100%;
+      aspect-ratio: 2 / 1;
+      object-fit: cover;
+      border-radius: max(8px, calc(var(--lp-radius) - var(--lp-pad) + 4px));
+      background: #0d1424;
+    }
+
+    .lidhra-promo__phone {
+      justify-self: end;
+      align-self: end;
+      width: 27%;
+      aspect-ratio: 360 / 570;
+      margin: 0 5% -13% 0;
+      border-radius: 14px;
+      outline: 4px solid var(--lp-surface);
+      background: #e9ebf2;
+    }
+
+    .lidhra-promo__inner {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 24px 40px;
+    }
+
+    @container (min-width: 700px) {
+      .lidhra-promo__inner { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); align-items: center; }
+      .lidhra-promo__shots { order: 0; margin-bottom: 9%; }
+      .lidhra-promo__phone { width: 25%; margin-bottom: -9%; }
+    }
+
+    @container (min-width: 480px) and (max-width: 699px) {
+      .lidhra-promo__shots { margin-bottom: 9%; }
+      .lidhra-promo__phone { width: 21%; margin-bottom: -9%; }
+    }
+
+    /* Magnetio's tokens on the promo: the config cards' surface, border and radius. */
+    .lidhra-wrap { max-width: 800px; margin: 0 auto 72px; padding: 0 24px; }
+    .lidhra-promo {
+      --lp-surface: #101116;
+      --lp-ink: var(--text-primary);
+      --lp-muted: var(--text-secondary);
+      --lp-link: var(--accent);
+      --lp-ring: var(--accent);
+      --lp-radius: 20px;
+      --lp-font: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+      --lp-title-size: clamp(1.45rem, 1.1rem + 1.4vw, 1.9rem);
+      margin: 0;
       border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 24px;
     }
-    .lidhra-card-label {
-      font-family: "JetBrains Mono", monospace;
-      font-size: 0.72rem;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--accent);
-      margin-bottom: 14px;
-    }
-    .lidhra-card-body { display: flex; gap: 18px; align-items: flex-start; }
-    .lidhra-card-icon { width: 56px; height: 56px; flex-shrink: 0; border-radius: 13px; }
-    .lidhra-card-name { font-weight: 700; font-size: 1.1rem; letter-spacing: -0.02em; margin-bottom: 6px; }
-    .lidhra-card-text p { font-size: 0.92rem; color: var(--text-secondary); line-height: 1.6; }
-    .lidhra-card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-top: 16px; }
-    .lidhra-card-badge { display: inline-block; line-height: 0; border-radius: 8px; }
-    .lidhra-card-badge img { height: 40px; width: auto; }
-    .lidhra-card-site { color: var(--accent); font-size: 0.88rem; text-decoration: none; }
-    .lidhra-card-site:hover { text-decoration: underline; }
-    .lidhra-card a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-    @media (max-width: 480px) { .lidhra-card-body { flex-direction: column; } .lidhra-card { padding: 20px; } }
+    .lidhra-promo__title { font-weight: 700; color: #fff; max-width: 24ch; }
+    .lidhra-promo__text { color: var(--text-primary); }
+    .lidhra-promo__more { text-decoration: none; }
+    .lidhra-promo__more:hover { text-decoration: underline; color: var(--accent-hover); }
+    .lidhra-promo__badge img { box-shadow: 0 0 0 1px rgba(255,255,255,0.22); border-radius: 8px; }
+    @media (max-width: 640px) { .lidhra-wrap { padding: 0 16px; margin-bottom: 48px; } }
+
 
     /* ---- Mobile footer ---- */
     .mobile-footer {
@@ -1247,22 +1387,32 @@ export function landingTemplate(manifest, initialConfig = {}) {
     </div>
   </div>
 
-  <!-- Footer -->
-  <footer class="site-footer">
-    <section class="lidhra-card" aria-labelledby="lidhra-card-title">
-      <div class="lidhra-card-label">From the same maker</div>
-      <div class="lidhra-card-body">
-        <img class="lidhra-card-icon" src="/static/lidhra/lidhra-icon.webp" alt="Lidhra app icon" width="56" height="56" loading="lazy" decoding="async" />
-        <div class="lidhra-card-text">
-          <h2 id="lidhra-card-title" class="lidhra-card-name">Lidhra</h2>
-          <p>Your library, everywhere: films and series sorted with posters and Next up, played on the fly or cast to a TV.</p>
-          <div class="lidhra-card-actions">
-            <a class="lidhra-card-badge" href="https://apps.apple.com/app/lidhra-debrid-downloader/id6790952504" rel="noopener"><img src="/static/lidhra/app-store-badge-white.svg" alt="Download on the App Store" width="120" height="40" loading="lazy" /></a>
-            <a class="lidhra-card-site" href="https://lidhra.peterdsp.dev/" rel="noopener">lidhra.peterdsp.dev</a>
-          </div>
+  <!-- Lidhra, from the same maker: the same debrid account, on Apple devices -->
+  <div class="lidhra-wrap">
+    <section class="lidhra-promo lidhra-promo--magnetio" aria-labelledby="lidhra-promo-title" lang="en">
+      <div class="lidhra-promo__inner">
+      <div class="lidhra-promo__copy">
+        <h2 class="lidhra-promo__title" id="lidhra-promo-title">Your debrid cloud, sorted and ready to play</h2>
+        <p class="lidhra-promo__text">Lidhra signs in to the debrid account you already use and turns your cloud into films and series with posters, seasons and Up Next, played on the spot or sent to your TV.</p>
+        <div class="lidhra-promo__facts">
+          <img class="lidhra-promo__icon" src="/static/lidhra/lidhra-icon.webp" width="44" height="44" alt="Lidhra app icon" loading="lazy" decoding="async">
+          <p><strong>Lidhra for iPhone, iPad, Mac, Apple TV and Vision Pro</strong><br>One purchase, no subscription.</p>
+        </div>
+        <div class="lidhra-promo__actions">
+          <a class="lidhra-promo__badge" href="https://apps.apple.com/app/lidhra-debrid-downloader/id6790952504?ct=magnetio&mt=8" rel="noopener"><img src="/static/lidhra/app-store-badge-white.svg" width="120" height="40" alt="Download Lidhra on the App Store" loading="lazy" decoding="async"></a>
+          <a class="lidhra-promo__more" href="https://lidhra.peterdsp.dev/" rel="noopener">See how Lidhra works</a>
         </div>
       </div>
+      <figure class="lidhra-promo__shots">
+        <img class="lidhra-promo__library" src="/static/lidhra/lidhra-library-1200.webp" srcset="/static/lidhra/lidhra-library-640.webp 640w, /static/lidhra/lidhra-library-1200.webp 1200w" sizes="(min-width: 900px) 560px, 92vw" width="1200" height="600" alt="Lidhra library on Apple TV: a grid of film and series posters with filters for films, series and genres" loading="lazy" decoding="async">
+        <img class="lidhra-promo__phone" src="/static/lidhra/lidhra-play-360.webp" srcset="/static/lidhra/lidhra-play-240.webp 240w, /static/lidhra/lidhra-play-360.webp 360w" sizes="(min-width: 900px) 150px, 26vw" width="360" height="570" alt="Lidhra on iPhone: a saved film with Play in Lidhra and Cast to TV buttons" loading="lazy" decoding="async">
+      </figure>
+      </div>
     </section>
+  </div>
+
+  <!-- Footer -->
+  <footer class="site-footer">
     <div class="footer-text">
       Magnetio does not host or distribute any content.
       <a href="https://github.com/peterdsp/Magnetio#disclaimer" target="_blank" rel="noreferrer">Read disclaimer</a>.<br />
