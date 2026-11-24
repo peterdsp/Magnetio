@@ -33,8 +33,7 @@ export async function getCachedStreams(streams, apiKey) {
   const results = new Map();
 
   try {
-    const { data: torrents } = await rdGet(`${RD_BASE}/torrents`, apiKey, { limit: 200 }, 2000);
-    if (!Array.isArray(torrents)) return results;
+    const torrents = await listTorrents(apiKey, { limit: 200 }, 2000);
 
     const hashSet = new Set(hashes.map(h => h.toLowerCase()));
 
@@ -84,7 +83,7 @@ export async function getCatalog(apiKey, type, skip = 0) {
   if (!isValidToken(apiKey)) return [];
 
   try {
-    const { data: torrents } = await rdGet(`${RD_BASE}/torrents`, apiKey, { limit: 25, offset: skip });
+    const torrents = await listTorrents(apiKey, { limit: 25, offset: skip });
     return torrents.map(t => ({
       id:          `rd:${t.hash}`,
       type,
@@ -135,7 +134,7 @@ async function prepareForStream(stream, apiKey) {
 }
 
 async function prepareAccountTorrent(stream, apiKey) {
-  const { data: existing } = await rdGet(`${RD_BASE}/torrents`, apiKey, { limit: 200 });
+  const existing = await listTorrents(apiKey, { limit: 200 });
   const candidates = existing.filter(t => t.hash?.toLowerCase() === stream.infoHash.toLowerCase() && !TERMINAL_STATES.has(t.status));
   for (const candidate of candidates) {
     const prepared = await prepareVideo(candidate.id, stream, apiKey);
@@ -217,6 +216,14 @@ function rdGet(url, apiKey, params = {}, timeout = 15_000) {
     params,
     timeout,
   });
+}
+
+// GET /torrents answers 204 No Content (an empty body, which axios hands back
+// as '') when the library is empty or the offset is past the end. Treat any
+// body that is not a list as no torrents rather than letting callers crash.
+async function listTorrents(apiKey, params, timeout) {
+  const { data } = await rdGet(`${RD_BASE}/torrents`, apiKey, params, timeout);
+  return Array.isArray(data) ? data : [];
 }
 
 function rdPost(url, apiKey, data = {}) {
