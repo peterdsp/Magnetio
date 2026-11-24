@@ -5,7 +5,7 @@
  * 207 would drop 4K movies and HD TV) and results are narrowed to the video
  * categories below client side.
  */
-import { get } from '../lib/httpClient.js';
+import { get, isCancellation } from '../lib/httpClient.js';
 import { parseTitle, buildSearchQuery } from '../lib/titleHelper.js';
 import { tryDomains, PROVIDER_DOMAINS } from '../lib/domainRotation.js';
 import { normaliseInfoHash } from '../lib/magnetHelper.js';
@@ -45,7 +45,8 @@ export async function scrape(meta) {
       .filter(t => t.info_hash && categories.has(String(t.category)))
       .map(t => normalise(t, meta));
   } catch (err) {
-    logger.warn(`[TPB] ${err.message}`);
+    // A cancelled search was abandoned by the aggregator, which logs that itself.
+    if (!isCancellation(err)) logger.warn(`[TPB] ${err.message}`);
     return [];
   }
 }

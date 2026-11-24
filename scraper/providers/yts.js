@@ -2,7 +2,7 @@
  * YTS provider -- uses the official YTS JSON API.
  * Supports movies only (no series).
  */
-import { get } from '../lib/httpClient.js';
+import { get, isCancellation } from '../lib/httpClient.js';
 import { parseTitle } from '../lib/titleHelper.js';
 import { tryDomains, PROVIDER_DOMAINS } from '../lib/domainRotation.js';
 import { normaliseInfoHash } from '../lib/magnetHelper.js';
@@ -36,7 +36,8 @@ export async function scrape(meta) {
       (movie.torrents ?? []).map(t => normalise(movie, t))
     );
   } catch (err) {
-    logger.warn(`[YTS] ${err.message}`);
+    // A cancelled search was abandoned by the aggregator, which logs that itself.
+    if (!isCancellation(err)) logger.warn(`[YTS] ${err.message}`);
     return [];
   }
 }

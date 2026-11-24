@@ -1,4 +1,5 @@
 import { logger } from './logger.js';
+import { isCancellation } from './httpClient.js';
 
 const domainHealth = new Map();
 const DEFAULT_COOLDOWN_MS    = 5 * 60 * 1000;
@@ -52,6 +53,9 @@ export async function tryDomains(domains, requestFn, providerName, { validate } 
       markHealthy(domain);
       return result;
     } catch (err) {
+      // Cancelled by us, not refused by the domain: the next one would be
+      // cancelled too, and the domain did nothing to earn a cooldown.
+      if (isCancellation(err)) throw err;
       const status = err.response?.status;
       const reason = classifyError(status);
       if (reason) {

@@ -29,6 +29,7 @@ import * as tokyotosho       from './tokyotosho.js';
 import * as torznab          from './torznab.js';
 import { logger } from '../lib/logger.js';
 import { isSkipped } from '../lib/providerHealth.js';
+import { runWithSignal } from '../lib/httpClient.js';
 
 const ALL_PROVIDERS = [
   yts,
@@ -139,6 +140,9 @@ export async function scrapeAll(type, meta, providerIds = null, context = {}) {
   // passes and hand a user who asked for Italian an English-only list, so the
   // early return waits for them. The hard timeout still applies.
   let pendingLocalized = jobs.filter(j => j.localized).length;
+  // One per search still running. Aborting it cancels the search's requests,
+  // queued or in flight, so nothing keeps working for a response already sent.
+  const controllers = new Set();
 
   return new Promise((resolve) => {
     const finalize = () => {
@@ -146,6 +150,7 @@ export async function scrapeAll(type, meta, providerIds = null, context = {}) {
       resolved = true;
       clearTimeout(earlyTimer);
       clearTimeout(hardTimer);
+      for (const controller of controllers) controller.abort(new Error('Search finished'));
 
       logger.info(`Scrape totals: ${collected.length} raw, ${completedCount}/${jobs.length} searches responded`);
       const deduped = deduplicate(collected);
@@ -179,9 +184,14 @@ export async function scrapeAll(type, meta, providerIds = null, context = {}) {
       limit(async () => {
         if (resolved) return;
         const start = Date.now();
+        const controller = new AbortController();
+        controllers.add(controller);
         try {
+          // The timeout used to stop only the waiting: the provider carried on
+          // with its queued requests, holding its parsed pages, long after the
+          // response had gone. The signal stops the provider as well.
           const results = await withTimeout(
-            p.scrape({ ...query, ...context, type }),
+            runWithSignal(controller.signal, () => p.scrape({ ...query, ...context, type })),
             PROVIDER_TIMEOUT_MS,
             `${p.name} timed out`
           );
@@ -194,6 +204,8 @@ export async function scrapeAll(type, meta, providerIds = null, context = {}) {
         } catch (err) {
           logger.warn(`[${label}] ${err.message} (${Date.now() - start}ms)`);
         } finally {
+          controller.abort(new Error(`${p.name} timed out`));
+          controllers.delete(controller);
           completedCount++;
           if (localized) pendingLocalized--;
           // If all providers finished, return immediately

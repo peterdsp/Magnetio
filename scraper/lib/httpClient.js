@@ -1,5 +1,6 @@
 import http from 'node:http';
 import https from 'node:https';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import axios from 'axios';
 import Bottleneck from 'bottleneck';
 import { recordSuccess, recordFailure } from './providerHealth.js';
@@ -16,11 +17,46 @@ const DEFAULT_HEADERS = {
 
 const limiters = new Map();
 
+// Jobs a provider's limiter may hold waiting. A limiter starts at most four
+// jobs a second (minTime 250), so a job queued behind more than this cannot
+// start before the aggregator's provider timeout has given up on it. Without a
+// bound the queue grew for as long as requests arrived faster than a slow site
+// answered, and every queued job kept its provider's parsed page alive until
+// it ran: that is what exhausted the heap in production. When the queue is
+// full the oldest waiting job is dropped, since it is the likeliest to belong
+// to a request that has already been answered.
+const QUEUE_HIGH_WATER = Math.max(1, parseInt(process.env.SCRAPER_LIMITER_HIGH_WATER ?? '32', 10) || 32);
+
 function getLimiter(key) {
   if (!limiters.has(key)) {
-    limiters.set(key, new Bottleneck({ minTime: 250, maxConcurrent: 4 }));
+    limiters.set(key, new Bottleneck({
+      minTime: 250,
+      maxConcurrent: 4,
+      highWater: QUEUE_HIGH_WATER,
+      strategy: Bottleneck.strategy.LEAK,
+    }));
   }
   return limiters.get(key);
+}
+
+// The abort signal of the provider search a request belongs to. The aggregator
+// sets it around each provider call (see runWithSignal), so every request a
+// provider makes, however deep, is cancelled when the aggregator stops
+// waiting, without each provider having to thread a signal through.
+const signalScope = new AsyncLocalStorage();
+
+/**
+ * Run fn with every httpClient request it makes tied to signal: once the
+ * signal aborts, queued requests are dropped without touching the network,
+ * a request in flight is aborted, and no retry is attempted.
+ *
+ * @template T
+ * @param {AbortSignal} signal
+ * @param {() => T} fn
+ * @returns {T}
+ */
+export function runWithSignal(signal, fn) {
+  return signalScope.run(signal, fn);
 }
 
 /**
@@ -69,7 +105,10 @@ async function request(method, url, {
   retries = 2,
   lookup = null,
   data = undefined,
+  signal = signalScope.getStore(),
 } = {}) {
+  // The caller has already given up: do not queue work nobody will read.
+  if (signal?.aborted) throw abortReason(signal);
   const limiter = getLimiter(limiterKey);
 
   // A pinned lookup routes the socket to a pre-validated IP. Disable redirects
@@ -92,9 +131,12 @@ async function request(method, url, {
     // and #201.
     : (proxyAppliesTo(limiterKey) ? (proxyAgents() ?? {}) : {});
 
-  return limiter.schedule(async () => {
+  const job = limiter.schedule(async () => {
     let lastErr;
     for (let attempt = 0; attempt <= retries; attempt++) {
+      // Checked before every attempt: a job that waited in the queue past its
+      // caller's timeout ends here instead of fetching a page into the void.
+      if (signal?.aborted) throw abortReason(signal);
       try {
         const res = await axios({
           method,
@@ -104,6 +146,7 @@ async function request(method, url, {
           headers: { ...DEFAULT_HEADERS, ...headers },
           timeout,
           responseType,
+          ...(signal ? { signal } : {}),
           ...safe,
         });
         // Recorded here rather than in each provider: a provider catches its
@@ -112,6 +155,9 @@ async function request(method, url, {
         recordSuccess(limiterKey);
         return res;
       } catch (err) {
+        // Cancelled by the caller, not failed by the provider: neither
+        // retried nor counted against the provider's health.
+        if (signal?.aborted) throw abortReason(signal);
         lastErr = err;
         const status = err.response?.status;
         // 429 is the one 4xx that means "ask again later" rather than "your
@@ -119,7 +165,7 @@ async function request(method, url, {
         // server sends one. It used to be thrown with the rest of the 4xx
         // range and never retried at all.
         if (status === 429 && attempt < retries) {
-          await sleep(retryAfterMs(err, attempt));
+          await sleep(retryAfterMs(err, attempt), signal);
           continue;
         }
         // Any other client error is final.
@@ -127,16 +173,59 @@ async function request(method, url, {
           recordFailure(limiterKey, err);
           throw err;
         }
-        if (attempt < retries) await sleep(1000 * (attempt + 1));
+        if (attempt < retries) await sleep(1000 * (attempt + 1), signal);
       }
     }
     recordFailure(limiterKey, lastErr);
     throw lastErr;
   });
+  // Bottleneck rejects a job dropped from a full queue with its own error.
+  const tagged = job.catch(err => {
+    if (err instanceof Bottleneck.BottleneckError) err.code = 'ERR_QUEUE_DROPPED';
+    throw err;
+  });
+  if (!signal) return tagged;
+
+  // Settle as soon as the caller aborts rather than when the queue reaches
+  // this job, so the provider code awaiting it (and the page it parsed) is
+  // released now. The job itself then ends at its next abort check.
+  return new Promise((resolve, reject) => {
+    const onAbort = () => reject(abortReason(signal));
+    signal.addEventListener('abort', onAbort, { once: true });
+    tagged.then(resolve, reject).finally(() => signal.removeEventListener('abort', onAbort));
+  });
 }
 
-function sleep(ms) {
-  return new Promise(r => setTimeout(r, ms));
+function abortReason(signal) {
+  const reason = signal.reason;
+  const err = new Error(reason?.message ?? (typeof reason === 'string' ? reason : 'Request aborted'));
+  err.name = 'AbortError';
+  err.code = 'ERR_CANCELED';
+  return err;
+}
+
+/**
+ * True for a request this client gave up on deliberately: cancelled because
+ * its caller stopped waiting, or dropped from a full queue. Neither says
+ * anything about the site, so domain rotation must not mark a domain failed
+ * or move on to the next one because of it.
+ */
+export function isCancellation(err) {
+  return err?.code === 'ERR_CANCELED' || err?.code === 'ERR_QUEUE_DROPPED';
+}
+
+// Wakes early on abort, so a cancelled job does not hold a concurrency slot
+// through its retry back-off.
+function sleep(ms, signal) {
+  return new Promise(resolve => {
+    const done = () => {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', done);
+      resolve();
+    };
+    const timer = setTimeout(done, ms);
+    signal?.addEventListener('abort', done, { once: true });
+  });
 }
 
 // Capped because the aggregator gives each provider a hard timeout anyway, so

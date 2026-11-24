@@ -2,7 +2,7 @@
  * EZTV provider -- uses the official EZTV JSON API.
  * Supports series only (no movies).
  */
-import { get } from '../lib/httpClient.js';
+import { get, isCancellation } from '../lib/httpClient.js';
 import { parseTitle } from '../lib/titleHelper.js';
 import { tryDomains, PROVIDER_DOMAINS } from '../lib/domainRotation.js';
 import { normaliseInfoHash } from '../lib/magnetHelper.js';
@@ -42,7 +42,8 @@ export async function scrape(meta) {
 
     return filterBySeason(results, meta.season, meta.episode);
   } catch (err) {
-    logger.warn(`[EZTV] ${err.message}`);
+    // A cancelled search was abandoned by the aggregator, which logs that itself.
+    if (!isCancellation(err)) logger.warn(`[EZTV] ${err.message}`);
     return [];
   }
 }
