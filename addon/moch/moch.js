@@ -91,7 +91,7 @@ export async function applyMochs(streams, config, requestContext) {
             .filter(stream => stream.infoHash && cachedMap.has(stream.infoHash?.toLowerCase()))
             .map(stream => resolveLimit(async () => {
               const url = await withTimeout(
-                module.resolve(stream, apiKey),
+                signal => module.resolve(stream, apiKey, { signal }),
                 RESOLVE_TIMEOUT_MS,
                 `${moch.name} resolve timed out`
               );
@@ -227,14 +227,21 @@ export function selectMochResults(directStreams, rawStreams, p2pFallback = false
   return p2pFallback ? rawStreams : [];
 }
 
-async function withTimeout(promise, timeoutMs, message) {
+// `run` receives an AbortSignal that fires on timeout. Providers that honour it
+// stop their upstream request, so a freed resolveLimit slot means the work has
+// really ended and the provider never sees more than the intended concurrency.
+async function withTimeout(run, timeoutMs, message) {
+  const controller = new AbortController();
   let timeoutId;
   const timeout = new Promise((_, reject) => {
-    timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
+    timeoutId = setTimeout(() => {
+      controller.abort(new Error(message));
+      reject(new Error(message));
+    }, timeoutMs);
   });
 
   try {
-    return await Promise.race([promise, timeout]);
+    return await Promise.race([run(controller.signal), timeout]);
   } finally {
     clearTimeout(timeoutId);
   }
