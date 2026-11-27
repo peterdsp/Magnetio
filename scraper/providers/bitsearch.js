@@ -2,7 +2,7 @@
  * Bitsearch provider, scrapes search result cards with direct magnet links.
  */
 import * as cheerio from 'cheerio';
-import { get } from '../lib/httpClient.js';
+import { get, isCancellation } from '../lib/httpClient.js';
 import { parseTitle, buildSearchQuery } from '../lib/titleHelper.js';
 import { logger } from '../lib/logger.js';
 
@@ -55,7 +55,8 @@ export async function scrape(meta) {
 
     return results.slice(0, 30);
   } catch (err) {
-    logger.warn(`[Bitsearch] ${err.message}`);
+    // A cancelled search was abandoned by the aggregator, which logs that itself.
+    if (!isCancellation(err)) logger.warn(`[Bitsearch] ${err.message}`);
     return [];
   }
 }

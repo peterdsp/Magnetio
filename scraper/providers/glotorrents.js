@@ -2,7 +2,7 @@
  * GloTorrents provider -- scrapes glodls.to search results via HTML.
  */
 import * as cheerio from 'cheerio';
-import { get } from '../lib/httpClient.js';
+import { get, isCancellation } from '../lib/httpClient.js';
 import { parseTitle, buildSearchQuery } from '../lib/titleHelper.js';
 import { tryDomains, PROVIDER_DOMAINS } from '../lib/domainRotation.js';
 import { logger } from '../lib/logger.js';
@@ -73,7 +73,8 @@ export async function scrape(meta) {
 
     return results;
   } catch (err) {
-    logger.warn(`[GloTorrents] ${err.message}`);
+    // A cancelled search was abandoned by the aggregator, which logs that itself.
+    if (!isCancellation(err)) logger.warn(`[GloTorrents] ${err.message}`);
     return [];
   }
 }

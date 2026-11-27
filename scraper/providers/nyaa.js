@@ -2,7 +2,7 @@
  * Nyaa provider — uses Nyaa.si RSS/JSON for anime torrents.
  */
 import * as cheerio from 'cheerio';
-import { get } from '../lib/httpClient.js';
+import { get, isCancellation } from '../lib/httpClient.js';
 import { parseTitle, buildSearchQuery } from '../lib/titleHelper.js';
 import { logger } from '../lib/logger.js';
 
@@ -63,7 +63,8 @@ export async function scrape(meta) {
 
     return results;
   } catch (err) {
-    logger.warn(`[Nyaa] ${err.message}`);
+    // A cancelled search was abandoned by the aggregator, which logs that itself.
+    if (!isCancellation(err)) logger.warn(`[Nyaa] ${err.message}`);
     return [];
   }
 }

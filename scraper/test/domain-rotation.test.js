@@ -27,3 +27,29 @@ test('YTS response validation rejects non-API payloads', () => {
   assert.equal(isValidYtsResponse({ data: { status: 'error' } }), false);
   assert.equal(isValidYtsResponse({ data: { status: 'ok', data: {} } }), true);
 });
+
+// A request cancelled because its caller stopped waiting says nothing about
+// the domain. Rotating on it marked every domain failed for five minutes and
+// queued the same cancelled search against each mirror in turn.
+test('domain rotation stops on a cancelled request without trying the next domain', async () => {
+  const visited = [];
+  const cancelled = Object.assign(new Error('timed out'), { code: 'ERR_CANCELED' });
+  await assert.rejects(
+    tryDomains(
+      ['https://cancel-a.example', 'https://cancel-b.example'],
+      async domain => { visited.push(domain); throw cancelled; },
+      'Cancel-test',
+    ),
+    err => err === cancelled,
+  );
+  assert.deepEqual(visited, ['https://cancel-a.example']);
+
+  // And the domain is still considered healthy afterwards.
+  const again = [];
+  await tryDomains(
+    ['https://cancel-a.example', 'https://cancel-b.example'],
+    async domain => { again.push(domain); return { data: 'ok' }; },
+    'Cancel-test',
+  );
+  assert.deepEqual(again, ['https://cancel-a.example']);
+});

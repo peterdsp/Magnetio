@@ -3,7 +3,7 @@
  * Successor to the original RARBG. Supports movies and TV.
  */
 import * as cheerio from 'cheerio';
-import { get } from '../lib/httpClient.js';
+import { get, isCancellation } from '../lib/httpClient.js';
 import { parseTitle, buildSearchQuery } from '../lib/titleHelper.js';
 import { extractInfoHash, parseSize } from '../lib/magnetHelper.js';
 import { logger } from '../lib/logger.js';
@@ -50,7 +50,8 @@ export async function scrape(meta) {
 
     return results;
   } catch (err) {
-    logger.warn(`[TheRarBG] ${err.message}`);
+    // A cancelled search was abandoned by the aggregator, which logs that itself.
+    if (!isCancellation(err)) logger.warn(`[TheRarBG] ${err.message}`);
     return [];
   }
 }

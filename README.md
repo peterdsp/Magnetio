@@ -666,6 +666,8 @@ Combined with the HTTPS step above, that's enough to install Magnetio on an Orac
 | `SCRAPER_MIN_EARLY_RESULTS` | `10` | Minimum matching results (after the content filter) before early return kicks in |
 | `SCRAPER_DOMAIN_COOLDOWN_MS` | `300000` | Cooldown when a domain returns 403/5xx/timeout |
 | `SCRAPER_RATELIMIT_COOLDOWN_MS` | `600000` | Longer cooldown when a domain returns 429 |
+| `SCRAPER_LIMITER_HIGH_WATER` | `32` | Requests a provider's rate limiter may queue; past it the oldest waiting request is dropped |
+| `SCRAPER_CACHE_MAX_ENTRIES` | `1000` | Entries the in-memory cache keeps when `REDIS_URI` is unset (oldest evicted first) |
 | `LOG_LEVEL` | `info` | Winston log level |
 
 ### Optional Services

@@ -2,7 +2,7 @@
  * SubsPlease provider -- uses the official SubsPlease JSON API.
  * Anime only. Returns 480p, 720p, and 1080p variants per episode.
  */
-import { get } from '../lib/httpClient.js';
+import { get, isCancellation } from '../lib/httpClient.js';
 import { parseTitle } from '../lib/titleHelper.js';
 import { extractInfoHash } from '../lib/magnetHelper.js';
 import { logger } from '../lib/logger.js';
@@ -77,7 +77,8 @@ export async function scrape(meta) {
 
     return results;
   } catch (err) {
-    logger.warn(`[SubsPlease] ${err.message}`);
+    // A cancelled search was abandoned by the aggregator, which logs that itself.
+    if (!isCancellation(err)) logger.warn(`[SubsPlease] ${err.message}`);
     return [];
   }
 }

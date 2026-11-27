@@ -2,7 +2,7 @@
  * AnimeTosho provider -- uses the JSON feed for anime torrents.
  * Aggregates results from Nyaa, TokyoTosho, and other anime trackers.
  */
-import { get } from '../lib/httpClient.js';
+import { get, isCancellation } from '../lib/httpClient.js';
 import { parseTitle, buildSearchQuery } from '../lib/titleHelper.js';
 import { extractInfoHash, normaliseInfoHash } from '../lib/magnetHelper.js';
 import { logger } from '../lib/logger.js';
@@ -36,7 +36,8 @@ export async function scrape(meta) {
     const entries = Array.isArray(data) ? data : [];
     return entries.flatMap(entry => normalise(entry, meta) ?? []);
   } catch (err) {
-    logger.warn(`[AnimeTosho] ${err.message}`);
+    // A cancelled search was abandoned by the aggregator, which logs that itself.
+    if (!isCancellation(err)) logger.warn(`[AnimeTosho] ${err.message}`);
     return [];
   }
 }

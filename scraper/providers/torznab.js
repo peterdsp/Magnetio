@@ -3,7 +3,7 @@
  * Conditionally active: returns [] when no torznabUrl is configured.
  */
 import * as cheerio from 'cheerio';
-import { get } from '../lib/httpClient.js';
+import { get, isCancellation } from '../lib/httpClient.js';
 import { resolveSafeTarget } from '../lib/ssrf.js';
 import { parseTitle, buildSearchQuery } from '../lib/titleHelper.js';
 import { logger } from '../lib/logger.js';
@@ -55,7 +55,8 @@ export async function scrape(meta) {
     logger.info(`[Torznab] ${results.length} results from ${redactedUrl}`);
     return results;
   } catch (err) {
-    logger.warn(`[Torznab] ${err.message}`);
+    // A cancelled search was abandoned by the aggregator, which logs that itself.
+    if (!isCancellation(err)) logger.warn(`[Torznab] ${err.message}`);
     return [];
   }
 }

@@ -14,7 +14,7 @@
  * Full walkthrough: ../../CONTRIBUTING.md#adding-a-torrent-provider
  */
 import * as cheerio from 'cheerio';
-import { get } from '../lib/httpClient.js';
+import { get, isCancellation } from '../lib/httpClient.js';
 import { parseTitle, buildSearchQuery } from '../lib/titleHelper.js';
 // Always use the shared helpers for these two. extractInfoHash converts a
 // base32 magnet hash to hex, which a hand-rolled regex does not, and dedup
@@ -113,7 +113,8 @@ export async function scrape(meta) {
     return results;
   } catch (err) {
     // A provider must never throw. One broken site must not fail the scrape.
-    logger.warn(`[${name}] ${err.message}`);
+    // A cancelled search was abandoned by the aggregator, which logs that itself.
+    if (!isCancellation(err)) logger.warn(`[${name}] ${err.message}`);
     return [];
   }
 }

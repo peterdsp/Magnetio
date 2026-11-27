@@ -5,7 +5,7 @@
  * widens coverage across all of them. The API is POST-only, which is why
  * lib/httpClient.js has a post() helper.
  */
-import { post } from '../lib/httpClient.js';
+import { post, isCancellation } from '../lib/httpClient.js';
 import { parseTitle, buildSearchQuery } from '../lib/titleHelper.js';
 import { extractInfoHash, normaliseInfoHash } from '../lib/magnetHelper.js';
 import { logger } from '../lib/logger.js';
@@ -45,7 +45,8 @@ export async function scrape(meta) {
     const hits = Array.isArray(data?.hits) ? data.hits : [];
     return hits.flatMap(hit => normalise(hit, meta) ?? []);
   } catch (err) {
-    logger.warn(`[Knaben] ${err.message}`);
+    // A cancelled search was abandoned by the aggregator, which logs that itself.
+    if (!isCancellation(err)) logger.warn(`[Knaben] ${err.message}`);
     return [];
   }
 }

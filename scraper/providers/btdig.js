@@ -3,7 +3,7 @@
  * DHT search engine, good for finding less common torrents.
  */
 import * as cheerio from 'cheerio';
-import { get } from '../lib/httpClient.js';
+import { get, isCancellation } from '../lib/httpClient.js';
 import { parseTitle, buildSearchQuery } from '../lib/titleHelper.js';
 import { logger } from '../lib/logger.js';
 
@@ -61,7 +61,8 @@ export async function scrape(meta) {
 
     return results;
   } catch (err) {
-    logger.warn(`[BTDig] ${err.message}`);
+    // A cancelled search was abandoned by the aggregator, which logs that itself.
+    if (!isCancellation(err)) logger.warn(`[BTDig] ${err.message}`);
     return [];
   }
 }
